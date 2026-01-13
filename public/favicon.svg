@@ -1,0 +1,10 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="32" height="32" rx="8" fill="#059669"/>
+  
+  <!-- Clean shopping basket -->
+  <path d="M7 13H25L23 23H9L7 13Z" fill="white"/>
+  
+  <!-- Simple basket handle -->
+  <path d="M12 9C12 7.89543 12.8954 7 14 7H18C19.1046 7 20 7.89543 20 9V13H18V9H14V13H12V9Z" fill="white"/>
+</svg>

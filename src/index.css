@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Offset scroll position to account for fixed header */
+#about,
+#how-it-works,
+#pricing {
+  scroll-margin-top: 100px;
+}
