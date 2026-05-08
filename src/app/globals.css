@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+html {
+  scroll-behavior: smooth;
+}
+
+#about,
+#how-it-works,
+#pricing {
+  scroll-margin-top: 100px;
+}
+
+/* Ticker / marquee animation for the hero press bar */
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-track {
+  animation: ticker 30s linear infinite;
+}
+
+/* Wave section dividers */
+.wave-bottom {
+  clip-path: ellipse(55% 100% at 50% 0%);
+}
+
+.wave-top {
+  clip-path: ellipse(55% 100% at 50% 100%);
+}

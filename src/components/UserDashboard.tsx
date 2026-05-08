@@ -1,6 +1,8 @@
+'use client';
+
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { useUser, useClerk } from '@clerk/clerk-react';
+import Link from 'next/link';
+import { useUser, useClerk } from '@clerk/nextjs';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SUBSCRIPTION_TIERS } from '../data/tiers';
@@ -8,17 +10,22 @@ import { motion } from 'framer-motion';
 import { 
   Package, Calendar, CreditCard, Settings, 
   Pause, Play, X, Check, Clock,
-  Truck, AlertCircle, LogOut, Mail, User
+  Truck, AlertCircle, LogOut, Mail, User, Gift
 } from 'lucide-react';
 import Footer from './Footer';
 
 const UserDashboard: React.FC = () => {
   const { user } = useUser();
   const { signOut, openUserProfile } = useClerk();
-  const userData = useQuery(api.users.getUserByClerkId, 
-    user ? { clerkId: user.id } : "skip"
-  );
   const subscriptions = useQuery(api.subscriptions.getMySubscriptions);
+  const sentGifts = useQuery(
+    api.giftSubscriptions.getGiftSubscriptionsByGiver,
+    user ? { giverEmail: user.emailAddresses[0]?.emailAddress || '' } : "skip"
+  );
+  const receivedGifts = useQuery(
+    api.giftSubscriptions.getGiftSubscriptionsByRecipient,
+    user ? { recipientEmail: user.emailAddresses[0]?.emailAddress || '' } : "skip"
+  );
   
   const pauseSubscription = useMutation(api.subscriptions.pauseSubscription);
   const resumeSubscription = useMutation(api.subscriptions.resumeSubscription);
@@ -42,11 +49,16 @@ const UserDashboard: React.FC = () => {
     const startDate = new Date(activeSubscription.startDate);
     const now = new Date();
     const frequency = activeSubscription.frequency === 'fortnightly' ? 14 : 
-                      activeSubscription.frequency === 'monthly' ? 30 : 365;
+                      activeSubscription.frequency === 'monthly' ? 30 : 
+                      activeSubscription.frequency === 'yearly' ? 365 : 30;
     
     let nextDelivery = new Date(startDate);
     while (nextDelivery < now) {
-      nextDelivery.setDate(nextDelivery.getDate() + frequency);
+      if (activeSubscription.frequency === 'yearly') {
+        nextDelivery.setFullYear(nextDelivery.getFullYear() + 1);
+      } else {
+        nextDelivery.setDate(nextDelivery.getDate() + frequency);
+      }
     }
     return nextDelivery;
   };
@@ -54,14 +66,14 @@ const UserDashboard: React.FC = () => {
   const nextDelivery = getNextDeliveryDate();
 
   return (
-    <main className="min-h-screen bg-[#FDFBF7]">
+    <main className="min-h-screen bg-cream-50">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-white border-b-2 border-stone-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <Link to="/" className="font-serif text-2xl font-bold tracking-tight text-stone-900">
-            Lumë <span className="text-emerald-700 font-light">Refillery</span>
+          <Link href="/" className="font-display text-3xl font-bold tracking-tight text-stone-900">
+            Lumë <span className="text-ocean-600 font-light">Refillery</span>
           </Link>
-          <Link to="/" className="text-stone-600 hover:text-stone-900 transition-colors text-sm">
+          <Link href="/" className="text-stone-600 hover:text-stone-900 transition-colors text-sm font-medium">
             Back to Home
           </Link>
         </div>
@@ -72,72 +84,48 @@ const UserDashboard: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-12"
         >
-          <h1 className="text-3xl font-serif font-bold text-stone-900 mb-2">
+          <h1 className="text-5xl font-display font-bold text-stone-900 mb-4 tracking-tightest">
             Welcome back, {user.firstName || 'there'}!
           </h1>
-          <p className="text-stone-600">Manage your subscription and account settings</p>
+          <p className="text-lg text-stone-600 font-medium">Manage your subscription and keep circular living easy.</p>
         </motion.div>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             {/* Active Subscription Card */}
             {activeSubscription && tierInfo ? (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="bg-white rounded-2xl border border-stone-200 overflow-hidden"
+                className="bg-white rounded-2xl border-2 border-stone-900 shadow-quirky-float p-1"
               >
-                <div className="p-6 border-b border-stone-100">
+                <div className="p-6 border-b-2 border-stone-900">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <Package className="w-5 h-5 text-emerald-600" />
-                        <h2 className="text-xl font-semibold text-stone-900">Your Subscription</h2>
+                        <Package className="w-6 h-6 text-accent-orange" />
+                        <h2 className="text-2xl font-display font-bold text-stone-900">Your Subscription</h2>
                       </div>
-                      <p className="text-stone-600">{tierInfo.name}</p>
+                      <p className="text-stone-600 font-medium">{tierInfo.name}</p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      activeSubscription.status === 'active' 
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : activeSubscription.status === 'paused'
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-stone-100 text-stone-600'
-                    }`}>
-                      {activeSubscription.status.charAt(0).toUpperCase() + activeSubscription.status.slice(1)}
+                    <span className="px-4 py-1.5 rounded-full text-sm font-bold bg-accent-orange text-white">
+                      {activeSubscription.status.toUpperCase()}
                     </span>
                   </div>
                 </div>
 
                 <div className="p-6">
-                  <div className="grid sm:grid-cols-3 gap-6 mb-6">
-                    <div>
-                      <div className="text-sm text-stone-500 mb-1">Plan</div>
-                      <div className="font-semibold text-stone-900">{tierInfo.name}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-stone-500 mb-1">Billing</div>
-                      <div className="font-semibold text-stone-900 capitalize">{activeSubscription.frequency}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-stone-500 mb-1">Price</div>
-                      <div className="font-semibold text-stone-900">
-                        ${(Number(tierInfo.price[activeSubscription.frequency as keyof typeof tierInfo.price]) || tierInfo.price.monthly).toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Next Delivery */}
+                  {/* Next Delivery / Status */}
                   {activeSubscription.status === 'active' && nextDelivery && (
-                    <div className="bg-emerald-50 rounded-xl p-4 mb-6">
-                      <div className="flex items-center gap-3">
-                        <Truck className="w-8 h-8 text-emerald-600" />
+                    <div className="bg-sage-400/20 rounded-xl p-6 mb-8 border border-sage-500">
+                      <div className="flex items-center gap-4">
+                        <Truck className="w-10 h-10 text-ocean-700" />
                         <div>
-                          <div className="text-sm text-emerald-700">Next Delivery</div>
-                          <div className="font-semibold text-emerald-900">
+                          <div className="text-sm font-bold text-ocean-700 uppercase tracking-widest">Next Delivery</div>
+                          <div className="text-xl font-display font-bold text-stone-900">
                             {nextDelivery.toLocaleDateString('en-US', { 
                               weekday: 'long', 
                               month: 'long', 
@@ -149,64 +137,26 @@ const UserDashboard: React.FC = () => {
                     </div>
                   )}
 
-                  {activeSubscription.status === 'paused' && (
-                    <div className="bg-amber-50 rounded-xl p-4 mb-6">
-                      <div className="flex items-center gap-3">
-                        <AlertCircle className="w-8 h-8 text-amber-600" />
-                        <div>
-                          <div className="font-semibold text-amber-900">Subscription Paused</div>
-                          <div className="text-sm text-amber-700">Resume anytime to continue deliveries</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* What's Included */}
-                  <div className="mb-6">
-                    <h3 className="font-medium text-stone-900 mb-3">What's in your haul:</h3>
-                    <ul className="grid sm:grid-cols-2 gap-2">
-                      {tierInfo.items.slice(0, 6).map((item) => (
-                        <li key={item.id} className="flex items-center gap-2 text-sm text-stone-600">
-                          <Check className="w-4 h-4 text-emerald-500" />
-                          {item.quantity} {item.unit} {item.name}
-                        </li>
-                      ))}
-                      {tierInfo.items.length > 6 && (
-                        <li className="text-sm text-stone-400">
-                          + {tierInfo.items.length - 6} more items
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-
                   {/* Actions */}
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-4">
                     {activeSubscription.status === 'active' ? (
                       <button
                         onClick={() => pauseSubscription({ subscriptionId: activeSubscription._id })}
-                        className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors"
+                        className="flex items-center gap-2 px-6 py-3 bg-accent-orange text-white rounded-lg font-bold hover:bg-opacity-90 transition-all shadow-quirky-float"
                       >
-                        <Pause className="w-4 h-4" />
+                        <Pause className="w-5 h-5" />
                         Pause Subscription
-                      </button>
-                    ) : activeSubscription.status === 'paused' ? (
-                      <button
-                        onClick={() => resumeSubscription({ subscriptionId: activeSubscription._id })}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors"
-                      >
-                        <Play className="w-4 h-4" />
-                        Resume Subscription
                       </button>
                     ) : null}
                     <button
                       onClick={() => {
-                        if (confirm('Are you sure you want to cancel your subscription?')) {
+                        if (confirm('Are you sure you want to cancel?')) {
                           cancelSubscription({ subscriptionId: activeSubscription._id });
                         }
                       }}
-                      className="flex items-center gap-2 px-4 py-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors"
+                      className="flex items-center gap-2 px-6 py-3 bg-stone-100 text-stone-900 border-2 border-stone-900 rounded-lg font-bold hover:bg-stone-200 transition-all"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-5 h-5" />
                       Cancel
                     </button>
                   </div>
@@ -217,30 +167,29 @@ const UserDashboard: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="bg-white rounded-2xl border border-stone-200 p-8 text-center"
+                className="bg-white rounded-2xl border-2 border-stone-900 p-12 text-center shadow-quirky-float"
               >
-                <Package className="w-12 h-12 text-stone-300 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold text-stone-900 mb-2">No Active Subscription</h2>
-                <p className="text-stone-600 mb-6">Start your grocery subscription today and get fresh staples delivered to your door.</p>
+                <Package className="w-16 h-16 text-accent-orange mx-auto mb-6" />
+                <h2 className="text-3xl font-display font-bold text-stone-900 mb-4">No Active Subscription</h2>
                 <Link
-                  to="/sample-hauls"
-                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-full font-medium transition-colors"
+                  href="/sample-hauls"
+                  className="inline-flex items-center gap-2 bg-ocean-600 hover:bg-ocean-700 text-white px-8 py-4 rounded-lg font-bold transition-all shadow-quirky-float"
                 >
                   Browse Plans
                 </Link>
               </motion.div>
             )}
+...
 
             {/* Order History */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl border border-stone-200 p-6"
+              className="bg-white rounded-2xl border border-cream-200 p-6"
             >
               <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-5 h-5 text-emerald-600" />
+                <Clock className="w-5 h-5 text-ocean-600" />
                 <h2 className="text-xl font-semibold text-stone-900">Order History</h2>
               </div>
               
@@ -249,7 +198,7 @@ const UserDashboard: React.FC = () => {
                   {subscriptions.map((sub) => {
                     const tier = SUBSCRIPTION_TIERS.find(t => t.id === sub.tier);
                     return (
-                      <div key={sub._id} className="flex items-center justify-between p-4 bg-stone-50 rounded-xl">
+                      <div key={sub._id} className="flex items-center justify-between p-4 bg-cream-50 rounded-xl">
                         <div>
                           <div className="font-medium text-stone-900">{tier?.name || sub.tier}</div>
                           <div className="text-sm text-stone-500">
@@ -257,9 +206,9 @@ const UserDashboard: React.FC = () => {
                           </div>
                         </div>
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          sub.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
-                          sub.status === 'paused' ? 'bg-amber-100 text-amber-700' :
-                          'bg-stone-100 text-stone-600'
+                          sub.status === 'active' ? 'bg-sage-400/20 text-ocean-700' :
+                          sub.status === 'paused' ? 'bg-accent-yellow/20 text-stone-900' :
+                          'bg-cream-200 text-stone-600'
                         }`}>
                           {sub.status}
                         </span>
@@ -271,6 +220,86 @@ const UserDashboard: React.FC = () => {
                 <p className="text-stone-500 text-center py-8">No orders yet</p>
               )}
             </motion.div>
+
+            {/* Gift Subscriptions */}
+            {(sentGifts && sentGifts.length > 0) || (receivedGifts && receivedGifts.length > 0) ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white rounded-2xl border border-stone-200 p-6"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <Gift className="w-5 h-5 text-emerald-600" />
+                  <h2 className="text-xl font-semibold text-stone-900">Gift Subscriptions</h2>
+                </div>
+                
+                {/* Sent Gifts */}
+                {sentGifts && sentGifts.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="font-medium text-stone-900 mb-3">Gifts You've Sent</h3>
+                    <div className="space-y-3">
+                      {sentGifts.map((gift) => {
+                        const tier = SUBSCRIPTION_TIERS.find(t => t.id === gift.tier);
+                        return (
+                          <div key={gift._id} className="flex items-center justify-between p-4 bg-emerald-50 rounded-xl">
+                            <div>
+                              <div className="font-medium text-stone-900">
+                                {tier?.name || gift.tier} for {gift.recipientName}
+                              </div>
+                              <div className="text-sm text-stone-500">
+                                {new Date(gift.createdAt).toLocaleDateString()} • ${gift.amount.toFixed(2)}
+                              </div>
+                            </div>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              gift.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
+                              gift.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                              'bg-stone-100 text-stone-600'
+                            }`}>
+                              {gift.status}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Received Gifts */}
+                {receivedGifts && receivedGifts.length > 0 && (
+                  <div>
+                    <h3 className="font-medium text-stone-900 mb-3">Gifts You've Received</h3>
+                    <div className="space-y-3">
+                      {receivedGifts.map((gift) => {
+                        const tier = SUBSCRIPTION_TIERS.find(t => t.id === gift.tier);
+                        return (
+                          <div key={gift._id} className="flex items-center justify-between p-4 bg-blue-50 rounded-xl">
+                            <div>
+                              <div className="font-medium text-stone-900">
+                                {tier?.name || gift.tier} from {gift.giverName}
+                              </div>
+                              <div className="text-sm text-stone-500">
+                                {new Date(gift.createdAt).toLocaleDateString()}
+                                {gift.giftMessage && (
+                                  <span className="block italic mt-1">"{gift.giftMessage}"</span>
+                                )}
+                              </div>
+                            </div>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              gift.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
+                              gift.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                              'bg-stone-100 text-stone-600'
+                            }`}>
+                              {gift.status}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            ) : null}
           </div>
 
           {/* Sidebar */}
@@ -328,15 +357,15 @@ const UserDashboard: React.FC = () => {
             >
               <h2 className="text-lg font-semibold text-stone-900 mb-4">Quick Links</h2>
               <div className="space-y-2">
-                <Link to="/sample-hauls" className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors text-stone-600 hover:text-stone-900">
+                <Link href="/sample-hauls" className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors text-stone-600 hover:text-stone-900">
                   <Package className="w-5 h-5" />
                   Browse Plans
                 </Link>
-                <Link to="/quiz" className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors text-stone-600 hover:text-stone-900">
+                <Link href="/quiz" className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors text-stone-600 hover:text-stone-900">
                   <Calendar className="w-5 h-5" />
                   Take the Quiz
                 </Link>
-                <Link to="/gift" className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors text-stone-600 hover:text-stone-900">
+                <Link href="/gift" className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors text-stone-600 hover:text-stone-900">
                   <CreditCard className="w-5 h-5" />
                   Gift a Subscription
                 </Link>

@@ -1,0 +1,99 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Lume Refillery",
+    "theme_version": "1.0.0",
+    "theme_author": "Lume Studio",
+    "theme_documentation_url": "https://lumerefillery.com",
+    "theme_support_url": "mailto:lumestudiott@gmail.com"
+  },
+  {
+    "name": "Colors",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Brand Colors"
+      },
+      {
+        "type": "color",
+        "id": "color_cream",
+        "label": "Cream Background",
+        "default": "#FDFBF7"
+      },
+      {
+        "type": "color",
+        "id": "color_cream_100",
+        "label": "Cream Light",
+        "default": "#F5F0E8"
+      },
+      {
+        "type": "color",
+        "id": "color_forest",
+        "label": "Forest Primary",
+        "default": "#354535"
+      },
+      {
+        "type": "color",
+        "id": "color_forest_dark",
+        "label": "Forest Dark",
+        "default": "#2C3B2C"
+      },
+      {
+        "type": "color",
+        "id": "color_copper",
+        "label": "Copper Accent",
+        "default": "#C4886B"
+      },
+      {
+        "type": "color",
+        "id": "color_sage",
+        "label": "Sage",
+        "default": "#B8C9B8"
+      },
+      {
+        "type": "color",
+        "id": "color_stone",
+        "label": "Stone Text",
+        "default": "#3A3A3A"
+      }
+    ]
+  },
+  {
+    "name": "Typography",
+    "settings": [
+      {
+        "type": "font_picker",
+        "id": "heading_font",
+        "label": "Heading Font",
+        "default": "serif"
+      },
+      {
+        "type": "font_picker",
+        "id": "body_font",
+        "label": "Body Font",
+        "default": "assistant_n4"
+      }
+    ]
+  },
+  {
+    "name": "Social Media",
+    "settings": [
+      {
+        "type": "text",
+        "id": "social_instagram",
+        "label": "Instagram URL"
+      },
+      {
+        "type": "text",
+        "id": "social_twitter",
+        "label": "Twitter/X URL"
+      },
+      {
+        "type": "text",
+        "id": "social_email",
+        "label": "Contact Email",
+        "default": "lumestudiott@gmail.com"
+      }
+    ]
+  }
+]

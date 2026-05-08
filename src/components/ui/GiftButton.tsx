@@ -1,7 +1,9 @@
+'use client';
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 interface GiftButtonProps {
   scrolled: boolean;
@@ -9,10 +11,10 @@ interface GiftButtonProps {
 
 export const GiftButton: React.FC<GiftButtonProps> = ({ scrolled }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleClick = () => {
-    navigate('/gift');
+    router.push('/gift');
   };
 
   return (
@@ -23,12 +25,11 @@ export const GiftButton: React.FC<GiftButtonProps> = ({ scrolled }) => {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       className={`relative flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 overflow-visible cursor-pointer ${
-        scrolled 
-          ? 'text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 ring-1 ring-stone-200 hover:ring-stone-300' 
+        scrolled
+          ? 'text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 ring-1 ring-stone-200 hover:ring-stone-300'
           : 'text-white hover:text-white bg-white/20 hover:bg-white/30 ring-1 ring-white/30 hover:ring-white/40'
       }`}
     >
-      {/* Subtle Shine Effect */}
       <AnimatePresence>
         {isHovered && (
           <motion.div
@@ -43,23 +44,22 @@ export const GiftButton: React.FC<GiftButtonProps> = ({ scrolled }) => {
 
       <div className="relative">
         <motion.div
-          animate={{ 
+          animate={{
             scale: isHovered ? [1, 1.2, 1] : 1,
             rotate: isHovered ? [0, -5, 5, 0] : 0
           }}
-          transition={{ 
+          transition={{
             scale: { repeat: Infinity, duration: 1.5, ease: "easeInOut" },
             rotate: { duration: 0.5 }
           }}
         >
-          <Heart 
+          <Heart
             className={`w-4 h-4 transition-colors duration-300 ${
               isHovered ? 'text-red-500 fill-red-500' : 'currentColor'
-            }`} 
+            }`}
           />
         </motion.div>
-        
-        {/* Floating Sparkles - Repositioned */}
+
         <AnimatePresence>
           {isHovered && (
             <>
@@ -94,7 +94,7 @@ export const GiftButton: React.FC<GiftButtonProps> = ({ scrolled }) => {
           )}
         </AnimatePresence>
       </div>
-      
+
       <span className="relative z-10">Gift A Sub</span>
     </motion.button>
   );

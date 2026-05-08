@@ -14,7 +14,7 @@ export default defineSchema({
   subscriptions: defineTable({
     userId: v.id("users"),
     tier: v.string(), // "essential", "household", "supported"
-    frequency: v.string(), // "fortnightly", "monthly"
+    frequency: v.string(), // "fortnightly", "monthly", "yearly"
     status: v.string(), // "active", "paused", "cancelled"
     startDate: v.number(),
     nextDelivery: v.optional(v.number()),
@@ -40,4 +40,35 @@ export default defineSchema({
     subscribedAt: v.number(),
     status: v.string(), // "active", "unsubscribed"
   }).index("by_email", ["email"]),
+
+  giftSubscriptions: defineTable({
+    // Gift giver info
+    giverName: v.string(),
+    giverEmail: v.string(),
+    
+    // Recipient info
+    recipientName: v.string(),
+    recipientEmail: v.string(),
+    recipientAddress: v.string(),
+    recipientCity: v.string(),
+    recipientState: v.string(),
+    recipientZip: v.string(),
+    
+    // Gift details
+    tier: v.string(), // "essential", "household", etc.
+    billingCycle: v.string(), // "fortnightly", "monthly", "yearly"
+    giftMessage: v.optional(v.string()),
+    
+    // Payment and status
+    amount: v.number(),
+    status: v.string(), // "pending", "paid", "delivered", "cancelled"
+    paymentId: v.optional(v.string()), // WiiPay payment ID
+    
+    // Timestamps
+    createdAt: v.number(),
+    paidAt: v.optional(v.number()),
+    deliveredAt: v.optional(v.number()),
+  }).index("by_giver_email", ["giverEmail"])
+    .index("by_recipient_email", ["recipientEmail"])
+    .index("by_status", ["status"]),
 });

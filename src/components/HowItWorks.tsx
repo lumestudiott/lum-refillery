@@ -1,103 +1,67 @@
+'use client';
+
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Sprout, ShoppingCart, Package, Truck, Users, Palette, Calendar, Play } from 'lucide-react';
+import { SignInButton, useUser } from '@clerk/nextjs';
+import { CalendarDays, PackageCheck, SlidersHorizontal } from 'lucide-react';
+
+const steps = [
+  {
+    icon: SlidersHorizontal,
+    title: 'Choose your refill rhythm',
+    description: 'Tell us your household size, pantry staples, and produce preferences.',
+  },
+  {
+    icon: CalendarDays,
+    title: 'Skip, swap, or add anytime',
+    description: 'Keep the subscription flexible with easy changes before delivery day.',
+  },
+  {
+    icon: PackageCheck,
+    title: 'Receive and reuse',
+    description: 'Your haul arrives fresh in low-waste packaging that comes back next round.',
+  },
+];
 
 const HowItWorks: React.FC = () => {
-  const stepIcons = [Sprout, ShoppingCart, Package, Truck, Users, Palette, Calendar, Play];
-  const stepColors = ["emerald", "blue", "amber", "purple", "blue", "purple", "emerald", "amber"];
+  const { isSignedIn } = useUser();
 
-  const getColorClasses = (color: string) => {
-    const colors = {
-      emerald: { icon: "text-emerald-600" },
-      blue: { icon: "text-blue-600" },
-      amber: { icon: "text-amber-600" },
-      purple: { icon: "text-purple-600" }
-    };
-    return colors[color as keyof typeof colors];
-  };
-
-  const howItWorksSteps = [
-    {
-      title: "Choose Your Subscription",
-      description: "Select a grocery subscription tier based on your household size and needs. Each tier is designed to cover balanced food groups and predictable calorie value — without requiring personal disclosures or proof of need. This is food planning, made simpler."
-    },
-    {
-      title: "Subscribe With Confidence",
-      description: "During the pre-subscription phase, you're reserving a place in our first delivery cycles. This allows Lumë to build responsibly, source accurately, and avoid overpromising. You'll always know: What tier you're on, What it includes, When deliveries are expected to begin."
-    },
-    {
-      title: "Curated, Balanced Hauls",
-      description: "Each Lumë haul is curated around: Grains & staples, Proteins (included in every haul), Cooking fats, Vegetables & pantry essentials. Items may vary, but the structure stays consistent. Substitutions preserve nutritional value — not just price."
-    },
-    {
-      title: "Predictable Timing",
-      description: "Subscriptions run on a fortnightly or monthly cadence. No last-minute price shocks. No scrambling to replan meals every week. Food you can plan around."
-    },
-    {
-      title: "Flexible by Design",
-      description: "Life changes — your subscription can too. Pause, adjust, or cancel based on your circumstances, according to your tier's policy. Lumë is built to support stability, not pressure."
-    },
-    {
-      title: "Pre-Subscription Note",
-      description: "Lumë | Refillery is currently in its pre-subscription phase. No deliveries occur during this stage. If operational thresholds are not met, pre-subscriptions will be refunded in full. Transparency is part of the service."
-    },
-    {
-      title: "Quality Assurance",
-      description: "Every item in your haul meets our quality standards. We work directly with suppliers to ensure freshness and maintain consistent nutritional value across all subscription tiers."
-    },
-    {
-      title: "Community Focus",
-      description: "By subscribing, you're supporting local food systems and sustainable practices. Your subscription helps build a more resilient food network in your community."
-    }
-  ];
+  const cta = (
+    <button
+      onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+      className="mx-auto mt-12 flex cursor-pointer items-center justify-center rounded border-2 border-refill-ink bg-white px-10 py-4 text-lg font-black text-refill-ink shadow-[4px_4px_0_0_#2B2B2B] transition-transform hover:-translate-y-0.5"
+    >
+      Learn How It Works
+    </button>
+  );
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-      <div className="text-center mb-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-stone-900 mb-4">How It Works</h2>
-          <p className="text-lg text-stone-600 max-w-2xl mx-auto">
-            Everything on your table, we handle every step with <a href="/sustainability" className="text-emerald-600 hover:text-emerald-700 transition-colors">care and sustainability</a> in mind
-          </p>
-        </motion.div>
-      </div>
+    <section id="how-it-works" className="relative overflow-hidden bg-refill-green py-24 text-refill-ink scroll-mt-24">
+      <div className="absolute left-0 right-0 top-0 h-24 -translate-y-1 bg-cream-50 wave-bottom" />
+      <div className="absolute bottom-0 left-0 right-0 h-24 translate-y-1 bg-cream-50 wave-top" />
 
-      <div className="max-w-4xl mx-auto">
-        <div className="space-y-12">
-          {howItWorksSteps.map((step, index) => {
-            const Icon = stepIcons[index];
-            const colorClasses = getColorClasses(stepColors[index]);
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="flex gap-6"
-              >
-                <div className="flex-shrink-0">
-                  <motion.div
-                    animate={{ y: [0, -2, 0], rotate: [0, 2, -2, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: index * 0.5 }}
-                    className="w-12 h-12 flex items-center justify-center"
-                  >
-                    <Icon className={`w-8 h-8 ${colorClasses.icon}`} />
-                  </motion.div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-stone-900 mb-3">{step.title}</h3>
-                  <p className="text-stone-600 leading-relaxed">{step.description}</p>
-                </div>
-              </motion.div>
-            );
-          })}
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl text-center">
+          <h2 className="font-display text-4xl font-black leading-tight tracking-normal md:text-6xl">
+            Try our flexible, commitment-free grocery subscription
+          </h2>
         </div>
+
+        <div className="mt-12 grid gap-8 md:grid-cols-3">
+          {steps.map((step, index) => (
+            <article key={step.title} className="text-center md:text-left">
+              <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border-2 border-refill-ink bg-cream-50 md:mx-0">
+                <step.icon className="h-6 w-6" />
+              </div>
+              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-refill-yellow text-2xl font-black">
+                {index + 1}
+              </div>
+              <h3 className="text-xl font-black">{step.title}</h3>
+              <p className="mt-3 text-lg leading-relaxed text-refill-ink/80">{step.description}</p>
+            </article>
+          ))}
+        </div>
+
+        {isSignedIn ? cta : <SignInButton mode="modal">{cta}</SignInButton>}
       </div>
     </section>
   );

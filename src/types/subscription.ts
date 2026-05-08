@@ -1,11 +1,11 @@
-export type Unit = 'kg' | 'L' | 'pack' | 'can' | 'box' | 'g' | 'pcs';
+export type Unit = 'kg' | 'L' | 'pack' | 'can' | 'box' | 'g' | 'pcs' | 'ml';
 
 export interface SubscriptionItem {
   id: string;
   name: string;
   quantity: number;
   unit: Unit;
-  category: 'Grains' | 'Pantry' | 'Beverage' | 'Canned' | 'Other';
+  category: 'Grains' | 'Pantry' | 'Beverage' | 'Canned' | 'Other' | 'Snacks' | 'Spices' | 'Dairy';
 }
 
 export interface SubstitutionPolicy {

@@ -1,73 +1,64 @@
+'use client';
+
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Star } from 'lucide-react';
+import { Quote } from 'lucide-react';
 
 const testimonials = [
   {
-    name: "Sarah M.",
-    role: "Busy Mom",
-    image: "https://images.unsplash.com/photo-1672075270227-ddf5cb181a79?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&w=200",
-    quote: "Lumë has completely changed how I shop. Knowing I have the basics covered every week takes so much stress off my plate. The quality is incredible."
+    name: 'Sarah M.',
+    role: 'Family of 4',
+    quote: 'Lume changed how we shop. Our essentials show up, the produce is beautiful, and we waste far less.',
+    image: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=800&q=85',
   },
   {
-    name: "David K.",
-    role: "Diaspora Gifter",
-    image: "https://images.unsplash.com/photo-1658288098101-84f074c292a8?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&w=200",
-    quote: "I send the Household Haul to my parents back home. It's reliable, transparent, and I know they're getting good food, not just cash transfers."
+    name: 'James K.',
+    role: 'Solo subscriber',
+    quote: 'The portions are right for me, and the refill packaging makes the whole thing feel smarter.',
+    image: 'https://images.unsplash.com/photo-1543168256-418811576931?auto=format&fit=crop&w=800&q=85',
   },
   {
-    name: "Elena R.",
-    role: "Sustainable Living",
-    image: "https://images.unsplash.com/photo-1590905775253-a4f0f3c426ff?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&w=200",
-    quote: "I love that I'm supporting local farmers directly. The produce tastes real, unlike the supermarket stuff. It feels good to be part of this community."
-  }
+    name: 'Priya D.',
+    role: '2-year subscriber',
+    quote: 'We have discovered more local staples through Lume than we ever found at the supermarket.',
+    image: 'https://images.unsplash.com/photo-1579113800032-c38bd7635818?auto=format&fit=crop&w=800&q=85',
+  },
 ];
 
 const Testimonials: React.FC = () => {
   return (
-    <section className="py-24 bg-stone-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-stone-900 mb-4">Loved by the Community</h2>
-          <p className="text-lg text-stone-600">
-            Don't just take our word for it. Here's what our members are saying.
-          </p>
-        </div>
+    <section className="relative overflow-hidden bg-refill-lime px-4 py-24 sm:px-6 lg:px-8">
+      <div className="absolute left-0 right-0 top-0 h-24 -translate-y-1 bg-refill-blue wave-bottom" />
+      <div className="relative z-10 mx-auto max-w-7xl">
+        <h2 className="mx-auto max-w-4xl text-center font-display text-4xl font-black leading-tight tracking-normal md:text-6xl">
+          Our customers have saved thousands of grocery trips
+        </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="mt-14 grid gap-6 md:grid-cols-3">
           {testimonials.map((item, index) => (
-            <motion.div 
-              key={index}
-              initial={{ opacity: 0, y: 30 }}
+            <motion.article
+              key={item.name}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.2 }}
-              className="bg-white p-8 rounded-2xl shadow-sm border border-stone-100 relative"
+              transition={{ duration: 0.45, delay: index * 0.08 }}
+              className={`${index === 1 ? 'md:-mt-10' : 'md:mt-10'} overflow-hidden rounded-lg bg-white shadow-soft-float`}
             >
-              <div className="flex gap-1 mb-6">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 text-amber-400 fill-current" />
-                ))}
-              </div>
-              <p className="text-stone-600 mb-8 leading-relaxed italic">
-                "{item.quote}"
-              </p>
-              <div className="flex items-center gap-4">
-                <img 
-                  src={item.image} 
-                  alt={item.name} 
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-                <div>
-                  <h4 className="font-bold text-stone-900 text-sm">{item.name}</h4>
-                  <p className="text-xs text-stone-500 uppercase tracking-wide">{item.role}</p>
+              <img src={item.image} alt="" className="h-64 w-full object-cover" />
+              <div className="p-8">
+                <Quote className="h-8 w-8 fill-copper-600 text-copper-600" />
+                <p className="mt-4 text-lg leading-relaxed text-refill-ink/75">{item.quote}</p>
+                <div className="mt-6">
+                  <h3 className="font-black">{item.name}</h3>
+                  <p className="text-sm font-bold text-refill-ink/55">{item.role}</p>
                 </div>
               </div>
-            </motion.div>
+            </motion.article>
           ))}
         </div>
       </div>
     </section>
   );
 };
+
 export default Testimonials;

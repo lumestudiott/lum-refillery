@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Minus } from 'lucide-react';
@@ -30,13 +32,13 @@ const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, ans
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border-b border-stone-200 last:border-0">
+    <div className="border-b-2 border-refill-ink/10 last:border-0">
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="w-full py-6 flex items-center justify-between text-left focus:outline-none group"
       >
-        <span className="text-lg font-medium text-stone-900 group-hover:text-emerald-700 transition-colors">{question}</span>
-        <span className="ml-6 flex-shrink-0 text-emerald-600">
+        <span className="text-lg font-black text-refill-ink transition-colors group-hover:text-forest-800">{question}</span>
+        <span className="ml-6 flex-shrink-0 text-refill-ink">
           {isOpen ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
         </span>
       </button>
@@ -46,7 +48,7 @@ const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, ans
         transition={{ duration: 0.3 }}
         className="overflow-hidden"
       >
-        <p className="pb-6 text-stone-600 leading-relaxed">
+        <p className="pb-6 text-refill-ink/70 leading-relaxed">
           {answer}
         </p>
       </motion.div>
@@ -56,16 +58,16 @@ const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, ans
 
 const FAQ: React.FC = () => {
   return (
-    <section className="py-24 bg-stone-50">
+    <section className="bg-cream-50 py-24">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-stone-900 mb-4">Frequently Asked Questions</h2>
-          <p className="text-lg text-stone-600">
+          <h2 className="mb-4 font-display text-4xl font-black tracking-normal text-refill-ink md:text-6xl">Frequently Asked Questions</h2>
+          <p className="text-lg text-refill-ink/70">
             Everything you need to know about Lumë Refillery.
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-8">
+        <div className="rounded-lg border-2 border-refill-ink bg-white p-8 shadow-[5px_5px_0_0_#2B2B2B]">
           {faqs.map((faq, index) => (
             <FAQItem key={index} question={faq.question} answer={faq.answer} />
           ))}

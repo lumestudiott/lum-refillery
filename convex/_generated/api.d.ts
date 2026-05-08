@@ -8,9 +8,11 @@
  * @module
  */
 
+import type * as giftSubscriptions from "../giftSubscriptions.js";
 import type * as newsletter from "../newsletter.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
+import type * as webhooks from "../webhooks.js";
 
 import type {
   ApiFromModules,
@@ -19,9 +21,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  giftSubscriptions: typeof giftSubscriptions;
   newsletter: typeof newsletter;
   subscriptions: typeof subscriptions;
   users: typeof users;
+  webhooks: typeof webhooks;
 }>;
 
 /**
