@@ -1,6 +1,47 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+/**
+ * Helper: Resolves the current authenticated user from Clerk identity.
+ * Throws if not authenticated or user record not found in Convex.
+ */
+async function getAuthenticatedUser(ctx: any) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Not authenticated");
+  }
+
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", identity.subject))
+    .unique();
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return user;
+}
+
+/**
+ * Helper: Verifies that a subscription belongs to the authenticated user.
+ * Throws "Unauthorized" if the subscription belongs to someone else.
+ */
+async function verifySubscriptionOwnership(ctx: any, subscriptionId: any) {
+  const user = await getAuthenticatedUser(ctx);
+  const subscription = await ctx.db.get(subscriptionId);
+
+  if (!subscription) {
+    throw new Error("Subscription not found");
+  }
+
+  if (subscription.userId !== user._id) {
+    throw new Error("Unauthorized — you can only modify your own subscriptions");
+  }
+
+  return { user, subscription };
+}
+
 export const createSubscription = mutation({
   args: {
     tier: v.string(),
@@ -8,20 +49,7 @@ export const createSubscription = mutation({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    // Find the user by clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const user = await getAuthenticatedUser(ctx);
 
     const subscriptionId = await ctx.db.insert("subscriptions", {
       userId: user._id,
@@ -70,23 +98,41 @@ export const getMySubscriptions = query({
   },
 });
 
+/**
+ * Update subscription status — requires auth + ownership verification.
+ * Only the subscription owner can change its status.
+ */
 export const updateSubscriptionStatus = mutation({
   args: {
     subscriptionId: v.id("subscriptions"),
     status: v.string(),
   },
   handler: async (ctx, args) => {
+    await verifySubscriptionOwnership(ctx, args.subscriptionId);
+
+    // Validate allowed status values
+    const allowedStatuses = ["active", "paused", "cancelled"];
+    if (!allowedStatuses.includes(args.status)) {
+      throw new Error(`Invalid status: ${args.status}. Must be one of: ${allowedStatuses.join(", ")}`);
+    }
+
     await ctx.db.patch(args.subscriptionId, {
       status: args.status,
     });
   },
 });
 
+/**
+ * Pause subscription — requires auth + ownership verification.
+ */
 export const pauseSubscription = mutation({
   args: { subscriptionId: v.id("subscriptions") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const { subscription } = await verifySubscriptionOwnership(ctx, args.subscriptionId);
+
+    if (subscription.status !== "active") {
+      throw new Error("Can only pause an active subscription");
+    }
 
     await ctx.db.patch(args.subscriptionId, {
       status: "paused",
@@ -94,11 +140,17 @@ export const pauseSubscription = mutation({
   },
 });
 
+/**
+ * Resume subscription — requires auth + ownership verification.
+ */
 export const resumeSubscription = mutation({
   args: { subscriptionId: v.id("subscriptions") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const { subscription } = await verifySubscriptionOwnership(ctx, args.subscriptionId);
+
+    if (subscription.status !== "paused") {
+      throw new Error("Can only resume a paused subscription");
+    }
 
     await ctx.db.patch(args.subscriptionId, {
       status: "active",
@@ -106,11 +158,17 @@ export const resumeSubscription = mutation({
   },
 });
 
+/**
+ * Cancel subscription — requires auth + ownership verification.
+ */
 export const cancelSubscription = mutation({
   args: { subscriptionId: v.id("subscriptions") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const { subscription } = await verifySubscriptionOwnership(ctx, args.subscriptionId);
+
+    if (subscription.status === "cancelled") {
+      throw new Error("Subscription is already cancelled");
+    }
 
     await ctx.db.patch(args.subscriptionId, {
       status: "cancelled",

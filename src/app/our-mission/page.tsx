@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, Heart, Users, Leaf, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Footer from '@/components/Footer';
+import PartnerSlider from '@/components/PartnerSlider';
 
 export default function OurMissionPage() {
   return (
@@ -54,6 +55,7 @@ export default function OurMissionPage() {
           </div>
         </div>
       </section>
+      <PartnerSlider />
       <section className="py-16 bg-emerald-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-serif font-bold text-white mb-4">Join Our Mission</h2>

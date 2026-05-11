@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
 import { SUBSCRIPTION_TIERS } from '../data/tiers';
 import TierCard from './TierCard';
 
@@ -12,50 +11,80 @@ const cycles = [
   { id: 'yearly', label: 'Yearly' },
 ] as const;
 
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+};
+
+const containerStagger = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+  },
+};
+
 const TiersDisplay: React.FC = () => {
   const [billingCycle, setBillingCycle] = useState<'fortnightly' | 'monthly' | 'yearly'>('monthly');
 
   return (
-    <section className="overflow-hidden bg-refill-blue px-4 py-24 sm:px-6 lg:px-8">
+    <section className="overflow-hidden bg-canvas px-6 py-28 lg:px-10">
       <div className="mx-auto max-w-7xl">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.55 }}
-          className="mx-auto max-w-4xl text-center"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={fadeUp}
+          className="mx-auto max-w-3xl text-center"
         >
-          <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black uppercase tracking-[0.12em]">
-            <Sparkles className="h-4 w-4 text-copper-600" />
-            Shop the refill shelf
+          <span className="inline-block text-[13px] font-medium uppercase tracking-[0.15em] text-lume-accent">
+            Pricing
           </span>
-          <h2 className="mt-6 font-display text-4xl font-black leading-tight tracking-normal md:text-6xl">
+          <h2 className="mt-4 font-display text-[clamp(2rem,4vw,3.2rem)] font-normal leading-[1.15] tracking-snug text-text-primary">
             Choose a haul that fits your home
           </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-xl leading-relaxed text-refill-ink/80">
+          <p className="mx-auto mt-5 max-w-xl text-[16px] leading-[1.75] text-text-secondary">
             Transparent pricing, flexible delivery, and enough variety to make the weekly restock feel less routine.
           </p>
 
-          <div className="mt-9 inline-flex rounded-full border-2 border-refill-ink bg-cream-50 p-1.5 shadow-[4px_4px_0_0_#2B2B2B]">
+          {/* Billing cycle toggle — pill switcher */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ type: 'spring', stiffness: 150, damping: 15, delay: 0.3 }}
+            className="mt-9 inline-flex rounded-pill bg-white p-1.5 shadow-card"
+          >
             {cycles.map((cycle) => (
               <button
                 key={cycle.id}
                 onClick={() => setBillingCycle(cycle.id)}
-                className={`rounded-full px-4 py-2 text-sm font-black transition-colors sm:px-6 ${
-                  billingCycle === cycle.id ? 'bg-refill-yellow text-refill-ink' : 'text-refill-ink/65 hover:text-refill-ink'
+                className={`cursor-pointer rounded-pill px-5 py-2.5 text-[13px] font-semibold tracking-tight transition-all duration-200 ${
+                  billingCycle === cycle.id
+                    ? 'bg-lume-accent text-white shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
                 {cycle.label}
               </button>
             ))}
-          </div>
+          </motion.div>
         </motion.div>
 
-        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-40px' }}
+          variants={containerStagger}
+          className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+        >
           {SUBSCRIPTION_TIERS.map((tier, index) => (
             <TierCard key={tier.id} tier={tier} billingCycle={billingCycle} index={index} />
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

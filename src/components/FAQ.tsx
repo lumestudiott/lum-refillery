@@ -1,9 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Minus } from 'lucide-react';
-import { useState } from 'react';
 
 const faqs = [
   {
@@ -16,64 +15,88 @@ const faqs = [
   },
   {
     question: "How does the substitution policy work?",
-    answer: "We prioritize delivering exactly what you ordered. If an item is unavailable due to supply chain issues, we substitute with an item of equal or higher value, never lower. We'll notify you if significant changes are made."
+    answer: "We prioritize delivering exactly what you ordered. If an item is unavailable due to supply chain issues, we substitute with an item of equal or higher value, never lower."
   },
   {
     question: "Do you deliver to my area?",
     answer: "We currently serve the greater metro area. Please enter your zip code at checkout to confirm if you are within our delivery zone."
   },
   {
-    question: "How is the 'Supported Haul' different?",
+    question: "How is the Supported Haul different?",
     answer: "The Supported Haul is designed to maximize caloric density and utility per dollar, making it an ideal option for gifting to those in need or for budget-conscious households focused on essentials."
   }
 ];
 
-const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
+const FAQItem: React.FC<{ question: string; answer: string; index: number }> = ({ question, answer, index }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border-b-2 border-refill-ink/10 last:border-0">
-      <button 
+    <motion.div
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6, delay: index * 0.05 }}
+      className="border-b border-black/[0.05]"
+    >
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full py-6 flex items-center justify-between text-left focus:outline-none group"
+        className="group flex w-full cursor-pointer items-center justify-between py-7 text-left focus:outline-none"
       >
-        <span className="text-lg font-black text-refill-ink transition-colors group-hover:text-forest-800">{question}</span>
-        <span className="ml-6 flex-shrink-0 text-refill-ink">
-          {isOpen ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+        <span className="max-w-[85%] text-[clamp(0.95rem,1.5vw,1.1rem)] font-medium tracking-tight text-text-primary/80 transition-colors duration-300 group-hover:text-text-primary">
+          {question}
+        </span>
+        <span className="shrink-0 text-text-primary/30 transition-colors duration-300 group-hover:text-lume-accent">
+          {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
         </span>
       </button>
-      <motion.div 
+      <motion.div
         initial={false}
         animate={{ height: isOpen ? 'auto' : 0, opacity: isOpen ? 1 : 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         className="overflow-hidden"
       >
-        <p className="pb-6 text-refill-ink/70 leading-relaxed">
+        <p className="max-w-xl pb-8 text-[15px] leading-[1.8] text-text-secondary">
           {answer}
         </p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 
 const FAQ: React.FC = () => {
   return (
-    <section className="bg-cream-50 py-24">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="mb-4 font-display text-4xl font-black tracking-normal text-refill-ink md:text-6xl">Frequently Asked Questions</h2>
-          <p className="text-lg text-refill-ink/70">
-            Everything you need to know about Lumë Refillery.
-          </p>
-        </div>
+    <section className="bg-ceramic px-6 py-36 lg:px-16">
+      <div className="mx-auto max-w-3xl">
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2 }}
+          className="text-[13px] font-medium uppercase tracking-[0.2em] text-lume-accent"
+        >
+          FAQ
+        </motion.p>
 
-        <div className="rounded-lg border-2 border-refill-ink bg-white p-8 shadow-[5px_5px_0_0_#2B2B2B]">
+        <motion.h2
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-60px' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-6 font-display text-[clamp(2rem,4vw,3.2rem)] font-normal leading-[1.1] tracking-tight text-text-primary"
+        >
+          Frequently asked
+          <br />
+          questions.
+        </motion.h2>
+
+        <div className="mt-16">
           {faqs.map((faq, index) => (
-            <FAQItem key={index} question={faq.question} answer={faq.answer} />
+            <FAQItem key={index} question={faq.question} answer={faq.answer} index={index} />
           ))}
         </div>
       </div>
     </section>
   );
 };
+
 export default FAQ;

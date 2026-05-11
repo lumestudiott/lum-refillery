@@ -3,7 +3,7 @@
 import React from 'react';
 import { SignInButton, useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
-import { Check, Package } from 'lucide-react';
+import { Check, ArrowRight } from 'lucide-react';
 import { SubscriptionTier } from '../types/subscription';
 import { calculateYearlySavings, getBillingCycleDisplayName } from '../utils/pricing';
 
@@ -22,109 +22,151 @@ const tierImages = [
   'https://images.unsplash.com/photo-1584473457406-6240486418e9?auto=format&fit=crop&w=800&q=85',
 ];
 
-const colors = ['bg-refill-yellow', 'bg-refill-peach', 'bg-refill-green', 'bg-[#F5D996]', 'bg-white', 'bg-refill-yellow'];
+const tierLabels = ['Community', 'Essential', 'Popular', 'Premium', 'Gourmet', 'Bulk'];
+
+const cardPop = {
+  hidden: { opacity: 0, y: 60, scale: 0.9 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 90, damping: 15 },
+  },
+};
 
 const TierCard: React.FC<TierCardProps> = ({ tier, billingCycle, index = 0 }) => {
   const price = tier.price[billingCycle];
   const { isSignedIn, user } = useUser();
   const image = tierImages[index % tierImages.length];
-  const color = colors[index % colors.length];
+  const isPopular = index === 2;
 
-  const handleWiiPayCheckout = () => {
-    const checkoutData = {
-      amount: price,
-      currency: 'USD',
-      description: `${tier.name} - ${billingCycle} subscription`,
-      billing_cycle: billingCycle,
-      tier_id: tier.id,
-      tier_name: tier.name,
-      customer_email: user?.emailAddresses[0]?.emailAddress || '',
-      customer_name: user?.fullName || '',
-      items: tier.items,
-      merchant_id: process.env.NEXT_PUBLIC_WIIPAY_MERCHANT_ID,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/cancel`,
-      webhook_url: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/api/webhook/wiipay`,
-    };
+  const [isLoading, setIsLoading] = React.useState(false);
 
-    const wiipayCheckoutUrl = process.env.NEXT_PUBLIC_WIIPAY_CHECKOUT_URL || 'https://checkout.wiipay.com/v1/checkout';
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = wiipayCheckoutUrl;
+  const handleStripeCheckout = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tierId: tier.id,
+          billingCycle,
+          customerEmail: user?.emailAddresses[0]?.emailAddress || '',
+          customerName: user?.fullName || '',
+        }),
+      });
 
-    Object.entries(checkoutData).forEach(([key, value]) => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = key;
-      input.value = typeof value === 'object' ? JSON.stringify(value) : value?.toString() || '';
-      form.appendChild(input);
-    });
+      const data = await response.json();
 
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const checkoutButton = (
-    <button
-      onClick={handleWiiPayCheckout}
-      className="mt-6 w-full cursor-pointer rounded border-2 border-refill-ink bg-refill-yellow px-6 py-3 text-base font-black text-refill-ink shadow-[3px_3px_0_0_#2B2B2B] transition-transform hover:-translate-y-0.5"
-    >
+  const buttonContent = (
+    <>
       Start {tier.name}
-    </button>
+      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+    </>
   );
 
-  const signInButton = (
-    <button className="mt-6 w-full cursor-pointer rounded border-2 border-refill-ink bg-refill-yellow px-6 py-3 text-base font-black text-refill-ink shadow-[3px_3px_0_0_#2B2B2B] transition-transform hover:-translate-y-0.5">
-      Start {tier.name}
-    </button>
-  );
+  const buttonClasses = `btn-pill group mt-6 flex w-full cursor-pointer items-center justify-center gap-2 px-6 py-3.5 text-[14px] font-semibold tracking-tight transition-all ${
+    isPopular
+      ? 'bg-lume-accent text-white hover:bg-lume-green'
+      : 'border border-lume-accent/20 bg-transparent text-lume-accent hover:border-lume-accent hover:bg-lume-accent/5'
+  }`;
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.45, delay: index * 0.05 }}
-      className="overflow-hidden rounded-lg bg-white shadow-soft-float"
+      variants={cardPop}
+      whileHover={{ y: -8, transition: { duration: 0.25 } }}
+      className={`relative overflow-hidden rounded-card bg-white shadow-card transition-shadow duration-300 hover:shadow-soft-float ${
+        isPopular ? 'ring-2 ring-lume-accent' : ''
+      }`}
     >
-      <div className={`${color} relative h-52 overflow-hidden`}>
-        <img src={image} alt="" className="h-full w-full object-cover mix-blend-multiply" />
-        <div className="absolute left-5 top-5 rounded-full border-2 border-refill-ink bg-white px-4 py-2 text-sm font-black uppercase tracking-[0.08em]">
-          {index === 0 ? 'Community' : index === 2 ? 'Popular' : 'Flexible'}
-        </div>
+      {/* Image header */}
+      <div className="relative h-44 overflow-hidden">
+        <motion.img
+          src={image}
+          alt=""
+          className="h-full w-full object-cover"
+          whileHover={{ scale: 1.06 }}
+          transition={{ duration: 0.5 }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+        <span className="absolute bottom-4 left-5 rounded-pill bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-primary backdrop-blur-sm">
+          {tierLabels[index] || 'Flexible'}
+        </span>
+        {isPopular && (
+          <span className="absolute right-4 top-4 rounded-pill bg-lume-accent px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-white">
+            Most popular
+          </span>
+        )}
       </div>
 
-      <div className="p-7">
-        <h3 className="font-display text-3xl font-black tracking-normal">{tier.name}</h3>
-        <p className="mt-3 min-h-[72px] text-base leading-relaxed text-refill-ink/70">{tier.description}</p>
+      <div className="p-6">
+        <h3 className="font-display text-[22px] font-normal tracking-snug text-text-primary">
+          {tier.name}
+        </h3>
+        <p className="mt-2 min-h-[48px] text-[13px] leading-[1.65] text-text-secondary">
+          {tier.description}
+        </p>
 
-        <div className="mt-6 flex items-end gap-2">
-          <span className="text-4xl font-black">${price.toFixed(2)}</span>
-          <span className="pb-1 text-sm font-bold text-refill-ink/60">/ {getBillingCycleDisplayName(billingCycle)}</span>
+        {/* Price */}
+        <div className="mt-5 flex items-baseline gap-1.5">
+          <span className="text-[32px] font-semibold tracking-tight text-text-primary">
+            ${price.toFixed(2)}
+          </span>
+          <span className="text-[13px] text-text-secondary">
+            / {getBillingCycleDisplayName(billingCycle)}
+          </span>
         </div>
         {billingCycle === 'yearly' && (
-          <p className="mt-2 text-sm font-black text-forest-800">Save ${calculateYearlySavings(tier)} versus monthly</p>
+          <p className="mt-1.5 text-[13px] font-medium text-lume-accent">
+            Save ${calculateYearlySavings(tier)} versus monthly
+          </p>
         )}
 
-        <div className="mt-6 rounded-lg bg-cream-50 p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-black">
-            <Package className="h-4 w-4" />
+        {/* Items list */}
+        <div className="mt-5 rounded-[10px] bg-canvas p-4">
+          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-text-secondary">
             Inside this haul
-          </div>
+          </p>
           <ul className="space-y-2">
             {tier.items.slice(0, 5).map((item) => (
-              <li key={item.id} className="flex items-start gap-2 text-sm leading-relaxed text-refill-ink/75">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-forest-800" />
+              <li key={item.id} className="flex items-start gap-2.5 text-[13px] leading-[1.5] text-text-secondary">
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-lume-accent" />
                 <span>
-                  <span className="font-black text-refill-ink">{item.quantity} {item.unit}</span> {item.name}
+                  <span className="font-semibold text-text-primary">{item.quantity} {item.unit}</span>{' '}
+                  {item.name}
                 </span>
               </li>
             ))}
           </ul>
         </div>
 
-        {isSignedIn ? checkoutButton : <SignInButton mode="modal">{signInButton}</SignInButton>}
+        {isSignedIn ? (
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} onClick={handleStripeCheckout} disabled={isLoading} className={buttonClasses}>
+            {buttonContent}
+          </motion.button>
+        ) : (
+          <SignInButton mode="modal">
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} className={buttonClasses}>
+              {buttonContent}
+            </motion.button>
+          </SignInButton>
+        )}
       </div>
     </motion.article>
   );

@@ -62,7 +62,8 @@ export default defineSchema({
     // Payment and status
     amount: v.number(),
     status: v.string(), // "pending", "paid", "delivered", "cancelled"
-    paymentId: v.optional(v.string()), // WiiPay payment ID
+    paymentId: v.optional(v.string()), // Stripe Payment Intent ID
+    stripeSessionId: v.optional(v.string()), // Stripe Checkout Session ID
     
     // Timestamps
     createdAt: v.number(),
@@ -70,5 +71,6 @@ export default defineSchema({
     deliveredAt: v.optional(v.number()),
   }).index("by_giver_email", ["giverEmail"])
     .index("by_recipient_email", ["recipientEmail"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_stripe_session", ["stripeSessionId"]),
 });

@@ -40,30 +40,30 @@ export default function SampleHaulsPage() {
     return 0;
   });
 
-  const handleWiiPayCheckout = (tier: typeof SUBSCRIPTION_TIERS[0]) => {
-    const price = tier.price[billingCycle];
-    const checkoutData = {
-      amount: price, currency: 'USD',
-      description: `${tier.name} - ${billingCycle} subscription`,
-      billing_cycle: billingCycle, tier_id: tier.id, tier_name: tier.name,
-      customer_email: user?.emailAddresses[0]?.emailAddress || '',
-      customer_name: user?.fullName || '',
-      items: tier.items,
-      merchant_id: process.env.NEXT_PUBLIC_WIIPAY_MERCHANT_ID,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/cancel`,
-      webhook_url: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/api/webhook/wiipay`
-    };
-    const wiipayCheckoutUrl = process.env.NEXT_PUBLIC_WIIPAY_CHECKOUT_URL || 'https://checkout.wiipay.com/v1/checkout';
-    const form = document.createElement('form');
-    form.method = 'POST'; form.action = wiipayCheckoutUrl;
-    Object.entries(checkoutData).forEach(([key, value]) => {
-      const input = document.createElement('input');
-      input.type = 'hidden'; input.name = key;
-      input.value = typeof value === 'object' ? JSON.stringify(value) : value?.toString() || '';
-      form.appendChild(input);
-    });
-    document.body.appendChild(form); form.submit(); document.body.removeChild(form);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  const handleStripeCheckout = async (tier: typeof SUBSCRIPTION_TIERS[0]) => {
+    setCheckoutLoading(tier.id);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tierId: tier.id,
+          billingCycle,
+          customerEmail: user?.emailAddresses[0]?.emailAddress || '',
+          customerName: user?.fullName || '',
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Checkout failed');
+      if (data.url) window.location.href = data.url;
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setCheckoutLoading(null);
+    }
   };
 
   return (
@@ -154,7 +154,7 @@ export default function SampleHaulsPage() {
                     {billingCycle === 'yearly' && <div className="text-xs text-emerald-600 font-medium mt-1">Save ${calculateYearlySavings(tier)}</div>}
                   </div>
                   {isSignedIn ? (
-                    <button onClick={() => handleWiiPayCheckout(tier)} className="bg-stone-900 hover:bg-stone-800 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors">Subscribe</button>
+                    <button onClick={() => handleStripeCheckout(tier)} disabled={checkoutLoading === tier.id} className="bg-stone-900 hover:bg-stone-800 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors disabled:opacity-50">{checkoutLoading === tier.id ? 'Loading...' : 'Subscribe'}</button>
                   ) : (
                     <SignInButton mode="modal"><button className="bg-stone-900 hover:bg-stone-800 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors">Subscribe</button></SignInButton>
                   )}

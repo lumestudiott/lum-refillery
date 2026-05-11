@@ -14,7 +14,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    {/* suppressHydrationWarning on <html> only: browser extensions (e.g. Scribe)
+        inject attributes here before React hydrates — this is outside our control */}
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
