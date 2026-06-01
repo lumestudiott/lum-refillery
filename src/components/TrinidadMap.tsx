@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import type { Map as LeafletMap } from 'leaflet';
 
 const hotspots = [
   { lat: 10.6549, lng: -61.5019, city: 'Port of Spain', waste: '~850 tons/wk' },
@@ -15,7 +16,8 @@ const hotspots = [
 
 const TrinidadMap: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const pulseIntervalsRef = useRef<ReturnType<typeof setInterval>[]>([]);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -28,6 +30,7 @@ const TrinidadMap: React.FC = () => {
     // Dynamically import Leaflet to avoid SSR issues
     const initMap = async () => {
       const L = (await import('leaflet')).default;
+      // @ts-ignore - Leaflet CSS is handled by the bundler
       await import('leaflet/dist/leaflet.css');
 
       // Create map instance
@@ -96,8 +99,7 @@ const TrinidadMap: React.FC = () => {
           }, 1500);
         }, 3000 + index * 500);
 
-        // Store interval for cleanup
-        (marker as any)._pulseInterval = pulseInterval;
+        pulseIntervalsRef.current.push(pulseInterval);
       });
     };
 
@@ -105,10 +107,10 @@ const TrinidadMap: React.FC = () => {
 
     // Cleanup
     return () => {
+      pulseIntervalsRef.current.forEach(clearInterval);
+      pulseIntervalsRef.current = [];
+
       if (mapRef.current) {
-        mapRef.current.eachLayer((layer: any) => {
-          if (layer._pulseInterval) clearInterval(layer._pulseInterval);
-        });
         mapRef.current.remove();
         mapRef.current = null;
       }

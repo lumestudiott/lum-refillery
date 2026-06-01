@@ -1,20 +1,29 @@
-import { mutation, query } from "./_generated/server";
+import {
+  mutation,
+  internalMutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from "./_generated/server";
 import { v } from "convex/values";
+
+type ClerkRoleClaims = {
+  publicMetadata?: { role?: string };
+  role?: string;
+  org_role?: string;
+};
 
 /**
  * Helper: Check if the current user has admin role.
  * Uses Clerk's publicMetadata to determine admin status.
  * Returns true if admin, false otherwise.
  */
-async function isAdmin(ctx: any): Promise<boolean> {
+async function isAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return false;
 
-  // Clerk stores custom roles in tokenClaims or publicMetadata
-  // Check for admin role in the JWT claims
-  const role = (identity as any).publicMetadata?.role
-    || (identity as any).role
-    || (identity as any).org_role;
+  const claims = identity as typeof identity & ClerkRoleClaims;
+  const role = claims.publicMetadata?.role || claims.role || claims.org_role;
 
   return role === "admin" || role === "org:admin";
 }
@@ -22,7 +31,7 @@ async function isAdmin(ctx: any): Promise<boolean> {
 /**
  * Helper: Require admin access. Throws if not admin.
  */
-async function requireAdmin(ctx: any) {
+async function requireAdmin(ctx: MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new Error("Not authenticated");
@@ -110,8 +119,12 @@ export const createGiftSubscription = mutation({
   },
 });
 
-// Update gift subscription status (for payment webhooks — internal use)
-export const updateGiftSubscriptionStatus = mutation({
+/**
+ * INTERNAL — payment-webhook only. Marks a gift as paid/delivered by
+ * looking it up via `paymentId`. No auth here because this is unreachable
+ * from the public API.
+ */
+export const updateGiftSubscriptionStatus = internalMutation({
   args: {
     paymentId: v.string(),
     status: v.string(),
@@ -136,8 +149,80 @@ export const updateGiftSubscriptionStatus = mutation({
   },
 });
 
-// Update gift subscription status via Stripe session (called by webhook)
-export const updateGiftSubscriptionByStripeSession = mutation({
+/**
+ * Attach a Stripe Checkout session ID to a pending gift.
+ *
+ * Authenticated. The caller's primary email must match `gift.giverEmail`,
+ * preventing arbitrary users from squatting session IDs on other people's
+ * pending gifts. Called from `/api/checkout/gift` immediately after
+ * creating the Stripe Checkout Session.
+ */
+export const attachStripeSessionToGift = mutation({
+  args: {
+    id: v.id("giftSubscriptions"),
+    stripeSessionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity?.email) {
+      throw new Error("Not authenticated");
+    }
+
+    const giftSubscription = await ctx.db.get(args.id);
+    if (!giftSubscription) {
+      throw new Error("Gift subscription not found");
+    }
+
+    if (giftSubscription.giverEmail.toLowerCase() !== identity.email.toLowerCase()) {
+      throw new Error("Unauthorized — you can only attach sessions to your own gifts");
+    }
+
+    if (
+      giftSubscription.stripeSessionId &&
+      giftSubscription.stripeSessionId !== args.stripeSessionId
+    ) {
+      throw new Error("Gift subscription already has a different Stripe session");
+    }
+
+    await ctx.db.patch(args.id, {
+      stripeSessionId: args.stripeSessionId,
+    });
+
+    return args.id;
+  },
+});
+
+export const cancelPendingGiftSubscription = mutation({
+  args: { id: v.id("giftSubscriptions") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity?.email) {
+      throw new Error("Not authenticated");
+    }
+
+    const giftSubscription = await ctx.db.get(args.id);
+    if (!giftSubscription) {
+      return null;
+    }
+
+    if (giftSubscription.giverEmail !== identity.email) {
+      throw new Error("Unauthorized — you can only cancel your own pending gifts");
+    }
+
+    if (giftSubscription.status !== "pending") {
+      return giftSubscription._id;
+    }
+
+    await ctx.db.patch(args.id, { status: "cancelled" });
+    return args.id;
+  },
+});
+
+/**
+ * INTERNAL — payment-webhook only. Updates a gift by Stripe session ID.
+ * No auth here because internal mutations are unreachable from public API.
+ */
+export const updateGiftSubscriptionByStripeSession = internalMutation({
   args: {
     stripeSessionId: v.string(),
     paymentId: v.string(),
@@ -185,9 +270,8 @@ export const updateGiftSubscriptionByStripeSession = mutation({
 export const getGiftSubscriptionsByGiver = query({
   args: { giverEmail: v.string() },
   handler: async (ctx, args) => {
-    // Verify the requesting user owns this email
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    if (!identity || identity.email !== args.giverEmail) return [];
 
     return await ctx.db
       .query("giftSubscriptions")
@@ -205,7 +289,7 @@ export const getGiftSubscriptionsByRecipient = query({
   args: { recipientEmail: v.string() },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    if (!identity || identity.email !== args.recipientEmail) return [];
 
     return await ctx.db
       .query("giftSubscriptions")

@@ -22,11 +22,9 @@ export const useStoreUser = () => {
     if (user && storedUserRef.current !== user.id) {
       const storeUser = async () => {
         try {
-          await createUser({
-            clerkId: user.id,
-            email: user.emailAddresses[0]?.emailAddress ?? "",
-            name: user.fullName ?? undefined,
-          });
+          // Identity (clerkId/email/name) is derived server-side from
+          // `ctx.auth.getUserIdentity()`, so the client passes no claims.
+          await createUser({});
           // Mark this user as synced so we don't fire again
           storedUserRef.current = user.id;
         } catch (error) {

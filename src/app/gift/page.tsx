@@ -1,20 +1,30 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Gift, Check, Sparkles } from 'lucide-react';
-import Link from 'next/link';
-import { SUBSCRIPTION_TIERS } from '@/data/tiers';
 import { useMutation } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { SUBSCRIPTION_TIERS } from '@/data/tiers';
 import { calculateYearlySavings } from '@/utils/pricing';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import PageHero from '@/components/editorial/PageHero';
+import { api } from '../../../convex/_generated/api';
+
+type BillingCycle = 'fortnightly' | 'monthly' | 'yearly';
+
+const inputClass =
+  'w-full rounded-xl border border-black/[0.1] bg-white px-4 py-3 text-[14px] text-text-primary outline-none transition-all focus:border-lume-accent focus:ring-2 focus:ring-lume-accent/30';
 
 export default function GiftSubscriptionPage() {
   const [selectedTier, setSelectedTier] = useState<string>('');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'fortnightly' | 'yearly'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
   const createGiftSubscription = useMutation(api.giftSubscriptions.createGiftSubscription);
+  const cancelPendingGiftSubscription = useMutation(
+    api.giftSubscriptions.cancelPendingGiftSubscription
+  );
 
   const [formData, setFormData] = useState({
     giverName: '',
@@ -25,29 +35,32 @@ export default function GiftSubscriptionPage() {
     recipientCity: '',
     recipientState: '',
     recipientZip: '',
-    giftMessage: ''
+    giftMessage: '',
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTier) { alert('Please select a subscription tier'); return; }
+    if (!selectedTier) {
+      setFormError('Please select a haul to gift.');
+      return;
+    }
     if (isSubmitting) return;
     setIsSubmitting(true);
+    setFormError(null);
 
+    let pendingId: Awaited<ReturnType<typeof createGiftSubscription>> | null = null;
     try {
-      const selectedTierData = SUBSCRIPTION_TIERS.find(tier => tier.id === selectedTier);
-      if (!selectedTierData) throw new Error('Selected tier not found');
+      const tier = SUBSCRIPTION_TIERS.find((t) => t.id === selectedTier);
+      if (!tier) throw new Error('Selected haul not found');
 
-      const price = billingCycle === 'monthly' ? selectedTierData.price.monthly :
-                    billingCycle === 'fortnightly' ? selectedTierData.price.fortnightly :
-                    selectedTierData.price.yearly;
-
-      // 1. Create the gift subscription record in Convex (pending status)
-      const giftSubscriptionId = await createGiftSubscription({
+      const price = tier.price[billingCycle];
+      const giftId = await createGiftSubscription({
         giverName: formData.giverName,
         giverEmail: formData.giverEmail,
         recipientName: formData.recipientName,
@@ -57,19 +70,19 @@ export default function GiftSubscriptionPage() {
         recipientState: formData.recipientState,
         recipientZip: formData.recipientZip,
         tier: selectedTier,
-        billingCycle: billingCycle,
+        billingCycle,
         giftMessage: formData.giftMessage || undefined,
         amount: price,
       });
+      pendingId = giftId;
 
-      // 2. Create a Stripe Checkout Session via server-side API
       const response = await fetch('/api/checkout/gift', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tierId: selectedTier,
           billingCycle,
-          giftSubscriptionId: giftSubscriptionId,
+          giftSubscriptionId: giftId,
           giverName: formData.giverName,
           giverEmail: formData.giverEmail,
           recipientName: formData.recipientName,
@@ -79,146 +92,292 @@ export default function GiftSubscriptionPage() {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to create checkout session');
-
-      // 3. Redirect to Stripe hosted checkout
-      if (data.url) {
-        window.location.href = data.url;
-      }
+      if (data.url) window.location.href = data.url;
     } catch (error) {
-      console.error('Error creating gift subscription:', error);
-      alert('There was an error processing your gift subscription. Please try again.');
+      if (pendingId) {
+        try {
+          await cancelPendingGiftSubscription({ id: pendingId });
+        } catch (cleanupError) {
+          console.error('Error cancelling pending gift:', cleanupError);
+        }
+      }
+      setFormError(
+        error instanceof Error ? error.message : 'There was an error processing your gift. Please try again.'
+      );
       setIsSubmitting(false);
     }
   };
 
-  const selectedTierData = SUBSCRIPTION_TIERS.find(tier => tier.id === selectedTier);
-  const totalPrice = selectedTierData ?
-    (billingCycle === 'monthly' ? selectedTierData.price.monthly :
-     billingCycle === 'fortnightly' ? selectedTierData.price.fortnightly :
-     selectedTierData.price.yearly) : 0;
+  const tierData = SUBSCRIPTION_TIERS.find((t) => t.id === selectedTier);
+  const totalPrice = tierData ? tierData.price[billingCycle] : 0;
 
   return (
     <div className="min-h-screen bg-canvas text-text-primary">
       <Header />
 
-      <div className="pt-[72px]">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="text-center mb-16">
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }} className="relative">
-                <Gift className="w-8 h-8 text-lume-accent" />
-                <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }} className="absolute -top-1 -right-1">
-                  <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                </motion.div>
-              </motion.div>
-            </div>
-            <h1 className="text-4xl font-display font-normal text-text-primary mb-4">Gift a Subscription</h1>
-            <p className="text-lg text-text-secondary max-w-2xl mx-auto">Share fresh, sustainable groceries with someone special</p>
-          </div>
+      <main className="pt-[72px]">
+        <PageHero
+          eyebrow="Send a gift"
+          title="Share fresh groceries with someone you love."
+          subtitle="A Lumë gift subscription delivers chilled, locally-sourced provisions to their door — and a personal note from you."
+        />
 
-          <div className="grid lg:grid-cols-2 gap-16">
-          <div>
-            <h2 className="text-2xl font-display font-normal text-text-primary mb-8">Choose Package</h2>
-            <div className="mb-8">
-              <div className="inline-flex bg-canvas p-1.5 rounded-pill shadow-card">
-                {(['fortnightly', 'monthly', 'yearly'] as const).map(cycle => (
-                  <button key={cycle} onClick={() => setBillingCycle(cycle)}
-                    className={`px-5 py-2.5 rounded-pill text-[13px] font-semibold tracking-tight transition-all cursor-pointer relative ${billingCycle === cycle ? 'bg-lume-accent text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}>
-                    {cycle.charAt(0).toUpperCase() + cycle.slice(1)}
-                    {cycle === 'yearly' && (
-                      <motion.span className="absolute -top-3 -right-3 bg-lume-accent text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
-                        animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}>
-                        <Sparkles className="w-3 h-3" /> Save
-                      </motion.span>
-                    )}
-                  </button>
-                ))}
+        <section className="bg-white py-16 lg:py-20">
+          <div className="mx-auto max-w-6xl px-6 lg:px-10">
+            <form onSubmit={handleSubmit} className="grid gap-12 lg:grid-cols-[1.1fr_1fr]">
+              {/* ── Left: choose haul ── */}
+              <div>
+                <h2 className="font-display text-[clamp(1.6rem,2.6vw,2rem)] font-normal leading-[1.2] tracking-snug text-text-primary">
+                  Choose a haul
+                </h2>
+
+                {/* Billing toggle */}
+                <div className="mt-6 inline-flex rounded-pill bg-canvas p-1.5 shadow-card">
+                  {(['fortnightly', 'monthly', 'yearly'] as const).map((cycle) => (
+                    <button
+                      key={cycle}
+                      type="button"
+                      onClick={() => setBillingCycle(cycle)}
+                      className={`relative rounded-pill px-5 py-2 text-[13px] font-semibold tracking-tight transition-all ${
+                        billingCycle === cycle
+                          ? 'bg-lume-accent text-white shadow-sm'
+                          : 'text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      {cycle[0].toUpperCase() + cycle.slice(1)}
+                      {cycle === 'yearly' && (
+                        <span className="absolute -right-2 -top-2 inline-flex items-center gap-1 rounded-full bg-lume-accent px-2 py-0.5 text-[10px] font-semibold text-white">
+                          <Sparkles className="h-2.5 w-2.5" /> Save
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <ul className="mt-6 space-y-3">
+                  {SUBSCRIPTION_TIERS.map((tier) => {
+                    const selected = selectedTier === tier.id;
+                    return (
+                      <li key={tier.id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTier(tier.id)}
+                          className={`w-full rounded-2xl border p-5 text-left transition-all ${
+                            selected
+                              ? 'border-lume-accent bg-lume-accent/[0.06] shadow-card'
+                              : 'border-black/[0.08] bg-white hover:border-lume-accent/40 hover:shadow-card'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex flex-1 items-start gap-3">
+                              <div
+                                className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${
+                                  selected
+                                    ? 'border-lume-accent bg-lume-accent'
+                                    : 'border-black/20'
+                                }`}
+                              >
+                                {selected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                              </div>
+                              <div>
+                                <h3 className="font-display text-[18px] font-medium leading-tight tracking-tight text-text-primary">
+                                  {tier.name}
+                                </h3>
+                                <p className="mt-1.5 text-[13px] leading-[1.6] text-text-secondary">
+                                  {tier.description}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <div className="text-[20px] font-semibold tracking-tight text-text-primary">
+                                ${tier.price[billingCycle].toFixed(2)}
+                              </div>
+                              <div className="text-[11px] uppercase tracking-[0.06em] text-text-secondary">
+                                /{billingCycle === 'yearly' ? 'year' : billingCycle}
+                              </div>
+                              {billingCycle === 'yearly' && (
+                                <div className="mt-1 text-[11px] font-semibold text-lume-accent">
+                                  Save ${calculateYearlySavings(tier)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
-            </div>
-            <div className="space-y-4">
-              {SUBSCRIPTION_TIERS.map((tier) => (
-                <div key={tier.id} onClick={() => setSelectedTier(tier.id)}
-                  className={`p-6 border-2 rounded-card cursor-pointer transition-all ${selectedTier === tier.id ? 'border-lume-accent bg-lume-accent/5' : 'border-black/[0.06] hover:border-black/15'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedTier === tier.id ? 'border-lume-accent bg-lume-accent' : 'border-black/20'}`}>
-                          {selectedTier === tier.id && <Check className="w-3 h-3 text-white" />}
-                        </div>
-                        <h3 className="font-display font-normal text-text-primary text-[17px]">{tier.name}</h3>
+
+              {/* ── Right: gift details ── */}
+              <div>
+                <h2 className="font-display text-[clamp(1.6rem,2.6vw,2rem)] font-normal leading-[1.2] tracking-snug text-text-primary">
+                  Gift details
+                </h2>
+
+                <div className="mt-6 space-y-8">
+                  <fieldset>
+                    <legend className="text-[13px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                      Your information
+                    </legend>
+                    <div className="mt-4 space-y-3">
+                      <input
+                        type="text"
+                        name="giverName"
+                        placeholder="Your name"
+                        value={formData.giverName}
+                        onChange={handleInputChange}
+                        className={inputClass}
+                        required
+                      />
+                      <input
+                        type="email"
+                        name="giverEmail"
+                        placeholder="Your email"
+                        value={formData.giverEmail}
+                        onChange={handleInputChange}
+                        className={inputClass}
+                        required
+                      />
+                    </div>
+                  </fieldset>
+
+                  <fieldset>
+                    <legend className="text-[13px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                      Recipient
+                    </legend>
+                    <div className="mt-4 space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <input
+                          type="text"
+                          name="recipientName"
+                          placeholder="Recipient's name"
+                          value={formData.recipientName}
+                          onChange={handleInputChange}
+                          className={inputClass}
+                          required
+                        />
+                        <input
+                          type="email"
+                          name="recipientEmail"
+                          placeholder="Recipient's email"
+                          value={formData.recipientEmail}
+                          onChange={handleInputChange}
+                          className={inputClass}
+                          required
+                        />
                       </div>
-                      <p className="text-[13px] text-text-secondary mt-2 ml-8">{tier.description}</p>
+                      <input
+                        type="text"
+                        name="recipientAddress"
+                        placeholder="Delivery address"
+                        value={formData.recipientAddress}
+                        onChange={handleInputChange}
+                        className={inputClass}
+                        required
+                      />
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <input
+                          type="text"
+                          name="recipientCity"
+                          placeholder="City"
+                          value={formData.recipientCity}
+                          onChange={handleInputChange}
+                          className={inputClass}
+                          required
+                        />
+                        <input
+                          type="text"
+                          name="recipientState"
+                          placeholder="State"
+                          value={formData.recipientState}
+                          onChange={handleInputChange}
+                          className={inputClass}
+                          required
+                        />
+                        <input
+                          type="text"
+                          name="recipientZip"
+                          placeholder="ZIP"
+                          value={formData.recipientZip}
+                          onChange={handleInputChange}
+                          className={inputClass}
+                          required
+                        />
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-semibold tracking-tight text-text-primary">${tier.price[billingCycle].toFixed(2)}</div>
-                      <div className="text-[12px] text-text-secondary">per {billingCycle === 'yearly' ? 'year' : billingCycle}</div>
-                      {billingCycle === 'yearly' && <div className="text-[12px] text-lume-accent font-medium mt-1">Save ${calculateYearlySavings(tier)}</div>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                  </fieldset>
 
-          <div>
-            <h2 className="text-2xl font-display font-normal text-text-primary mb-8">Gift Details</h2>
-            <form onSubmit={handleSubmit} className="space-y-8">
-              <div>
-                <h3 className="font-semibold text-text-primary mb-4 text-[14px]">Your Information</h3>
-                <div className="space-y-4">
-                  <input type="text" name="giverName" placeholder="Your name" value={formData.giverName} onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-black/[0.1] rounded-card bg-white text-text-primary focus:ring-2 focus:ring-lume-accent/40 focus:border-lume-accent transition-all" required />
-                  <input type="email" name="giverEmail" placeholder="Your email" value={formData.giverEmail} onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-black/[0.1] rounded-card bg-white text-text-primary focus:ring-2 focus:ring-lume-accent/40 focus:border-lume-accent transition-all" required />
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold text-text-primary mb-4 text-[14px]">Recipient Information</h3>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="text" name="recipientName" placeholder="Recipient's name" value={formData.recipientName} onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-black/[0.1] rounded-card bg-white text-text-primary focus:ring-2 focus:ring-lume-accent/40 focus:border-lume-accent transition-all" required />
-                    <input type="email" name="recipientEmail" placeholder="Recipient's email" value={formData.recipientEmail} onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-black/[0.1] rounded-card bg-white text-text-primary focus:ring-2 focus:ring-lume-accent/40 focus:border-lume-accent transition-all" required />
-                  </div>
-                  <input type="text" name="recipientAddress" placeholder="Delivery address" value={formData.recipientAddress} onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-black/[0.1] rounded-card bg-white text-text-primary focus:ring-2 focus:ring-lume-accent/40 focus:border-lume-accent transition-all" required />
-                  <div className="grid grid-cols-3 gap-4">
-                    <input type="text" name="recipientCity" placeholder="City" value={formData.recipientCity} onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-black/[0.1] rounded-card bg-white text-text-primary focus:ring-2 focus:ring-lume-accent/40 focus:border-lume-accent transition-all" required />
-                    <input type="text" name="recipientState" placeholder="State" value={formData.recipientState} onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-black/[0.1] rounded-card bg-white text-text-primary focus:ring-2 focus:ring-lume-accent/40 focus:border-lume-accent transition-all" required />
-                    <input type="text" name="recipientZip" placeholder="ZIP" value={formData.recipientZip} onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-black/[0.1] rounded-card bg-white text-text-primary focus:ring-2 focus:ring-lume-accent/40 focus:border-lume-accent transition-all" required />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold text-text-primary mb-4 text-[14px]">Personal Message</h3>
-                <textarea name="giftMessage" placeholder="Write a personal message..." value={formData.giftMessage} onChange={handleInputChange}
-                  rows={4} className="w-full px-4 py-3 border border-black/[0.1] rounded-card bg-white text-text-primary focus:ring-2 focus:ring-lume-accent/40 focus:border-lume-accent resize-none transition-all" />
-              </div>
-              {selectedTierData && (
-                <div className="bg-canvas p-6 rounded-card border border-black/[0.06]">
-                  <h3 className="font-semibold text-text-primary mb-4 text-[14px]">Order Summary</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-text-secondary">Package:</span><span className="font-medium text-text-primary">{selectedTierData.name}</span></div>
-                    <div className="flex justify-between"><span className="text-text-secondary">Billing:</span><span className="font-medium text-text-primary capitalize">{billingCycle === 'yearly' ? 'Yearly' : billingCycle}</span></div>
-                    <div className="border-t border-black/[0.06] pt-2 mt-2">
-                      <div className="flex justify-between text-lg font-semibold"><span>Total:</span><span>${totalPrice.toFixed(2)}</span></div>
+                  <fieldset>
+                    <legend className="text-[13px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                      Personal message
+                    </legend>
+                    <textarea
+                      name="giftMessage"
+                      placeholder="Write a note for the recipient…"
+                      value={formData.giftMessage}
+                      onChange={handleInputChange}
+                      rows={4}
+                      className={`${inputClass} resize-none`}
+                    />
+                  </fieldset>
+
+                  {tierData && (
+                    <div className="rounded-2xl bg-canvas p-5">
+                      <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                        Order summary
+                      </h3>
+                      <dl className="mt-3 space-y-2 text-[14px]">
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-text-secondary">Haul</dt>
+                          <dd className="font-semibold text-text-primary">{tierData.name}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-text-secondary">Billing</dt>
+                          <dd className="font-semibold capitalize text-text-primary">
+                            {billingCycle}
+                          </dd>
+                        </div>
+                        <div className="flex items-baseline justify-between gap-3 border-t border-black/[0.06] pt-3">
+                          <dt className="text-[15px] font-semibold text-text-primary">Total</dt>
+                          <dd className="font-display text-[24px] font-normal leading-none text-text-primary">
+                            ${totalPrice.toFixed(2)}
+                          </dd>
+                        </div>
+                      </dl>
                     </div>
-                  </div>
+                  )}
+
+                  {formError && (
+                    <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] font-medium leading-[1.5] text-red-700">
+                      {formError}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={!selectedTier || isSubmitting}
+                    className={`btn-pill flex w-full items-center justify-center gap-2 px-6 py-4 text-[14px] font-semibold uppercase tracking-[0.04em] transition-all ${
+                      selectedTier && !isSubmitting
+                        ? 'bg-lume-house text-white hover:bg-black active:scale-[0.97]'
+                        : 'cursor-not-allowed bg-black/[0.06] text-text-secondary'
+                    }`}
+                  >
+                    <Gift className="h-4 w-4" />
+                    {isSubmitting
+                      ? 'Processing…'
+                      : selectedTier
+                        ? 'Complete gift purchase'
+                        : 'Select a haul to continue'}
+                  </button>
                 </div>
-              )}
-              <button type="submit" disabled={!selectedTier || isSubmitting}
-                className={`btn-pill w-full py-4 px-6 font-semibold text-lg transition-all ${selectedTier && !isSubmitting ? 'bg-lume-accent hover:bg-lume-green text-white cursor-pointer' : 'bg-black/10 text-text-secondary cursor-not-allowed'}`}>
-                {isSubmitting ? 'Processing...' : selectedTier ? 'Complete Gift Purchase' : 'Please Select a Package'}
-              </button>
+              </div>
             </form>
           </div>
-        </div>
-        </div>
-      </div>
+        </section>
+      </main>
+
+      <Footer />
     </div>
   );
 }

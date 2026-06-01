@@ -2,179 +2,159 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Star, Truck, Shield, Clock, ChevronDown } from 'lucide-react';
-import { motion } from 'framer-motion';
+import {
+  ArrowRight,
+  CalendarDays,
+  PackageCheck,
+  RefreshCw,
+  Shield,
+  Truck,
+} from 'lucide-react';
 import { SUBSCRIPTION_TIERS } from '@/data/tiers';
-import { useUser, SignInButton } from '@clerk/nextjs';
+import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { getMaxYearlySavings, calculateYearlySavings } from '@/utils/pricing';
+import PageHero from '@/components/editorial/PageHero';
+import Section from '@/components/editorial/Section';
+import FeatureGrid from '@/components/editorial/FeatureGrid';
+import CtaBanner from '@/components/editorial/CtaBanner';
+import TierCard from '@/components/TierCard';
+import Reveal from '@/components/Reveal';
 
-const getProductImage = (tierId: string): string => {
-  const images: Record<string, string> = {
-    'supported': 'https://images.unsplash.com/photo-1590779033100-9f60a05a013d?w=600&auto=format&fit=crop',
-    'essential': 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&auto=format&fit=crop',
-    'household': 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?w=600&auto=format&fit=crop',
-    'premium': 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?w=600&auto=format&fit=crop',
-    'gourmet': 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=600&auto=format&fit=crop',
-    'bulk': 'https://images.unsplash.com/photo-1579113800032-c38bd7635818?w=600&auto=format&fit=crop',
-  };
-  return images[tierId] || images['essential'];
-};
+const FEATURES = [
+  {
+    icon: Truck,
+    title: 'Delivery stays scheduled',
+    description: 'Fortnightly, monthly, or yearly cadence — choose what fits your kitchen.',
+  },
+  {
+    icon: Shield,
+    title: 'Substitutions are explicit',
+    description: 'Every tier comes with a written substitution policy. No surprises in the box.',
+  },
+  {
+    icon: RefreshCw,
+    title: 'Reusable by default',
+    description: 'Built around refills and returns — minimal packaging, maximum reuse.',
+  },
+  {
+    icon: CalendarDays,
+    title: 'Pause anytime',
+    description: "Skip a delivery, pause for travel — designed for real life's rhythms.",
+  },
+];
 
 export default function SampleHaulsPage() {
-  const [sortBy, setSortBy] = useState('popular');
-  const [priceRange, setPriceRange] = useState('all');
   const [billingCycle, setBillingCycle] = useState<'fortnightly' | 'monthly' | 'yearly'>('monthly');
-  const { isSignedIn, user } = useUser();
+  const [priceRange, setPriceRange] = useState<'all' | 'under50' | '50to100' | 'over100'>('all');
 
-  const filteredTiers = SUBSCRIPTION_TIERS.filter(tier => {
+  const filtered = SUBSCRIPTION_TIERS.filter((tier) => {
     if (priceRange === 'all') return true;
     const price = tier.price[billingCycle];
     if (priceRange === 'under50') return price < 50;
-    if (priceRange === '50-100') return price >= 50 && price <= 100;
-    if (priceRange === 'over100') return price > 100;
-    return true;
-  }).sort((a, b) => {
-    if (sortBy === 'price-low') return a.price[billingCycle] - b.price[billingCycle];
-    if (sortBy === 'price-high') return b.price[billingCycle] - a.price[billingCycle];
-    return 0;
+    if (priceRange === '50to100') return price >= 50 && price <= 100;
+    return price > 100;
   });
 
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-
-  const handleStripeCheckout = async (tier: typeof SUBSCRIPTION_TIERS[0]) => {
-    setCheckoutLoading(tier.id);
-    try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tierId: tier.id,
-          billingCycle,
-          customerEmail: user?.emailAddresses[0]?.emailAddress || '',
-          customerName: user?.fullName || '',
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Checkout failed');
-      if (data.url) window.location.href = data.url;
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Something went wrong. Please try again.');
-    } finally {
-      setCheckoutLoading(null);
-    }
-  };
-
   return (
-    <main className="min-h-screen bg-[#FDFBF7]">
-      <header className="bg-white border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <Link href="/" className="font-serif text-2xl font-bold tracking-tight text-stone-900">Lumë <span className="text-emerald-700 font-light">Refillery</span></Link>
-          <Link href="/" className="flex items-center gap-2 text-stone-600 hover:text-stone-900 transition-colors"><ArrowLeft className="w-4 h-4" /> Back to Home</Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-canvas text-text-primary">
+      <Header />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex items-center gap-2 text-sm text-stone-500">
-          <Link href="/" className="hover:text-stone-900">Home</Link><span>/</span><span className="text-stone-900">Sample Hauls</span>
-        </div>
-      </div>
-
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <div className="relative rounded-2xl overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1200&auto=format&fit=crop" alt="Fresh groceries" className="w-full h-64 object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex items-center">
-            <div className="px-8 md:px-12">
-              <h1 className="text-3xl md:text-4xl font-serif font-bold text-white mb-2">Shop Our Hauls</h1>
-              <p className="text-white/80 max-w-md">Curated grocery subscriptions for every household. Fresh, sustainable, delivered.</p>
-            </div>
+      <main className="pt-[72px]">
+        <PageHero
+          eyebrow="Sample Hauls"
+          title="Preview the rhythm before you subscribe."
+          subtitle="These aren't one-off product listings. Each haul shows the kind of provisions, substitution policy, and billing rhythm Lumë plans for a household."
+        >
+          <div className="inline-flex items-center gap-2 rounded-pill bg-lume-accent/10 px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.12em] text-lume-accent">
+            <PackageCheck className="h-4 w-4" />
+            {filtered.length} previews
           </div>
-        </div>
-      </section>
+        </PageHero>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[{ icon: Truck, text: 'Free Delivery', sub: 'On all subscriptions' }, { icon: Shield, text: 'Quality Guaranteed', sub: '100% satisfaction' }, { icon: Clock, text: 'Flexible Schedule', sub: 'Pause anytime' }, { icon: Star, text: '4.9 Rating', sub: '2,000+ reviews' }].map((badge, i) => (
-            <div key={i} className="bg-white rounded-xl p-4 border border-stone-200 flex items-center gap-3">
-              <badge.icon className="w-8 h-8 text-emerald-600" />
-              <div><div className="font-medium text-stone-900 text-sm">{badge.text}</div><div className="text-xs text-stone-500">{badge.sub}</div></div>
-            </div>
-          ))}
-        </div>
-      </section>
+        {/* Why hauls */}
+        <Section
+          eyebrow="Why hauls work"
+          title="Designed around your kitchen — not ours"
+          description="Four ideas that shape every haul we plan."
+        >
+          <FeatureGrid features={FEATURES} variant="divided" columns={4} />
+        </Section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-stone-200">
-          <div className="text-stone-600"><span className="font-medium text-stone-900">{filteredTiers.length}</span> products</div>
-          <div className="flex flex-wrap gap-3">
-            {[{ val: billingCycle, setter: setBillingCycle, opts: [{ v: 'fortnightly', l: 'Fortnightly' }, { v: 'monthly', l: 'Monthly' }, { v: 'yearly', l: `Yearly (Save up to $${getMaxYearlySavings(SUBSCRIPTION_TIERS)})` }] },
-              { val: priceRange, setter: setPriceRange, opts: [{ v: 'all', l: 'All Prices' }, { v: 'under50', l: 'Under $50' }, { v: '50-100', l: '$50 - $100' }, { v: 'over100', l: 'Over $100' }] },
-              { val: sortBy, setter: setSortBy, opts: [{ v: 'popular', l: 'Most Popular' }, { v: 'price-low', l: 'Price: Low to High' }, { v: 'price-high', l: 'Price: High to Low' }] }
-            ].map((filter, i) => (
-              <div key={i} className="relative">
-                <select value={filter.val} onChange={(e) => filter.setter(e.target.value as any)}
-                  className="appearance-none bg-white border border-stone-200 rounded-lg px-4 py-2 pr-10 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                  {filter.opts.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+        {/* Filter bar + grid */}
+        <section className="bg-white py-16 lg:py-20">
+          <div className="mx-auto max-w-7xl px-6 lg:px-10">
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+              <h2 className="font-display text-[clamp(1.6rem,3vw,2.2rem)] font-normal leading-[1.15] tracking-snug text-text-primary">
+                Browse hauls
+              </h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={billingCycle}
+                  onChange={(e) =>
+                    setBillingCycle(e.target.value as 'fortnightly' | 'monthly' | 'yearly')
+                  }
+                  className="rounded-pill border border-black/[0.08] bg-canvas px-4 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors hover:border-black/[0.15] focus:border-lume-accent"
+                >
+                  <option value="fortnightly">Fortnightly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+                <select
+                  value={priceRange}
+                  onChange={(e) =>
+                    setPriceRange(e.target.value as 'all' | 'under50' | '50to100' | 'over100')
+                  }
+                  className="rounded-pill border border-black/[0.08] bg-canvas px-4 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors hover:border-black/[0.15] focus:border-lume-accent"
+                >
+                  <option value="all">All prices</option>
+                  <option value="under50">Under $50</option>
+                  <option value="50to100">$50 — $100</option>
+                  <option value="over100">Over $100</option>
+                </select>
               </div>
-            ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {filtered.map((tier, index) => (
+                <Reveal key={tier.id} delay={index * 60} duration={560}>
+                  <TierCard tier={tier} billingCycle={billingCycle} index={index} />
+                </Reveal>
+              ))}
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="mt-12 rounded-2xl bg-canvas p-12 text-center">
+                <p className="text-[15px] text-text-secondary">
+                  No hauls match those filters. Try a different price range.
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTiers.map((tier, index) => (
-            <motion.div key={tier.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }}
-              className="bg-white rounded-2xl border border-stone-200 overflow-hidden group hover:shadow-xl transition-all duration-300">
-              <div className="block relative">
-                <div className="aspect-square bg-gradient-to-br from-emerald-50 to-stone-100 relative overflow-hidden">
-                  <img src={getProductImage(tier.id)} alt={tier.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  {tier.id === 'household' && <div className="absolute top-3 left-3 bg-emerald-600 text-white text-xs font-medium px-3 py-1 rounded-full">Best Seller</div>}
-                  {tier.id === 'supported' && <div className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-medium px-3 py-1 rounded-full">Community Choice</div>}
-                </div>
-              </div>
-              <div className="p-5">
-                <div className="flex items-center gap-1 mb-2">
-                  {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
-                  <span className="text-xs text-stone-500 ml-1">(128)</span>
-                </div>
-                <h3 className="font-serif font-semibold text-lg text-stone-900 mb-1">{tier.name}</h3>
-                <p className="text-sm text-stone-500 mb-3 line-clamp-2">{tier.description}</p>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs bg-stone-100 text-stone-600 px-2 py-1 rounded">{tier.items.length} items</span>
-                  <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded capitalize">{billingCycle}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-2xl font-bold text-stone-900">${tier.price[billingCycle].toFixed(0)}</span>
-                    <span className="text-stone-500 text-sm">/{billingCycle === 'yearly' ? 'yr' : billingCycle === 'fortnightly' ? 'fn' : 'mo'}</span>
-                    {billingCycle === 'yearly' && <div className="text-xs text-emerald-600 font-medium mt-1">Save ${calculateYearlySavings(tier)}</div>}
-                  </div>
-                  {isSignedIn ? (
-                    <button onClick={() => handleStripeCheckout(tier)} disabled={checkoutLoading === tier.id} className="bg-stone-900 hover:bg-stone-800 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors disabled:opacity-50">{checkoutLoading === tier.id ? 'Loading...' : 'Subscribe'}</button>
-                  ) : (
-                    <SignInButton mode="modal"><button className="bg-stone-900 hover:bg-stone-800 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors">Subscribe</button></SignInButton>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+        <CtaBanner
+          eyebrow="Not sure?"
+          title="Take the quiz to find your match"
+          description="Answer a few questions about your household and we'll match a haul to your rhythm and cooking style."
+          primaryHref="/quiz"
+          primaryLabel="Take the quiz"
+          secondaryHref="/shop"
+          secondaryLabel="Browse the shop"
+        />
 
-      <section className="bg-emerald-900 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-serif font-bold text-white mb-4">Not sure which haul is right for you?</h2>
-          <p className="text-emerald-100 mb-8 max-w-2xl mx-auto">Take our quick quiz to find the perfect subscription for your household size and preferences.</p>
-          <Link href="/quiz" className="inline-flex items-center gap-2 bg-white text-emerald-900 px-8 py-4 rounded-full font-medium hover:bg-emerald-50 transition-colors">
-            Take the Quiz <ArrowLeft className="w-4 h-4 rotate-180" />
+        {/* Back link */}
+        <div className="mx-auto max-w-7xl px-6 py-6 lg:px-10">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-[13px] font-medium uppercase tracking-[0.06em] text-text-secondary transition-colors hover:text-text-primary"
+          >
+            <ArrowRight className="h-4 w-4 rotate-180" />
+            Back to home
           </Link>
         </div>
-      </section>
+      </main>
+
       <Footer />
-    </main>
+    </div>
   );
 }

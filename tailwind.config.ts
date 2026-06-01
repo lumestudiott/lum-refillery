@@ -26,10 +26,11 @@ const config: Config = {
 
         /* ── Warm-neutral canvas system ── */
         canvas: {
-          DEFAULT: '#f2f0eb',   // Primary page canvas (Neutral Warm)
-          light: '#f9f9f9',     // Subtle cool-gray utility
+          DEFAULT: '#F6F0E1',   // Primary page canvas (very light warm beige)
+          light: '#FFFFFF',     // Pure white utility
+          warm: '#EBE3D5',      // Optional deeper warm for contrast bands
         },
-        ceramic: '#edebe9',     // Zone separator cream
+        ceramic: '#F4F1EB',     // Zone separator cream
 
         cream: {
           50: '#FFF9ED',

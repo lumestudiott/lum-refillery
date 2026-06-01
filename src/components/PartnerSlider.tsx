@@ -26,7 +26,7 @@ const allPartners = [...partners, ...partners];
 
 const PartnerSlider: React.FC = () => {
   return (
-    <section className="relative overflow-hidden bg-[#FDFBF7] py-20 border-t border-stone-100">
+    <section className="relative overflow-hidden bg-canvas py-20 border-t border-black/[0.04]">
       {/* Header */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-14">
         <motion.div
@@ -36,7 +36,7 @@ const PartnerSlider: React.FC = () => {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="text-center"
         >
-          <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-emerald-700 mb-4">
+          <p className="text-canvas font-medium uppercase tracking-[0.2em] text-emerald-700 mb-4">
             Trusted Partners
           </p>
           <h2 className="font-serif text-[clamp(1.6rem,3vw,2.4rem)] font-bold text-stone-900 leading-[1.15]">
@@ -48,8 +48,8 @@ const PartnerSlider: React.FC = () => {
       {/* Slider Track — Row 1 (left to right) */}
       <div className="relative mb-5">
         {/* Fade edges */}
-        <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-32 bg-gradient-to-r from-[#FDFBF7] to-transparent" />
-        <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-32 bg-gradient-to-l from-[#FDFBF7] to-transparent" />
+        <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-32 bg-gradient-to-r from-canvas to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-32 bg-gradient-to-l from-canvas to-transparent" />
 
         <motion.div
           className="flex gap-5"
@@ -71,8 +71,8 @@ const PartnerSlider: React.FC = () => {
 
       {/* Slider Track — Row 2 (right to left) */}
       <div className="relative">
-        <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-32 bg-gradient-to-r from-[#FDFBF7] to-transparent" />
-        <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-32 bg-gradient-to-l from-[#FDFBF7] to-transparent" />
+        <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-32 bg-gradient-to-r from-canvas to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-32 bg-gradient-to-l from-canvas to-transparent" />
 
         <motion.div
           className="flex gap-5"

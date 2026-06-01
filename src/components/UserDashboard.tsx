@@ -2,400 +2,508 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useQuery, useMutation } from 'convex/react';
+import {
+  Package,
+  Calendar,
+  Pause,
+  Play,
+  X as XIcon,
+  Truck,
+  LogOut,
+  Mail,
+  User as UserIcon,
+  Gift,
+  ShoppingBag,
+  ArrowRight,
+  HelpCircle,
+} from 'lucide-react';
 import { api } from '../../convex/_generated/api';
 import { SUBSCRIPTION_TIERS } from '../data/tiers';
-import { motion } from 'framer-motion';
-import { 
-  Package, Calendar, CreditCard, Settings, 
-  Pause, Play, X, Check, Clock,
-  Truck, AlertCircle, LogOut, Mail, User, Gift
-} from 'lucide-react';
+import Header from './Header';
 import Footer from './Footer';
+import Reveal from './Reveal';
+
+const STATUS_BADGE: Record<string, string> = {
+  active: 'bg-lume-accent/10 text-lume-accent',
+  paused: 'bg-amber-50 text-amber-700',
+  past_due: 'bg-red-50 text-red-700',
+  cancelled: 'bg-black/[0.06] text-text-secondary',
+  paid: 'bg-lume-accent/10 text-lume-accent',
+  pending: 'bg-amber-50 text-amber-700',
+};
+
+function formatDate(ms?: number) {
+  if (!ms) return '—';
+  return new Date(ms).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+}
 
 const UserDashboard: React.FC = () => {
   const { user } = useUser();
   const { signOut, openUserProfile } = useClerk();
+
   const subscriptions = useQuery(api.subscriptions.getMySubscriptions);
   const sentGifts = useQuery(
     api.giftSubscriptions.getGiftSubscriptionsByGiver,
-    user ? { giverEmail: user.emailAddresses[0]?.emailAddress || '' } : "skip"
+    user ? { giverEmail: user.emailAddresses[0]?.emailAddress || '' } : 'skip'
   );
   const receivedGifts = useQuery(
     api.giftSubscriptions.getGiftSubscriptionsByRecipient,
-    user ? { recipientEmail: user.emailAddresses[0]?.emailAddress || '' } : "skip"
+    user ? { recipientEmail: user.emailAddresses[0]?.emailAddress || '' } : 'skip'
   );
-  
+
   const pauseSubscription = useMutation(api.subscriptions.pauseSubscription);
   const resumeSubscription = useMutation(api.subscriptions.resumeSubscription);
   const cancelSubscription = useMutation(api.subscriptions.cancelSubscription);
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-lume-accent/20 border-t-lume-accent" />
       </div>
     );
   }
 
-  const activeSubscription = subscriptions?.find(s => s.status === 'active' || s.status === 'paused');
-  const tierInfo = activeSubscription 
-    ? SUBSCRIPTION_TIERS.find(t => t.id === activeSubscription.tier)
+  const activeSubscription = subscriptions?.find(
+    (s) => s.status === 'active' || s.status === 'paused'
+  );
+  const tierInfo = activeSubscription
+    ? SUBSCRIPTION_TIERS.find((t) => t.id === activeSubscription.tier)
     : null;
 
-  const getNextDeliveryDate = () => {
+  const getNextDelivery = () => {
     if (!activeSubscription) return null;
-    const startDate = new Date(activeSubscription.startDate);
-    const now = new Date();
-    const frequency = activeSubscription.frequency === 'fortnightly' ? 14 : 
-                      activeSubscription.frequency === 'monthly' ? 30 : 
-                      activeSubscription.frequency === 'yearly' ? 365 : 30;
-    
-    let nextDelivery = new Date(startDate);
-    while (nextDelivery < now) {
-      if (activeSubscription.frequency === 'yearly') {
-        nextDelivery.setFullYear(nextDelivery.getFullYear() + 1);
-      } else {
-        nextDelivery.setDate(nextDelivery.getDate() + frequency);
-      }
+    if (activeSubscription.nextDelivery) return activeSubscription.nextDelivery;
+    if (activeSubscription.currentPeriodEnd) return activeSubscription.currentPeriodEnd;
+    const start = activeSubscription.startDate ?? activeSubscription.createdAt;
+    const cadence = activeSubscription.cadence ?? activeSubscription.frequency ?? 'monthly';
+    const days = cadence === 'fortnightly' ? 14 : cadence === 'yearly' ? 365 : 30;
+    let next = new Date(start);
+    while (next.getTime() < Date.now()) {
+      next = new Date(next.getTime() + days * 86_400_000);
     }
-    return nextDelivery;
+    return next.getTime();
   };
 
-  const nextDelivery = getNextDeliveryDate();
+  const nextDeliveryMs = getNextDelivery();
+  const status = activeSubscription?.status ?? null;
 
   return (
-    <main className="min-h-screen bg-cream-50">
-      {/* Header */}
-      <header className="bg-white border-b-2 border-stone-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <Link href="/" className="font-display text-3xl font-bold tracking-tight text-stone-900">
-            Lumë <span className="text-ocean-600 font-light">Refillery</span>
-          </Link>
-          <Link href="/" className="text-stone-600 hover:text-stone-900 transition-colors text-sm font-medium">
-            Back to Home
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-canvas text-text-primary">
+      <Header />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Welcome Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
-        >
-          <h1 className="text-5xl font-display font-bold text-stone-900 mb-4 tracking-tightest">
-            Welcome back, {user.firstName || 'there'}!
-          </h1>
-          <p className="text-lg text-stone-600 font-medium">Manage your subscription and keep circular living easy.</p>
-        </motion.div>
+      <main className="pt-[116px]">
+        {/* ── Welcome ── */}
+        <section className="relative overflow-hidden border-b border-black/[0.04] bg-canvas">
+          {/* Subtle Premium Glow */}
+          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+            <div
+              className="absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full opacity-[0.25] blur-[100px]"
+              style={{ background: 'radial-gradient(circle, var(--color-lume-accent) 0%, transparent 70%)' }}
+            />
+            <div
+              className="absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full opacity-[0.15] blur-[100px]"
+              style={{ background: 'radial-gradient(circle, var(--color-lume-green) 0%, transparent 70%)' }}
+            />
+          </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Active Subscription Card */}
-            {activeSubscription && tierInfo ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl border-2 border-stone-900 shadow-quirky-float p-1"
-              >
-                <div className="p-6 border-b-2 border-stone-900">
-                  <div className="flex items-start justify-between">
+          <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 lg:px-10 lg:py-16">
+            <Reveal duration={560}>
+              <span className="text-[12px] font-semibold uppercase tracking-[0.2em] text-lume-accent">
+                Member Dashboard
+              </span>
+              <h1 className="mt-3 font-display text-[clamp(2.5rem,4vw,3.5rem)] font-normal leading-[1.05] tracking-tight text-text-primary">
+                Welcome back, {user.firstName || 'there'}.
+              </h1>
+              <p className="mt-4 max-w-xl text-[16px] leading-[1.7] text-text-secondary">
+                Manage your subscription, track deliveries, and keep your kitchen running smoothly.
+              </p>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ── Main grid ── */}
+        <section className="relative z-20 mx-auto max-w-7xl px-6 py-12 lg:px-10 lg:py-16">
+          <div className="grid gap-8 lg:grid-cols-3">
+            {/* ── Left: subscription + history ── */}
+            <div className="space-y-8 lg:col-span-2">
+              {/* Active subscription */}
+              {activeSubscription && tierInfo ? (
+                <Reveal duration={560} className="overflow-hidden rounded-[32px] border border-white/60 bg-white/50 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.02)]">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] p-6">
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Package className="w-6 h-6 text-accent-orange" />
-                        <h2 className="text-2xl font-display font-bold text-stone-900">Your Subscription</h2>
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-lume-accent" strokeWidth={2} />
+                        <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                          Your subscription
+                        </span>
                       </div>
-                      <p className="text-stone-600 font-medium">{tierInfo.name}</p>
+                      <h2 className="mt-2 font-display text-[24px] font-normal leading-tight tracking-snug text-text-primary">
+                        {tierInfo.name}
+                      </h2>
+                      <p className="mt-1 text-[13px] capitalize text-text-secondary">
+                        {activeSubscription.cadence ?? activeSubscription.frequency ?? 'monthly'} delivery
+                      </p>
                     </div>
-                    <span className="px-4 py-1.5 rounded-full text-sm font-bold bg-accent-orange text-white">
-                      {activeSubscription.status.toUpperCase()}
+                    <span
+                      className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] ${
+                        STATUS_BADGE[status ?? ''] ?? 'bg-black/[0.06] text-text-secondary'
+                      }`}
+                    >
+                      {status}
                     </span>
                   </div>
-                </div>
 
-                <div className="p-6">
-                  {/* Next Delivery / Status */}
-                  {activeSubscription.status === 'active' && nextDelivery && (
-                    <div className="bg-sage-400/20 rounded-xl p-6 mb-8 border border-sage-500">
-                      <div className="flex items-center gap-4">
-                        <Truck className="w-10 h-10 text-ocean-700" />
+                  {/* Body */}
+                  <div className="space-y-6 p-6">
+                    {status === 'active' && nextDeliveryMs && (
+                      <div className="flex items-center gap-4 rounded-2xl bg-lume-accent/[0.06] p-5">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-lume-accent/15">
+                          <Truck className="h-5 w-5 text-lume-accent" strokeWidth={1.75} />
+                        </div>
                         <div>
-                          <div className="text-sm font-bold text-ocean-700 uppercase tracking-widest">Next Delivery</div>
-                          <div className="text-xl font-display font-bold text-stone-900">
-                            {nextDelivery.toLocaleDateString('en-US', { 
-                              weekday: 'long', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            })}
+                          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-lume-accent">
+                            Next delivery
+                          </div>
+                          <div className="mt-0.5 font-display text-[20px] font-medium leading-tight tracking-tight text-text-primary">
+                            {formatDate(nextDeliveryMs)}
                           </div>
                         </div>
                       </div>
+                    )}
+
+                    {status === 'paused' && (
+                      <div className="rounded-2xl bg-amber-50 p-5">
+                        <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                          Subscription paused
+                        </div>
+                        <p className="mt-1.5 text-[14px] leading-[1.6] text-text-secondary">
+                          Your deliveries are on hold. Resume anytime to continue receiving hauls.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      {status === 'active' ? (
+                        <button
+                          onClick={() =>
+                            pauseSubscription({ subscriptionId: activeSubscription._id })
+                          }
+                          className="btn-pill inline-flex items-center gap-2 bg-lume-house px-5 py-2.5 text-[13px] font-semibold uppercase tracking-[0.04em] text-white transition-all hover:bg-black active:scale-[0.97]"
+                        >
+                          <Pause className="h-4 w-4" />
+                          Pause
+                        </button>
+                      ) : status === 'paused' ? (
+                        <button
+                          onClick={() =>
+                            resumeSubscription({ subscriptionId: activeSubscription._id })
+                          }
+                          className="btn-pill inline-flex items-center gap-2 bg-lume-accent px-5 py-2.5 text-[13px] font-semibold uppercase tracking-[0.04em] text-white transition-all hover:bg-lume-green active:scale-[0.97]"
+                        >
+                          <Play className="h-4 w-4" />
+                          Resume
+                        </button>
+                      ) : null}
+                      <button
+                        onClick={() => {
+                          if (confirm('Are you sure you want to cancel this subscription?')) {
+                            cancelSubscription({
+                              subscriptionId: activeSubscription._id,
+                              atPeriodEnd: true,
+                            });
+                          }
+                        }}
+                        className="btn-pill inline-flex items-center gap-2 border border-black/[0.08] bg-white px-5 py-2.5 text-[13px] font-semibold uppercase tracking-[0.04em] text-text-primary transition-all hover:bg-black/[0.04] active:scale-[0.97]"
+                      >
+                        <XIcon className="h-4 w-4" />
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </Reveal>
+              ) : (
+                <Reveal duration={560} className="rounded-[32px] border border-white/60 bg-white/50 p-12 text-center backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.02)]">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-lume-accent/10">
+                    <Package className="h-6 w-6 text-lume-accent" strokeWidth={1.75} />
+                  </div>
+                  <h2 className="mt-6 font-display text-[clamp(1.6rem,3vw,2.2rem)] font-normal leading-[1.15] tracking-snug text-text-primary">
+                    No active subscription
+                  </h2>
+                  <p className="mx-auto mt-3 max-w-md text-[14px] leading-[1.7] text-text-secondary">
+                    Browse our hauls or take the quiz to find a perfect match for your household.
+                  </p>
+                  <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                    <Link
+                      href="/sample-hauls"
+                      className="btn-pill inline-flex items-center justify-center gap-2 bg-lume-house px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.04em] text-white transition-all hover:bg-black"
+                    >
+                      Browse hauls
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                      href="/quiz"
+                      className="btn-pill inline-flex items-center justify-center gap-2 border border-black/[0.08] bg-white px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.04em] text-text-primary transition-all hover:bg-black/[0.04]"
+                    >
+                      Take the quiz
+                    </Link>
+                  </div>
+                </Reveal>
+              )}
+
+              {/* Subscription history */}
+              <Reveal duration={560} delay={120} className="rounded-[32px] border border-white/60 bg-white/50 p-8 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.02)]">
+                <h2 className="font-display text-[20px] font-normal leading-tight tracking-snug text-text-primary">
+                  Subscription history
+                </h2>
+                {subscriptions && subscriptions.length > 0 ? (
+                  <ul className="mt-4 divide-y divide-black/[0.04]">
+                    {subscriptions.map((sub) => {
+                      const tier = SUBSCRIPTION_TIERS.find((t) => t.id === sub.tier);
+                      return (
+                        <li
+                          key={sub._id}
+                          className="flex items-center justify-between gap-3 py-4"
+                        >
+                          <div>
+                            <div className="text-[14px] font-semibold text-text-primary">
+                              {tier?.name || sub.tier}
+                            </div>
+                            <div className="mt-0.5 text-[12px] text-text-secondary">
+                              Started {new Date(sub.startDate ?? sub.createdAt).toLocaleDateString()}
+                              {' · '}
+                              <span className="capitalize">
+                                {sub.cadence ?? sub.frequency ?? 'monthly'}
+                              </span>
+                            </div>
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] ${
+                              STATUS_BADGE[sub.status] ?? 'bg-black/[0.06] text-text-secondary'
+                            }`}
+                          >
+                            {sub.status}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="mt-4 py-8 text-center text-[14px] text-text-secondary">
+                    No subscription history yet.
+                  </p>
+                )}
+              </Reveal>
+
+              {/* Gift subscriptions */}
+              {((sentGifts && sentGifts.length > 0) ||
+                (receivedGifts && receivedGifts.length > 0)) && (
+                <Reveal
+                  duration={560}
+                  delay={180}
+                  className="rounded-[32px] border border-white/60 bg-white/50 p-8 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.02)]"
+                >
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4 text-lume-accent" strokeWidth={2} />
+                    <h2 className="font-display text-[20px] font-normal leading-tight tracking-snug text-text-primary">
+                      Gift subscriptions
+                    </h2>
+                  </div>
+
+                  {sentGifts && sentGifts.length > 0 && (
+                    <div className="mt-5">
+                      <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                        Sent
+                      </h3>
+                      <ul className="mt-3 space-y-2">
+                        {sentGifts.map((gift) => {
+                          const tier = SUBSCRIPTION_TIERS.find((t) => t.id === gift.tier);
+                          return (
+                            <li
+                              key={gift._id}
+                              className="flex items-center justify-between gap-3 rounded-xl bg-canvas p-4"
+                            >
+                              <div>
+                                <div className="text-[14px] font-semibold text-text-primary">
+                                  {tier?.name || gift.tier} → {gift.recipientName}
+                                </div>
+                                <div className="mt-0.5 text-[12px] text-text-secondary">
+                                  {new Date(gift.createdAt).toLocaleDateString()} · $
+                                  {gift.amount.toFixed(2)}
+                                </div>
+                              </div>
+                              <span
+                                className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] ${
+                                  STATUS_BADGE[gift.status] ?? 'bg-black/[0.06] text-text-secondary'
+                                }`}
+                              >
+                                {gift.status}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
                     </div>
                   )}
 
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-4">
-                    {activeSubscription.status === 'active' ? (
-                      <button
-                        onClick={() => pauseSubscription({ subscriptionId: activeSubscription._id })}
-                        className="flex items-center gap-2 px-6 py-3 bg-accent-orange text-white rounded-lg font-bold hover:bg-opacity-90 transition-all shadow-quirky-float"
-                      >
-                        <Pause className="w-5 h-5" />
-                        Pause Subscription
-                      </button>
-                    ) : null}
-                    <button
-                      onClick={() => {
-                        if (confirm('Are you sure you want to cancel?')) {
-                          cancelSubscription({ subscriptionId: activeSubscription._id });
-                        }
-                      }}
-                      className="flex items-center gap-2 px-6 py-3 bg-stone-100 text-stone-900 border-2 border-stone-900 rounded-lg font-bold hover:bg-stone-200 transition-all"
-                    >
-                      <X className="w-5 h-5" />
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              /* No Subscription */
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl border-2 border-stone-900 p-12 text-center shadow-quirky-float"
-              >
-                <Package className="w-16 h-16 text-accent-orange mx-auto mb-6" />
-                <h2 className="text-3xl font-display font-bold text-stone-900 mb-4">No Active Subscription</h2>
-                <Link
-                  href="/sample-hauls"
-                  className="inline-flex items-center gap-2 bg-ocean-600 hover:bg-ocean-700 text-white px-8 py-4 rounded-lg font-bold transition-all shadow-quirky-float"
-                >
-                  Browse Plans
-                </Link>
-              </motion.div>
-            )}
-...
-
-            {/* Order History */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl border border-cream-200 p-6"
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-5 h-5 text-ocean-600" />
-                <h2 className="text-xl font-semibold text-stone-900">Order History</h2>
-              </div>
-              
-              {subscriptions && subscriptions.length > 0 ? (
-                <div className="space-y-3">
-                  {subscriptions.map((sub) => {
-                    const tier = SUBSCRIPTION_TIERS.find(t => t.id === sub.tier);
-                    return (
-                      <div key={sub._id} className="flex items-center justify-between p-4 bg-cream-50 rounded-xl">
-                        <div>
-                          <div className="font-medium text-stone-900">{tier?.name || sub.tier}</div>
-                          <div className="text-sm text-stone-500">
-                            Started {new Date(sub.startDate).toLocaleDateString()}
-                          </div>
-                        </div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          sub.status === 'active' ? 'bg-sage-400/20 text-ocean-700' :
-                          sub.status === 'paused' ? 'bg-accent-yellow/20 text-stone-900' :
-                          'bg-cream-200 text-stone-600'
-                        }`}>
-                          {sub.status}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-stone-500 text-center py-8">No orders yet</p>
+                  {receivedGifts && receivedGifts.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                        Received
+                      </h3>
+                      <ul className="mt-3 space-y-2">
+                        {receivedGifts.map((gift) => {
+                          const tier = SUBSCRIPTION_TIERS.find((t) => t.id === gift.tier);
+                          return (
+                            <li
+                              key={gift._id}
+                              className="rounded-xl bg-lume-accent/[0.05] p-4"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <div className="text-[14px] font-semibold text-text-primary">
+                                    {tier?.name || gift.tier} from {gift.giverName}
+                                  </div>
+                                  <div className="mt-0.5 text-[12px] text-text-secondary">
+                                    {new Date(gift.createdAt).toLocaleDateString()}
+                                  </div>
+                                </div>
+                                <span
+                                  className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] ${
+                                    STATUS_BADGE[gift.status] ??
+                                    'bg-black/[0.06] text-text-secondary'
+                                  }`}
+                                >
+                                  {gift.status}
+                                </span>
+                              </div>
+                              {gift.giftMessage && (
+                                <p className="mt-2 text-[13px] italic leading-[1.6] text-text-secondary">
+                                  &ldquo;{gift.giftMessage}&rdquo;
+                                </p>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </Reveal>
               )}
-            </motion.div>
+            </div>
 
-            {/* Gift Subscriptions */}
-            {(sentGifts && sentGifts.length > 0) || (receivedGifts && receivedGifts.length > 0) ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-white rounded-2xl border border-stone-200 p-6"
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <Gift className="w-5 h-5 text-emerald-600" />
-                  <h2 className="text-xl font-semibold text-stone-900">Gift Subscriptions</h2>
-                </div>
-                
-                {/* Sent Gifts */}
-                {sentGifts && sentGifts.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="font-medium text-stone-900 mb-3">Gifts You've Sent</h3>
-                    <div className="space-y-3">
-                      {sentGifts.map((gift) => {
-                        const tier = SUBSCRIPTION_TIERS.find(t => t.id === gift.tier);
-                        return (
-                          <div key={gift._id} className="flex items-center justify-between p-4 bg-emerald-50 rounded-xl">
-                            <div>
-                              <div className="font-medium text-stone-900">
-                                {tier?.name || gift.tier} for {gift.recipientName}
-                              </div>
-                              <div className="text-sm text-stone-500">
-                                {new Date(gift.createdAt).toLocaleDateString()} • ${gift.amount.toFixed(2)}
-                              </div>
-                            </div>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              gift.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
-                              gift.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                              'bg-stone-100 text-stone-600'
-                            }`}>
-                              {gift.status}
-                            </span>
-                          </div>
-                        );
-                      })}
+            {/* ── Right: sidebar ── */}
+            <aside className="space-y-6">
+              {/* Account */}
+              <Reveal duration={560} delay={80} className="rounded-[32px] border border-white/60 bg-white/50 p-8 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.02)]">
+                <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                  Account
+                </h2>
+                <div className="mt-4 flex items-center gap-3 border-b border-black/[0.06] pb-4">
+                  {user.imageUrl ? (
+                    <Image
+                      src={user.imageUrl}
+                      alt=""
+                      width={48}
+                      height={48}
+                      unoptimized
+                      className="h-12 w-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-lume-accent/10">
+                      <UserIcon className="h-5 w-5 text-lume-accent" strokeWidth={1.75} />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="truncate text-[14px] font-semibold text-text-primary">
+                      {user.fullName || 'User'}
+                    </div>
+                    <div className="truncate text-[12px] text-text-secondary">
+                      {user.emailAddresses[0]?.emailAddress}
                     </div>
                   </div>
-                )}
-
-                {/* Received Gifts */}
-                {receivedGifts && receivedGifts.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-stone-900 mb-3">Gifts You've Received</h3>
-                    <div className="space-y-3">
-                      {receivedGifts.map((gift) => {
-                        const tier = SUBSCRIPTION_TIERS.find(t => t.id === gift.tier);
-                        return (
-                          <div key={gift._id} className="flex items-center justify-between p-4 bg-blue-50 rounded-xl">
-                            <div>
-                              <div className="font-medium text-stone-900">
-                                {tier?.name || gift.tier} from {gift.giverName}
-                              </div>
-                              <div className="text-sm text-stone-500">
-                                {new Date(gift.createdAt).toLocaleDateString()}
-                                {gift.giftMessage && (
-                                  <span className="block italic mt-1">"{gift.giftMessage}"</span>
-                                )}
-                              </div>
-                            </div>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              gift.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
-                              gift.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                              'bg-stone-100 text-stone-600'
-                            }`}>
-                              {gift.status}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            ) : null}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Account Info */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-2xl border border-stone-200 p-6"
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <Settings className="w-5 h-5 text-emerald-600" />
-                <h2 className="text-lg font-semibold text-stone-900">Account</h2>
-              </div>
-              
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-stone-100">
-                {user.imageUrl ? (
-                  <img src={user.imageUrl} alt="" className="w-12 h-12 rounded-full" />
-                ) : (
-                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                    <User className="w-6 h-6 text-emerald-600" />
-                  </div>
-                )}
-                <div>
-                  <div className="font-medium text-stone-900">{user.fullName || 'User'}</div>
-                  <div className="text-sm text-stone-500">{user.emailAddresses[0]?.emailAddress}</div>
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <button
-                  onClick={() => openUserProfile()}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors text-stone-600 hover:text-stone-900 text-left"
-                >
-                  <Mail className="w-5 h-5" />
-                  Edit Profile
-                </button>
-                <button
-                  onClick={() => signOut()}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 transition-colors text-stone-600 hover:text-red-600 text-left"
-                >
-                  <LogOut className="w-5 h-5" />
-                  Sign Out
-                </button>
-              </div>
-            </motion.div>
 
-            {/* Quick Links */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-white rounded-2xl border border-stone-200 p-6"
-            >
-              <h2 className="text-lg font-semibold text-stone-900 mb-4">Quick Links</h2>
-              <div className="space-y-2">
-                <Link href="/sample-hauls" className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors text-stone-600 hover:text-stone-900">
-                  <Package className="w-5 h-5" />
-                  Browse Plans
-                </Link>
-                <Link href="/quiz" className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors text-stone-600 hover:text-stone-900">
-                  <Calendar className="w-5 h-5" />
-                  Take the Quiz
-                </Link>
-                <Link href="/gift" className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors text-stone-600 hover:text-stone-900">
-                  <CreditCard className="w-5 h-5" />
-                  Gift a Subscription
-                </Link>
-              </div>
-            </motion.div>
+                <div className="mt-4 space-y-1">
+                  <button
+                    onClick={() => openUserProfile()}
+                    className="flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-[13px] font-medium text-text-secondary transition-colors hover:bg-canvas hover:text-text-primary"
+                  >
+                    <Mail className="h-4 w-4" strokeWidth={1.75} />
+                    Edit profile
+                  </button>
+                  <button
+                    onClick={() => signOut()}
+                    className="flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-[13px] font-medium text-text-secondary transition-colors hover:bg-red-50 hover:text-red-600"
+                  >
+                    <LogOut className="h-4 w-4" strokeWidth={1.75} />
+                    Sign out
+                  </button>
+                </div>
+              </Reveal>
 
-            {/* Need Help */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="bg-emerald-50 rounded-2xl p-6"
-            >
-              <h2 className="text-lg font-semibold text-stone-900 mb-2">Need Help?</h2>
-              <p className="text-stone-600 text-sm mb-4">
-                Have questions about your subscription or delivery?
-              </p>
-              <a 
-                href="mailto:lumestudiott@gmail.com"
-                className="text-emerald-600 hover:text-emerald-700 font-medium text-sm"
+              {/* Quick links */}
+              <Reveal duration={560} delay={140} className="rounded-[32px] border border-white/60 bg-white/50 p-8 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.02)]">
+                <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                  Quick links
+                </h2>
+                <nav className="mt-4 space-y-1">
+                  {[
+                    { href: '/sample-hauls', label: 'Browse hauls', Icon: Package },
+                    { href: '/shop', label: 'Shop chilled items', Icon: ShoppingBag },
+                    { href: '/quiz', label: 'Take the quiz', Icon: Calendar },
+                    { href: '/gift', label: 'Send a gift', Icon: Gift },
+                  ].map(({ href, label, Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="flex items-center gap-3 rounded-lg p-2.5 text-[13px] font-medium text-text-secondary transition-colors hover:bg-canvas hover:text-text-primary"
+                    >
+                      <Icon className="h-4 w-4" strokeWidth={1.75} />
+                      {label}
+                    </Link>
+                  ))}
+                </nav>
+              </Reveal>
+
+              {/* Help */}
+              <Reveal
+                duration={560}
+                delay={200}
+                className="rounded-3xl bg-lume-accent/[0.06] p-6"
               >
-                Contact Support →
-              </a>
-            </motion.div>
+                <div className="flex items-center gap-2">
+                  <HelpCircle className="h-4 w-4 text-lume-accent" strokeWidth={2} />
+                  <h2 className="text-[14px] font-semibold tracking-tight text-text-primary">
+                    Need help?
+                  </h2>
+                </div>
+                <p className="mt-2 text-[13px] leading-[1.6] text-text-secondary">
+                  Have questions about your subscription or delivery? We're here to help.
+                </p>
+                <a
+                  href="mailto:lumestudiott@gmail.com"
+                  className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-lume-accent transition-colors hover:text-lume-green"
+                >
+                  Contact support
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </a>
+              </Reveal>
+            </aside>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
 
       <Footer />
-    </main>
+    </div>
   );
 };
 

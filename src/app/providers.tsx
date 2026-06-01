@@ -5,19 +5,40 @@ import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { ConvexReactClient } from 'convex/react';
 import { ReactNode, useMemo } from 'react';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { CartProvider } from '@/context/CartContext';
+import IdleTimeout from '@/components/IdleTimeout';
+
+function requirePublicEnv(name: string, value: string | undefined): string {
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
 
 export function Providers({ children }: { children: ReactNode }) {
   const convex = useMemo(
-    () => new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!),
+    () =>
+      new ConvexReactClient(
+        requirePublicEnv(
+          'NEXT_PUBLIC_CONVEX_URL',
+          process.env.NEXT_PUBLIC_CONVEX_URL
+        )
+      ),
     []
   );
 
   return (
     <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+      publishableKey={requirePublicEnv(
+        'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+      )}
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <ErrorBoundary>{children}</ErrorBoundary>
+        <CartProvider>
+          <IdleTimeout />
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </CartProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   );

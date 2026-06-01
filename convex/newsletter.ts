@@ -131,18 +131,18 @@ export const getSubscriberCount = query({
   handler: async (ctx) => {
     let count = 0;
     let isDone = false;
-    let cursor: any = null;
+    let cursor: string | null = null;
 
     // Paginate through results counting without holding all in memory
     while (!isDone) {
       const page = await ctx.db
         .query("newsletterSubscribers")
         .filter((q) => q.eq(q.field("status"), "active"))
-        .paginate({ numItems: 100, cursor: cursor ?? undefined });
+        .paginate({ numItems: 100, cursor });
 
       count += page.page.length;
       isDone = page.isDone;
-      cursor = page.continueCursor;
+      cursor = page.continueCursor ?? null;
     }
 
     return count;

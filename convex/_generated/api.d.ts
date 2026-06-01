@@ -8,11 +8,27 @@
  * @module
  */
 
+import type * as addresses from "../addresses.js";
+import type * as boxes from "../boxes.js";
+import type * as credits from "../credits.js";
+import type * as crons from "../crons.js";
+import type * as deliveryZones from "../deliveryZones.js";
+import type * as email from "../email.js";
 import type * as giftSubscriptions from "../giftSubscriptions.js";
+import type * as http from "../http.js";
+import type * as inventory from "../inventory.js";
+import type * as lib_auth from "../lib/auth.js";
+import type * as lib_time from "../lib/time.js";
 import type * as newsletter from "../newsletter.js";
+import type * as products from "../products.js";
+import type * as referrals from "../referrals.js";
+import type * as seed from "../seed.js";
+import type * as shipping from "../shipping.js";
+import type * as shopOrders from "../shopOrders.js";
+import type * as stripeWebhooks from "../stripeWebhooks.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
-import type * as webhooks from "../webhooks.js";
+import type * as webhookEvents from "../webhookEvents.js";
 
 import type {
   ApiFromModules,
@@ -21,11 +37,27 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  addresses: typeof addresses;
+  boxes: typeof boxes;
+  credits: typeof credits;
+  crons: typeof crons;
+  deliveryZones: typeof deliveryZones;
+  email: typeof email;
   giftSubscriptions: typeof giftSubscriptions;
+  http: typeof http;
+  inventory: typeof inventory;
+  "lib/auth": typeof lib_auth;
+  "lib/time": typeof lib_time;
   newsletter: typeof newsletter;
+  products: typeof products;
+  referrals: typeof referrals;
+  seed: typeof seed;
+  shipping: typeof shipping;
+  shopOrders: typeof shopOrders;
+  stripeWebhooks: typeof stripeWebhooks;
   subscriptions: typeof subscriptions;
   users: typeof users;
-  webhooks: typeof webhooks;
+  webhookEvents: typeof webhookEvents;
 }>;
 
 /**

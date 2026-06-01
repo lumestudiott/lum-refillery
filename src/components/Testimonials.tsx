@@ -7,7 +7,7 @@ const testimonials = [
   {
     name: 'Sarah M.',
     role: 'Family of 4',
-    quote: 'Lume changed how we shop. Our essentials show up, the produce is beautiful, and we waste far less than we used to.',
+    quote: 'Lumë changed how we shop. Our essentials show up, the produce is beautiful, and we waste far less than we used to.',
   },
   {
     name: 'James K.',

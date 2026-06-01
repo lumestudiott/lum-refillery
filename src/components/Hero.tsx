@@ -1,149 +1,127 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { SignInButton, useUser } from '@clerk/nextjs';
-import { ArrowRight } from 'lucide-react';
+import { ShoppingCart, Leaf } from 'lucide-react';
 
 const Hero: React.FC = () => {
   const { isSignedIn } = useUser();
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video) {
-      video.play().catch(() => {
-        // Autoplay blocked — video will still show first frame
-      });
-    }
-  }, []);
-
   const handleGetStarted = () => {
-    window.location.href = '/pricing';
+    window.location.href = '/sample-hauls';
   };
 
-  const handleLearnMore = () => {
-    document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const primaryButton = (
+  const shopButton = (
     <button
-      onClick={isSignedIn ? handleGetStarted : undefined}
+      onClick={handleGetStarted}
       className="btn-pill group inline-flex items-center gap-2 bg-lume-accent px-7 py-3.5 text-[15px] font-semibold tracking-tight text-white shadow-frap transition-all hover:bg-lume-green"
     >
-      Get Started
-      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-    </button>
-  );
-
-  const secondaryButton = (
-    <button
-      onClick={handleLearnMore}
-      className="btn-pill inline-flex items-center gap-2 border border-white/60 bg-transparent px-7 py-3.5 text-[15px] font-semibold tracking-tight text-white backdrop-blur-sm transition-all hover:border-white hover:bg-white/10"
-    >
-      How It Works
+      Browse Hauls
+      <ShoppingCart className="h-4 w-4 transition-transform group-hover:scale-110" />
     </button>
   );
 
   return (
-    <section className="relative min-h-[100dvh] overflow-hidden bg-lume-house">
-      {/* ── Video Background ── */}
-      <div className="absolute inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          className="h-full w-full object-cover"
-        >
-          <source src="/videos/hero-bg.mp4" type="video/mp4" />
-        </video>
+    <section className="relative overflow-hidden bg-canvas">
+      {/* ── Floating accent shapes ── */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        {/* Top-left large soft blob */}
+        <div
+          className="absolute -left-20 -top-20 h-72 w-72 opacity-[0.07] blur-3xl"
+          style={{ background: 'radial-gradient(circle, var(--color-lume-accent) 0%, transparent 70%)' }}
+        />
+        {/* Mid-left small dot */}
+        <motion.div
+          animate={{ y: [0, -12, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute left-[8%] top-[55%] h-3 w-3 rounded-full bg-lume-accent/20"
+          style={{ borderRadius: '60% 40% 50% 50%' }}
+        />
+        {/* Bottom-left medium blob */}
+        <motion.div
+          animate={{ y: [0, -8, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -bottom-10 left-[12%] h-48 w-48 opacity-[0.05] blur-2xl"
+          style={{ background: 'radial-gradient(circle, var(--color-lume-green) 0%, transparent 70%)' }}
+        />
+        {/* Top-right small dot */}
+        <motion.div
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+          className="absolute right-[15%] top-[18%] h-2 w-2 rounded-full bg-lume-accent/15"
+        />
+        {/* Center-right medium blob */}
+        <motion.div
+          animate={{ y: [0, -6, 0] }}
+          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+          className="absolute -right-16 top-[40%] h-56 w-56 opacity-[0.06] blur-3xl"
+          style={{ background: 'radial-gradient(circle, var(--color-lume-accent) 0%, transparent 70%)' }}
+        />
+        {/* Bottom-right small dot */}
+        <motion.div
+          animate={{ y: [0, -14, 0] }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          className="absolute bottom-[20%] right-[25%] h-2.5 w-2.5 rounded-full bg-lume-green/20"
+          style={{ borderRadius: '40% 60% 50% 50%' }}
+        />
+        {/* Bottom-center soft wash */}
+        <div
+          className="absolute -bottom-24 left-1/2 h-64 w-96 -translate-x-1/2 opacity-[0.04] blur-3xl"
+          style={{ background: 'radial-gradient(ellipse, var(--color-lume-accent) 0%, transparent 70%)' }}
+        />
       </div>
 
-      {/* ── Overlay ── */}
-      <div className="hero-video-overlay absolute inset-0 z-[1]" />
-
       {/* ── Content ── */}
-      <div className="relative z-10 flex min-h-[100dvh] items-center">
-        <div className="mx-auto w-full max-w-7xl px-6 py-32 lg:px-10">
-          <div className="max-w-2xl">
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <span className="inline-flex items-center gap-2 rounded-pill bg-white/10 px-4 py-2 text-[13px] font-medium tracking-wide text-white/90 backdrop-blur-md">
-                <span className="h-1.5 w-1.5 rounded-full bg-lume-accent" />
-                Spring 2026 seasonal boxes are here
-              </span>
-            </motion.div>
+      <div className="pt-40 pb-28 lg:pt-48 lg:pb-40 flex items-center min-h-[85vh]">
+        <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-6 lg:grid-cols-2 lg:gap-16 lg:px-10">
+          {/* Text */}
+          <div className="max-w-xl">
+            <div className="inline-flex items-center gap-2 text-[16px] font-display text-lume-accent">
+              <Leaf className="h-4.5 w-4.5 text-lume-accent" />
+              <span>Thoughtfully Sourced</span>
+            </div>
 
-            {/* Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.35 }}
-              className="mt-8 font-display text-[clamp(2.8rem,6vw,5rem)] font-normal leading-[1.1] tracking-snug text-white"
-            >
-              Groceries refilled
+            <h1 className="mt-4 font-display text-[clamp(2.8rem,6vw,5rem)] font-normal leading-[1.1] tracking-snug text-text-primary">
+              Just Food
               <br />
-              for flavor,{' '}
-              <span className="italic text-refill-green">not waste</span>
-            </motion.h1>
+              <span className="text-lume-accent">
+                Built For <span className="">Your Table</span>
+              </span>
+            </h1>
 
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.5 }}
-              className="mt-6 max-w-xl text-[17px] font-normal leading-[1.7] text-white/75"
-            >
-              Fresh staples, local produce, and household essentials delivered
-              on your schedule — with reusable packaging and no supermarket
-              guesswork.
-            </motion.p>
+            <p className="mt-6 max-w-xl text-[17px] font-normal leading-[1.7] text-text-secondary">
+              Reliable grocery subscriptions, thoughtfully built for everyday tables.
+            </p>
 
-            {/* CTAs */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.65 }}
-              className="mt-10 flex flex-wrap items-center gap-4"
-            >
+            <div className="mt-10">
               {isSignedIn ? (
-                primaryButton
+                shopButton
               ) : (
-                <SignInButton mode="modal">{primaryButton}</SignInButton>
+                <SignInButton mode="modal">{shopButton}</SignInButton>
               )}
-              {secondaryButton}
-            </motion.div>
+            </div>
+          </div>
 
-
+          {/* Video blob */}
+          <div className="flex items-center justify-center">
+            <div
+              className="relative h-[260px] w-[260px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.1)] sm:h-[340px] sm:w-[340px] md:h-[420px] md:w-[420px] lg:h-[560px] lg:w-[560px]"
+              style={{ borderRadius: '60% 40% 55% 45% / 50% 60% 40% 50%' }}
+            >
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="absolute inset-0 h-full w-full object-cover"
+              >
+                <source src="/videos/hero-blob.mp4" type="video/mp4" />
+              </video>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Bottom scroll indicator ── */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, delay: 1.5 }}
-        className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2"
-      >
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/50">
-            Scroll
-          </span>
-          <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            className="h-8 w-[1px] bg-gradient-to-b from-white/40 to-transparent"
-          />
-        </div>
-      </motion.div>
     </section>
   );
 };
