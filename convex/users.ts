@@ -23,6 +23,7 @@ export const createUser = mutation({
     }
 
     const clerkId = identity.subject;
+    const tokenIdentifier = identity.tokenIdentifier;
     const email = identity.email ?? "";
     const name =
       identity.name ?? identity.givenName ?? identity.preferredUsername ?? undefined;
@@ -33,11 +34,15 @@ export const createUser = mutation({
       .unique();
 
     if (existingUser) {
+      if (existingUser.tokenIdentifier !== tokenIdentifier) {
+        await ctx.db.patch(existingUser._id, { tokenIdentifier });
+      }
       return existingUser._id;
     }
 
     const userId = await ctx.db.insert("users", {
       clerkId,
+      tokenIdentifier,
       email,
       name,
       creditsCents: 0,

@@ -38,6 +38,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
     }
 
+    if (items.length > 50) {
+      return NextResponse.json({ error: 'Cart exceeds maximum size of 50 items' }, { status: 400 });
+    }
+
+    const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    if (totalQuantity > 200) {
+      return NextResponse.json({ error: 'Total quantity exceeds maximum of 200' }, { status: 400 });
+    }
+
     const convexToken = await getToken({ template: 'convex' });
     if (!convexToken) {
       return NextResponse.json({ error: 'Auth token error' }, { status: 500 });
@@ -45,7 +54,17 @@ export async function POST(request: NextRequest) {
     const convex = new ConvexHttpClient(getServerConvexUrl());
     convex.setAuth(convexToken);
 
+    // ── Rate Limit Check ──
+    const isAllowed = await convex.mutation(api.lib.rateLimit.checkCheckoutLimit, { clerkId: userId });
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Too many checkout attempts. Please try again later.' }, { status: 429 });
+    }
+
     // ── Validate prices server-side against canonical Convex catalog ──
+    const skus = items.map((item) => item.sku);
+    const products = await convex.query(api.products.getManyBySku, { skus });
+    const productMap = new Map(products.map((p) => [p.sku, p]));
+
     const lineItems = [];
     for (const item of items) {
       if (!item.sku || !item.quantity || item.quantity < 1) {
@@ -54,7 +73,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const product = await convex.query(api.products.getBySku, { sku: item.sku });
+      const product = productMap.get(item.sku);
       if (!product || !product.active) {
         return NextResponse.json(
           { error: `Product no longer available: ${item.sku}` },
@@ -102,7 +121,7 @@ export async function POST(request: NextRequest) {
       payment_method_types: ['card'],
       line_items: lineItems,
       shipping_address_collection: {
-        allowed_countries: ['US', 'TT'],
+        allowed_countries: ['TT'],
       },
       metadata: {
         clerk_user_id: userId,
@@ -110,6 +129,8 @@ export async function POST(request: NextRequest) {
       },
       success_url: `${appUrl}/shop/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/shop`,
+    }, {
+      idempotencyKey: `checkout_${userId}_${Date.now()}` // simple idempotency key to prevent dupes in rapid succession
     });
 
     return NextResponse.json({ sessionId: session.id, url: session.url });

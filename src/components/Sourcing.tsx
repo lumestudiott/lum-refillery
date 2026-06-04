@@ -20,7 +20,7 @@ const sources = [
       "Pantry goods from independent producers you won't find in big stores.",
     image: 'https://images.unsplash.com/photo-1471943311424-646960669fbc?auto=format&fit=crop&w=800&q=90',
     bg: '#F37941', // Vintage Orange
-    rotateClass: 'rotate-0',
+    rotateClass: '-rotate-2',
   },
   {
     label: 'Saved',
@@ -29,6 +29,15 @@ const sources = [
       'High-quality groceries that deserve a home. Still fresh, always useful.',
     image: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=800&q=90',
     bg: '#E7AD47', // Vintage Mustard
+    rotateClass: 'rotate-2',
+  },
+  {
+    label: 'Rewards',
+    title: 'Birthday Club',
+    description:
+      'Celebrate your special day with exclusive rewards, treats, and bonus points on us.',
+    image: 'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?auto=format&fit=crop&w=800&q=90',
+    bg: '#C56D7A', // Vintage Rose/Pink
     rotateClass: 'rotate-6',
   },
 ];
@@ -71,7 +80,7 @@ const Sourcing: React.FC = () => {
           {sources.map((item, index) => {
             const isFirst = index === 0;
             const marginClass = isFirst ? '' : '-ml-[70px] sm:-ml-[100px] md:-ml-[130px] lg:-ml-[160px]';
-            const baseZ = [10, 20, 30][index];
+            const baseZ = [10, 20, 30, 40][index];
 
             return (
               <Reveal

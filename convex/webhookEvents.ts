@@ -29,6 +29,7 @@ export const recordAndSchedule = internalMutation({
       payload: args.payload,
       status: "pending",
       receivedAt: Date.now(),
+      attempts: 0,
     });
 
     if (args.provider === "stripe") {
@@ -51,13 +52,39 @@ export const getEvent = internalQuery({
 export const markProcessed = internalMutation({
   args: { id: v.id("webhookEvents") },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, { status: "processed" });
+    await ctx.db.patch(args.id, { 
+      status: "processed", 
+      error: undefined,
+      nextRetryAt: undefined 
+    });
   }
 });
 
 export const markFailed = internalMutation({
   args: { id: v.id("webhookEvents"), error: v.string() },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, { status: "failed", error: args.error });
+    const event = await ctx.db.get(args.id);
+    if (!event) return;
+
+    const attempts = (event.attempts ?? 0) + 1;
+    const maxAttempts = 5;
+
+    if (attempts >= maxAttempts) {
+      await ctx.db.patch(args.id, { 
+        status: "poison", 
+        error: args.error,
+        attempts,
+        nextRetryAt: undefined 
+      });
+    } else {
+      // Exponential backoff: 2^attempts minutes
+      const backoffMs = Math.pow(2, attempts) * 60 * 1000;
+      await ctx.db.patch(args.id, { 
+        status: "failed", 
+        error: args.error,
+        attempts,
+        nextRetryAt: Date.now() + backoffMs
+      });
+    }
   }
 });

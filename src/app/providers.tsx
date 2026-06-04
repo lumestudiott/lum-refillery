@@ -7,6 +7,7 @@ import { ReactNode, useMemo } from 'react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { CartProvider } from '@/context/CartContext';
 import IdleTimeout from '@/components/IdleTimeout';
+import OnboardingGuard from '@/components/OnboardingGuard';
 
 function requirePublicEnv(name: string, value: string | undefined): string {
   if (!value) {
@@ -37,7 +38,9 @@ export function Providers({ children }: { children: ReactNode }) {
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <CartProvider>
           <IdleTimeout />
-          <ErrorBoundary>{children}</ErrorBoundary>
+          <ErrorBoundary>
+            <OnboardingGuard>{children}</OnboardingGuard>
+          </ErrorBoundary>
         </CartProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>

@@ -33,22 +33,74 @@ export const listActive = query({
       const cat = args.category;
       return await ctx.db
         .query("products")
-        .withIndex("by_category", (q) => q.eq("category", cat))
-        .filter((q) => q.eq(q.field("active"), true))
+        .withIndex("by_active_and_category", (q) =>
+          q.eq("active", true).eq("category", cat)
+        )
         .paginate(args.paginationOpts);
     }
     return await ctx.db
       .query("products")
       .withIndex("by_active", (q) => q.eq("active", true))
-      .filter((q) => 
-        q.or(
-          q.eq(q.field("category"), "produce"),
-          q.eq(q.field("category"), "protein"),
-          q.eq(q.field("category"), "dairy"),
-          q.eq(q.field("category"), "beverage")
-        )
-      )
       .paginate(args.paginationOpts);
+  },
+});
+
+/**
+ * Bounded public catalog snapshot for server-rendered shop pages. This avoids
+ * turning every anonymous catalog visit into a live reactive subscription.
+ */
+export const listActiveSnapshot = query({
+  args: {
+    category: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.min(args.limit ?? 36, 60);
+    if (args.category) {
+      return await ctx.db
+        .query("products")
+        .withIndex("by_active_and_category", (q) =>
+          q.eq("active", true).eq("category", args.category!)
+        )
+        .take(limit);
+    }
+    return await ctx.db
+      .query("products")
+      .withIndex("by_active", (q) => q.eq("active", true))
+      .take(limit);
+  },
+});
+
+/**
+ * Full-text search over active products.
+ */
+export const searchActive = query({
+  args: {
+    query: v.string(),
+    category: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.min(args.limit ?? 20, 50);
+    
+    if (args.category) {
+      return await ctx.db
+        .query("products")
+        .withSearchIndex("search_products", (q) =>
+          q.search("name", args.query)
+           .eq("active", true)
+           .eq("category", args.category!)
+        )
+        .take(limit);
+    }
+    
+    return await ctx.db
+      .query("products")
+      .withSearchIndex("search_products", (q) =>
+        q.search("name", args.query)
+         .eq("active", true)
+      )
+      .take(limit);
   },
 });
 
@@ -59,6 +111,22 @@ export const getBySku = query({
       .query("products")
       .withIndex("by_sku", (q) => q.eq("sku", args.sku))
       .unique(),
+});
+
+export const getManyBySku = query({
+  args: { skus: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const products = await Promise.all(
+      args.skus.map((sku) =>
+        ctx.db
+          .query("products")
+          .withIndex("by_sku", (q) => q.eq("sku", sku))
+          .unique()
+      )
+    );
+    // Filter out nulls in case some SKUs don't exist
+    return products.filter((p) => p !== null);
+  },
 });
 
 // ─── Admin write API ───────────────────────────────────────────────
@@ -75,7 +143,10 @@ export const upsertProduct = mutation({
     attributes: attributesValidator,
     sourcingPartner: v.optional(v.string()),
     sourcingOrigin: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
     defaultForTiers: v.optional(v.array(v.string())),
+    purchaseType: v.optional(v.string()),
+    subscriptionIntervals: v.optional(v.array(v.string())),
     active: v.boolean(),
   },
   handler: async (ctx, args) => {
@@ -100,7 +171,10 @@ export const internalUpsertProduct = internalMutation({
     attributes: attributesValidator,
     sourcingPartner: v.optional(v.string()),
     sourcingOrigin: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
     defaultForTiers: v.optional(v.array(v.string())),
+    purchaseType: v.optional(v.string()),
+    subscriptionIntervals: v.optional(v.array(v.string())),
     active: v.boolean(),
   },
   handler: async (ctx, args) => await upsertImpl(ctx, args),
@@ -129,7 +203,10 @@ async function upsertImpl(
       | undefined;
     sourcingPartner?: string;
     sourcingOrigin?: string;
+    tags?: string[];
     defaultForTiers?: string[];
+    purchaseType?: string;
+    subscriptionIntervals?: string[];
     active: boolean;
   }
 ) {

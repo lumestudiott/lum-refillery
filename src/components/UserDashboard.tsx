@@ -25,6 +25,8 @@ import { SUBSCRIPTION_TIERS } from '../data/tiers';
 import Header from './Header';
 import Footer from './Footer';
 import Reveal from './Reveal';
+import LoyaltyCard from './LoyaltyCard';
+import AddressManager from './dashboard/AddressManager';
 
 const STATUS_BADGE: Record<string, string> = {
   active: 'bg-lume-accent/10 text-lume-accent',
@@ -61,6 +63,8 @@ const UserDashboard: React.FC = () => {
   const pauseSubscription = useMutation(api.subscriptions.pauseSubscription);
   const resumeSubscription = useMutation(api.subscriptions.resumeSubscription);
   const cancelSubscription = useMutation(api.subscriptions.cancelSubscription);
+  
+  const currentBox = useQuery(api.boxes.getCurrentBox);
 
   if (!user) {
     return (
@@ -243,10 +247,10 @@ const UserDashboard: React.FC = () => {
                   </p>
                   <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                     <Link
-                      href="/sample-hauls"
+                      href="/shop"
                       className="btn-pill inline-flex items-center justify-center gap-2 bg-lume-house px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.04em] text-white transition-all hover:bg-black"
                     >
-                      Browse hauls
+                      Browse
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                     <Link
@@ -256,6 +260,65 @@ const UserDashboard: React.FC = () => {
                       Take the quiz
                     </Link>
                   </div>
+                </Reveal>
+              )}
+
+              {/* Current Box Status */}
+              {currentBox && (
+                <Reveal duration={560} delay={100} className="rounded-[32px] border border-white/60 bg-white/50 p-8 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.02)]">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Truck className="h-5 w-5 text-lume-accent" strokeWidth={2} />
+                    <h2 className="font-display text-[20px] font-normal leading-tight tracking-snug text-text-primary">
+                      Current Box
+                    </h2>
+                  </div>
+                  
+                  <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary block">Status</span>
+                      <span className={`mt-1 inline-block rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] ${STATUS_BADGE[currentBox.status] ?? 'bg-black/[0.06] text-text-secondary'}`}>
+                        {currentBox.status}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary block">Delivery Date</span>
+                      <span className="text-[14px] font-medium text-text-primary mt-1 block">
+                        {formatDate(currentBox.deliveryDate)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary block">Cutoff</span>
+                      <span className="text-[14px] font-medium text-text-primary mt-1 block">
+                        {formatDate(currentBox.cutoffAt)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary border-b border-black/[0.06] pb-2">
+                      Contents ({currentBox.items.length})
+                    </h3>
+                    {currentBox.items.length > 0 ? (
+                      <ul className="divide-y divide-black/[0.04]">
+                        {currentBox.items.map((item) => (
+                          <li key={item._id} className="py-2 flex justify-between items-center text-[13px]">
+                            <span>{item.productName} <span className="text-text-secondary">x{item.quantity}</span></span>
+                            <span>${(item.unitPriceCentsAtLock / 100 * item.quantity).toFixed(2)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-[13px] text-text-secondary italic">Box is empty.</p>
+                    )}
+                  </div>
+                  
+                  {currentBox.status === "draft" && (
+                    <div className="mt-6">
+                      <Link href={`/dashboard/box/${currentBox._id}`} className="btn-pill inline-flex items-center gap-2 border border-black/[0.08] bg-white px-5 py-2.5 text-[13px] font-semibold uppercase tracking-[0.04em] text-text-primary transition-all hover:bg-black/[0.04]">
+                        Customize Box
+                      </Link>
+                    </div>
+                  )}
                 </Reveal>
               )}
 
@@ -402,6 +465,48 @@ const UserDashboard: React.FC = () => {
 
             {/* ── Right: sidebar ── */}
             <aside className="space-y-6">
+              {/* Loyalty Card */}
+              <Reveal duration={560} delay={60}>
+                {(() => {
+                  const signupMs = user.createdAt ?? Date.now();
+                  const signupDate = new Date(signupMs);
+                  
+                  let start = new Date(signupDate);
+                  const now = new Date();
+                  let end = new Date(start);
+                  end.setMonth(start.getMonth() + 6);
+
+                  // Keep advancing the 6-month window until it contains the current date
+                  while (end <= now) {
+                    start = new Date(end);
+                    end = new Date(start);
+                    end.setMonth(start.getMonth() + 6);
+                  }
+
+                  const periodSpentCents = (subscriptions ?? []).reduce((sum, s) => {
+                    // Only count spending from subscriptions created within this period
+                    if (s._creationTime < start.getTime() || s._creationTime > end.getTime()) {
+                      return sum;
+                    }
+                    const tier = SUBSCRIPTION_TIERS.find((t) => t.id === s.tier);
+                    if (!tier || s.status === 'cancelled') return sum;
+                    return sum + (tier.price ?? 0) * 100;
+                  }, 0);
+
+                  return (
+                    <LoyaltyCard
+                      memberName={user.fullName || user.firstName || 'Member'}
+                      memberId={user.id}
+                      memberSince={signupDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      periodStartMs={start.getTime()}
+                      periodEndMs={end.getTime()}
+                      totalSpentCents={periodSpentCents}
+                      creditsCents={0}
+                    />
+                  );
+                })()}
+              </Reveal>
+
               {/* Account */}
               <Reveal duration={560} delay={80} className="rounded-[32px] border border-white/60 bg-white/50 p-8 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.02)]">
                 <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
@@ -450,6 +555,11 @@ const UserDashboard: React.FC = () => {
                 </div>
               </Reveal>
 
+              {/* Address Manager */}
+              <Reveal duration={560} delay={120}>
+                <AddressManager />
+              </Reveal>
+
               {/* Quick links */}
               <Reveal duration={560} delay={140} className="rounded-[32px] border border-white/60 bg-white/50 p-8 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.02)]">
                 <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
@@ -457,13 +567,13 @@ const UserDashboard: React.FC = () => {
                 </h2>
                 <nav className="mt-4 space-y-1">
                   {[
-                    { href: '/sample-hauls', label: 'Browse hauls', Icon: Package },
+                    { href: '/shop', label: 'Browse', Icon: Package },
                     { href: '/shop', label: 'Shop chilled items', Icon: ShoppingBag },
                     { href: '/quiz', label: 'Take the quiz', Icon: Calendar },
                     { href: '/gift', label: 'Send a gift', Icon: Gift },
                   ].map(({ href, label, Icon }) => (
                     <Link
-                      key={href}
+                      key={label}
                       href={href}
                       className="flex items-center gap-3 rounded-lg p-2.5 text-[13px] font-medium text-text-secondary transition-colors hover:bg-canvas hover:text-text-primary"
                     >

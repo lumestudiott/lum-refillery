@@ -342,7 +342,7 @@ export default function QuizPage() {
 
               <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
-                  href="/sample-hauls"
+                  href="/shop"
                   className="btn-pill group inline-flex items-center justify-center gap-2 bg-lume-house px-7 py-3.5 text-[14px] font-semibold uppercase tracking-[0.04em] text-white transition-all hover:bg-black active:scale-[0.97]"
                 >
                   Subscribe now

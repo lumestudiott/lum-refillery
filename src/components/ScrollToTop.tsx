@@ -12,7 +12,19 @@ const ScrollToTop = () => {
       isFirstRender.current = false;
       return;
     }
-    window.scrollTo(0, 0);
+    
+    // Allow Next.js router to update the DOM first
+    setTimeout(() => {
+      if (window.location.hash) {
+        const id = window.location.hash.substring(1);
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        window.scrollTo(0, 0);
+      }
+    }, 100);
   }, [pathname]);
 
   return null;

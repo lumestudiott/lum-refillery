@@ -62,27 +62,27 @@ export const seedDev = internalMutation({
     // ── Products: a starter catalog matching the existing tiers ──
     const products = [
       // Grains
-      sku("rice-jasmine-5", "Jasmine Rice (5lb)", "produce-pantry", "lb", 1199, [
+      sku("rice-jasmine-5", "Jasmine Rice (5lb)", "pantry", "lb", 1199, [
         "supported",
         "essential",
         "household",
       ]),
-      sku("flour-organic-5", "Organic All-Purpose Flour (5lb)", "produce-pantry", "lb", 999, [
+      sku("flour-organic-5", "Organic All-Purpose Flour (5lb)", "pantry", "lb", 999, [
         "essential",
         "household",
         "premium",
       ]),
-      sku("pasta-bronze-1", "Bronze-Cut Penne (1lb)", "produce-pantry", "lb", 599, [
+      sku("pasta-bronze-1", "Bronze-Cut Penne (1lb)", "pantry", "lb", 599, [
         "essential",
         "household",
         "premium",
         "gourmet",
       ]),
-      sku("quinoa-organic-2", "Organic Quinoa (2lb)", "produce-pantry", "lb", 1499, [
+      sku("quinoa-organic-2", "Organic Quinoa (2lb)", "pantry", "lb", 1499, [
         "premium",
         "gourmet",
       ]),
-      sku("oats-rolled-3", "Rolled Oats (3lb)", "produce-pantry", "lb", 699, [
+      sku("oats-rolled-3", "Rolled Oats (3lb)", "pantry", "lb", 699, [
         "essential",
         "household",
       ]),
@@ -109,11 +109,11 @@ export const seedDev = internalMutation({
         "household",
         "premium",
         "gourmet",
-      ]),
+      ], "subscription", ["1mo", "3mo", "6mo"]),
       sku("tea-black-50", "Loose-Leaf Black Tea (50g)", "beverage", "g", 999, [
         "household",
         "premium",
-      ]),
+      ], "subscription", ["1mo", "3mo", "6mo"]),
       // Protein
       sku("beans-black-2", "Heirloom Black Beans (2lb)", "protein", "lb", 899, [
         "supported",
@@ -244,6 +244,128 @@ export const seedDev = internalMutation({
         "Single-origin Trinidad oranges, never from concentrate.",
         "https://images.unsplash.com/photo-1600271886742-f049cd451bba?auto=format&fit=crop&w=800&q=85"
       ),
+      // ── Hauls (all subscription-based) ──
+      chilledSku(
+        "haul-essentials",
+        "The Essentials Haul",
+        "hauls",
+        "ea",
+        4999,
+        "Weekly staples: eggs, milk, bread, seasonal fruit & greens.",
+        "https://images.unsplash.com/photo-1543168256-418811576931?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo", "6mo"]
+      ),
+      chilledSku(
+        "haul-family",
+        "The Family Haul",
+        "hauls",
+        "ea",
+        7999,
+        "Feeds a family of four — proteins, produce, dairy & pantry basics.",
+        "https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo", "6mo"]
+      ),
+      chilledSku(
+        "haul-snack-box",
+        "The Snack Haul",
+        "hauls",
+        "ea",
+        2999,
+        "Curated mix of nuts, dried fruit, chocolate & artisan crackers.",
+        "https://images.unsplash.com/photo-1513442542250-854d436a73f2?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo", "6mo"]
+      ),
+      chilledSku(
+        "haul-green",
+        "The Green Haul",
+        "hauls",
+        "ea",
+        3499,
+        "All organic produce — leafy greens, herbs, and seasonal vegetables.",
+        "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo", "6mo"]
+      ),
+      chilledSku(
+        "haul-brunch",
+        "The Brunch Haul",
+        "hauls",
+        "ea",
+        3999,
+        "Weekend brunch essentials: pastries, eggs, juice, jam & coffee.",
+        "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo", "6mo"]
+      ),
+      // ── New Categories (Bakery, Meals, Seasonal, Savings) ──
+      chilledSku(
+        "sourdough-loaf-1",
+        "Artisan Sourdough Loaf (1pc)",
+        "bakery",
+        "ea",
+        799,
+        "Freshly baked artisan sourdough with a crisp crust and chewy center.",
+        "https://images.unsplash.com/photo-1585478259715-876acc5be8eb?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo"]
+      ),
+      chilledSku(
+        "croissant-butter-4",
+        "All-Butter Croissants (4ct)",
+        "bakery",
+        "ea",
+        1299,
+        "Flaky, golden, traditional French butter croissants.",
+        "https://images.unsplash.com/photo-1555507036-ab1e4006a25e?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo"]
+      ),
+      chilledSku(
+        "meal-chicken-pesto-1",
+        "Chicken Pesto Pasta Kit (2 Servings)",
+        "meals",
+        "ea",
+        2499,
+        "Everything you need for a quick, delicious dinner. 15 minutes prep.",
+        "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo", "6mo"]
+      ),
+      chilledSku(
+        "meal-salad-bowl-1",
+        "Roasted Veggie Quinoa Bowl (1 Serving)",
+        "meals",
+        "ea",
+        1199,
+        "Ready-to-eat healthy lunch bowl with lemon tahini dressing.",
+        "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo", "6mo"]
+      ),
+      chilledSku(
+        "seasonal-pumpkin-pie-1",
+        "Mini Pumpkin Pie (1ea)",
+        "new-seasonal",
+        "ea",
+        599,
+        "A seasonal favorite made with local pumpkin and warm spices.",
+        "https://images.unsplash.com/photo-1509482560494-4126f8225994?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo"]
+      ),
+      chilledSku(
+        "seasonal-apple-cider-1",
+        "Spiced Apple Cider (1L)",
+        "new-seasonal",
+        "L",
+        899,
+        "Freshly pressed local apples with cinnamon and nutmeg.",
+        "https://images.unsplash.com/photo-1509460965088-a5080f1401c3?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo"]
+      ),
+      chilledSku(
+        "savings-pantry-bundle-1",
+        "Essential Pantry Bundle",
+        "savings",
+        "ea",
+        3599,
+        "Stock up and save on rice, beans, pasta, and cooking oil.",
+        "https://images.unsplash.com/photo-1590779033100-9f60a05a013d?auto=format&fit=crop&w=800&q=85",
+        "subscription", ["1mo", "3mo", "6mo"]
+      ),
     ];
     for (const p of products) {
       await ctx.runMutation(internal.products.internalUpsertProduct, p);
@@ -256,6 +378,27 @@ export const seedDev = internalMutation({
   },
 });
 
+/**
+ * One-time cleanup: strips `isSubscription` from product attributes.
+ *   npx convex run seed:cleanupAttributes
+ */
+export const cleanupAttributes = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const products = await ctx.db.query("products").collect();
+    let patched = 0;
+    for (const p of products) {
+      if (p.attributes && 'isSubscription' in p.attributes) {
+        const { isSubscription, ...rest } = p.attributes;
+        const cleaned = Object.keys(rest).length > 0 ? rest : undefined;
+        await ctx.db.patch(p._id, { attributes: cleaned });
+        patched++;
+      }
+    }
+    return { patched };
+  },
+});
+
 function chilledSku(
   sku: string,
   name: string,
@@ -263,7 +406,9 @@ function chilledSku(
   unit: string,
   basePriceCents: number,
   description: string,
-  imageUrl: string
+  imageUrl: string,
+  purchaseType?: string,
+  subscriptionIntervals?: string[]
 ) {
   return {
     sku,
@@ -274,10 +419,13 @@ function chilledSku(
     basePriceCents,
     imageUrl,
     attributes: undefined,
+    tags: Math.random() > 0.7 ? ["Sale"] : Math.random() > 0.5 ? ["New"] : undefined,
     sourcingPartner: undefined,
     sourcingOrigin: "Trinidad & Tobago",
     weightGrams: undefined,
     defaultForTiers: [],
+    purchaseType: purchaseType ?? "one-time",
+    subscriptionIntervals,
     active: true,
   };
 }
@@ -288,7 +436,9 @@ function sku(
   category: string,
   unit: string,
   basePriceCents: number,
-  defaultForTiers: string[]
+  defaultForTiers: string[],
+  purchaseType?: string,
+  subscriptionIntervals?: string[]
 ) {
   return {
     sku,
@@ -299,10 +449,13 @@ function sku(
     basePriceCents,
     imageUrl: undefined,
     attributes: undefined,
+    tags: Math.random() > 0.7 ? ["Sale"] : Math.random() > 0.5 ? ["Local"] : undefined,
     sourcingPartner: undefined,
     sourcingOrigin: undefined,
     weightGrams: undefined,
     defaultForTiers,
+    purchaseType: purchaseType ?? "one-time",
+    subscriptionIntervals,
     active: true,
   };
 }

@@ -20,10 +20,18 @@ export async function getAuthedUser(
     throw new Error("Not authenticated");
   }
 
-  const user = await ctx.db
+  let user = await ctx.db
     .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
+
+  if (!user) {
+    // Fallback for users created before tokenIdentifier migration
+    user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+  }
 
   if (!user) {
     throw new Error(
@@ -45,10 +53,20 @@ export async function getAuthedUserOrNull(
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
 
-  return await ctx.db
+  let user = await ctx.db
     .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
+
+  if (!user) {
+    // Fallback for users created before tokenIdentifier migration
+    user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+  }
+
+  return user;
 }
 
 /**
@@ -65,10 +83,17 @@ export async function isAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
   const role = claims.publicMetadata?.role ?? claims.role ?? claims.org_role;
   if (role === "admin" || role === "org:admin") return true;
 
-  const user = await ctx.db
+  let user = await ctx.db
     .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
+
+  if (!user) {
+    user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+  }
 
   return user?.isAdmin === true;
 }

@@ -15,7 +15,6 @@ const footerLinks = {
     { label: 'How It Works', href: '/#how-it-works' },
     { label: 'Shop', href: '/shop' },
     { label: 'Quiz', href: '/quiz' },
-    { label: 'Who We Service', href: '/#who-we-service' },
   ],
   'Contact Us': [
     { label: 'FAQ', href: '/faq' },

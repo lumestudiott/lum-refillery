@@ -18,10 +18,13 @@ import type * as giftSubscriptions from "../giftSubscriptions.js";
 import type * as http from "../http.js";
 import type * as inventory from "../inventory.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_time from "../lib/time.js";
 import type * as newsletter from "../newsletter.js";
 import type * as products from "../products.js";
 import type * as referrals from "../referrals.js";
+import type * as scratch from "../scratch.js";
+import type * as scripts from "../scripts.js";
 import type * as seed from "../seed.js";
 import type * as shipping from "../shipping.js";
 import type * as shopOrders from "../shopOrders.js";
@@ -29,6 +32,7 @@ import type * as stripeWebhooks from "../stripeWebhooks.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
 import type * as webhookEvents from "../webhookEvents.js";
+import type * as webhookRetry from "../webhookRetry.js";
 
 import type {
   ApiFromModules,
@@ -47,10 +51,13 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   inventory: typeof inventory;
   "lib/auth": typeof lib_auth;
+  "lib/rateLimit": typeof lib_rateLimit;
   "lib/time": typeof lib_time;
   newsletter: typeof newsletter;
   products: typeof products;
   referrals: typeof referrals;
+  scratch: typeof scratch;
+  scripts: typeof scripts;
   seed: typeof seed;
   shipping: typeof shipping;
   shopOrders: typeof shopOrders;
@@ -58,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   subscriptions: typeof subscriptions;
   users: typeof users;
   webhookEvents: typeof webhookEvents;
+  webhookRetry: typeof webhookRetry;
 }>;
 
 /**
@@ -86,4 +94,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+};

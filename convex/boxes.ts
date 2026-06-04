@@ -11,6 +11,7 @@ import { getAuthedUser, getAuthedUserOrNull } from "./lib/auth";
 import { resolveZoneForZip } from "./deliveryZones";
 import { computePeriodWindow, isoWeekKey } from "./lib/time";
 import { reserveImpl, releaseImpl } from "./inventory";
+import { internal } from "./_generated/api";
 
 // ─────────────────────────────────────────────────────────────────
 // Internal: box lifecycle (called from convex/http.ts)
@@ -39,7 +40,7 @@ export const generateForPeriod = internalMutation({
       ? await ctx.db.get(subscription.primaryAddressId)
       : await findPrimaryAddress(ctx, subscription.userId);
     const zone = primaryAddress
-      ? await resolveZoneForZip(ctx, primaryAddress.zip)
+      ? await resolveZoneForZip(ctx, primaryAddress.zip ?? "")
       : null;
 
     // Compute period window. Fallbacks: Sun cutoff @ 0h UTC, Wed delivery.
@@ -77,7 +78,7 @@ export const generateForPeriod = internalMutation({
             line2: primaryAddress.line2,
             city: primaryAddress.city,
             state: primaryAddress.state,
-            zip: primaryAddress.zip,
+            zip: primaryAddress.zip ?? "",
             country: primaryAddress.country,
           }
         : undefined,
@@ -187,6 +188,12 @@ export const lockExpired = internalMutation({
     for (const row of rows) {
       await ctx.db.patch(row._id, { status: "locked" });
     }
+    
+    // Self-rescheduling loop for large batches
+    if (rows.length === batchSize) {
+      await ctx.scheduler.runAfter(0, internal.boxes.lockExpired, { batchSize });
+    }
+    
     return rows.length;
   },
 });
@@ -212,6 +219,12 @@ export const markDeliveredSweep = internalMutation({
         deliveredAt: Date.now(),
       });
     }
+
+    // Self-rescheduling loop for large batches
+    if (rows.length === batchSize) {
+      await ctx.scheduler.runAfter(0, internal.boxes.markDeliveredSweep, { batchSize });
+    }
+
     return rows.length;
   },
 });
@@ -446,7 +459,17 @@ async function expandBox(ctx: QueryCtx, box: Doc<"boxes">) {
     .query("boxItems")
     .withIndex("by_box", (q) => q.eq("boxId", box._id))
     .take(500);
-  return { ...box, items };
+    
+  const expandedItems = await Promise.all(items.map(async (item) => {
+    const product = await ctx.db.get(item.productId);
+    return {
+      ...item,
+      productName: product?.name ?? "Unknown Product",
+      productSku: product?.sku ?? "",
+    };
+  }));
+  
+  return { ...box, items: expandedItems };
 }
 
 export const getCurrentBox = query({

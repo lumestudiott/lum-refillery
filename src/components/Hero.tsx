@@ -8,7 +8,7 @@ import { ShoppingCart, Leaf } from 'lucide-react';
 const Hero: React.FC = () => {
   const { isSignedIn } = useUser();
   const handleGetStarted = () => {
-    window.location.href = '/sample-hauls';
+    window.location.href = '/shop';
   };
 
   const shopButton = (
@@ -16,7 +16,7 @@ const Hero: React.FC = () => {
       onClick={handleGetStarted}
       className="btn-pill group inline-flex items-center gap-2 bg-lume-accent px-7 py-3.5 text-[15px] font-semibold tracking-tight text-white shadow-frap transition-all hover:bg-lume-green"
     >
-      Browse Hauls
+      Browse
       <ShoppingCart className="h-4 w-4 transition-transform group-hover:scale-110" />
     </button>
   );

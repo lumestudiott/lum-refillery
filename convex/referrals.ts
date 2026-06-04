@@ -6,6 +6,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthedUser, getAuthedUserOrNull } from "./lib/auth";
+import { rateLimiter } from "./lib/rateLimit";
 
 const DEFAULT_BONUS_CENTS = 2_000; // $20
 
@@ -66,6 +67,13 @@ export const sendInvite = mutation({
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Invalid email");
     }
+
+    // Rate limiting
+    const status = await rateLimiter.limit(ctx, "referral", { key: user._id });
+    if (!status.ok) {
+      throw new Error("Rate limit exceeded for referrals. Please try again later.");
+    }
+
     // De-dupe: if already invited and still pending, return existing.
     const existing = await ctx.db
       .query("referrals")

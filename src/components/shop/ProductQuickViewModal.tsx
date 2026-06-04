@@ -166,46 +166,130 @@ export default function ProductQuickViewModal({ product, onClose }: ProductQuick
         <div className="flex shrink-0 flex-col sm:flex-row items-center justify-between border-t border-lume-house/10 bg-[#FAF9F5]/95 backdrop-blur-xl px-10 py-8 lg:px-16">
           <div className="mb-8 sm:mb-0 text-center sm:text-left flex flex-col items-center sm:items-start w-full sm:w-auto">
             <p className="text-[12px] font-light text-lume-house/70 mb-1">
-              Customize or skip weekly.
+              {product.purchaseType === 'subscription' ? 'Customize or skip weekly.' : 'One-time purchase.'}
             </p>
             <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-lume-house">
-              ${(product.basePriceCents / 100).toFixed(2)} / {product.unit}
+              TT${(product.basePriceCents / 100).toFixed(2)} / {product.unit}
             </p>
           </div>
 
-          <div className="flex w-full sm:w-auto flex-col sm:flex-row items-center gap-6">
-            <div className="relative w-full sm:w-48">
-              <select 
-                value={deliveryFrequency}
-                onChange={(e) => setDeliveryFrequency(e.target.value)}
-                className="w-full appearance-none rounded-none border-b border-lume-house/20 bg-transparent px-2 py-3 text-[11px] font-medium uppercase tracking-[0.15em] text-lume-house outline-none focus:border-lume-house cursor-pointer"
+          <div className="flex w-full sm:w-auto items-center justify-end">
+            {product.purchaseType === 'subscription' ? (
+              <QuickViewSubscriptionSelector product={product} />
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                className={`flex h-[46px] w-full sm:w-56 items-center justify-center gap-2 border text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-500 ${
+                  added
+                    ? 'bg-lume-house text-white border-lume-house'
+                    : 'bg-lume-house text-white border-lume-house hover:bg-transparent hover:text-lume-house'
+                }`}
               >
-                <option>One-time Purchase</option>
-                <option>Weekly Delivery</option>
-                <option>Bi-weekly</option>
-                <option>Monthly</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-lume-house/50">
-                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            <button
-              onClick={handleSubscribe}
-              className={`flex w-full sm:w-56 items-center justify-center gap-2 border py-3 text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-500 ${
-                added
-                  ? 'bg-lume-house text-white border-lume-house'
-                  : 'bg-lume-house text-white border-lume-house hover:bg-transparent hover:text-lume-house'
-              }`}
-            >
-              {added ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-              {added ? 'Added' : (deliveryFrequency === 'One-time Purchase' ? 'Add to Cart' : 'Subscribe')}
-            </button>
+                {added ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                {added ? 'Added' : 'Add to Cart'}
+              </button>
+            )}
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+const INTERVAL_LABELS: Record<string, string> = {
+  '1mo': '1 Mo',
+  '3mo': '3 Mo',
+  '6mo': '6 Mo',
+  '12mo': '12 Mo',
+};
+
+function QuickViewSubscriptionSelector({ product }: { product: ShopProduct }) {
+  const { addItem } = useCart();
+  const intervals = product.subscriptionIntervals ?? ['1mo', '3mo', '6mo'];
+  const [selected, setSelected] = React.useState(intervals[0]);
+  const [subscribed, setSubscribed] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const handleSubscribe = () => {
+    addItem({
+      productId: product._id,
+      sku: product.sku,
+      name: `${product.name} (${INTERVAL_LABELS[selected] ?? selected})`,
+      priceCents: product.basePriceCents,
+      imageUrl: product.imageUrl,
+      unit: product.unit,
+    });
+    setSubscribed(true);
+    setOpen(false);
+    setTimeout(() => setSubscribed(false), 2200);
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative flex h-[46px] w-full sm:w-[280px]">
+      <button
+        type="button"
+        onClick={handleSubscribe}
+        className={`flex flex-1 items-center justify-center gap-2 border border-r-0 text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-500 ${
+          subscribed
+            ? 'bg-lume-house text-white border-lume-house'
+            : 'bg-lume-house text-white border-lume-house hover:bg-transparent hover:text-lume-house'
+        }`}
+      >
+        {subscribed ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+        {subscribed ? 'Subscribed' : `Subscribe · ${INTERVAL_LABELS[selected] ?? selected}`}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`flex w-12 items-center justify-center border transition-all duration-300 ${
+          open
+            ? 'bg-lume-house text-white border-lume-house'
+            : subscribed
+              ? 'bg-lume-house text-white border-lume-house'
+              : 'border-lume-house bg-lume-house text-white/50 hover:bg-transparent hover:text-lume-house'
+        }`}
+      >
+        <svg className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 z-30 mb-2 flex flex-col overflow-hidden border border-lume-house/15 bg-canvas shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
+          {intervals.map((interval) => (
+            <button
+              key={interval}
+              type="button"
+              onClick={() => {
+                setSelected(interval);
+                setOpen(false);
+              }}
+              className={`flex items-center justify-between px-4 py-3 text-[11px] font-medium uppercase tracking-[0.12em] transition-colors ${
+                selected === interval
+                  ? 'bg-lume-house/8 text-lume-house'
+                  : 'text-lume-house/60 hover:bg-lume-house/5 hover:text-lume-house'
+              }`}
+            >
+              {INTERVAL_LABELS[interval] ?? interval}
+              {selected === interval && <Check className="h-3 w-3 text-lume-house" />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

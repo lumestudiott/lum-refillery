@@ -10,7 +10,7 @@ import AnnouncementBar from './AnnouncementBar';
 
 const navItems = [
   { label: 'Shop', href: '/shop' },
-  { label: 'Why Choose Lumë', href: '/#about' },
+  { label: 'About Us', href: '/#about' },
   { label: 'How It Works', href: '/#how-it-works' },
   { label: 'Producers', href: '/#sourcing' },
 ];
@@ -100,7 +100,7 @@ const Header: React.FC = () => {
         {/* Mobile hamburger */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="cursor-pointer rounded-lg p-2 text-text-primary transition-colors hover:bg-canvas-light lg:hidden"
+          className="cursor-pointer rounded-lg p-2 text-text-primary transition-colors hover:bg-black/5 lg:hidden"
           aria-label="Toggle mobile navigation"
         >
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -123,7 +123,7 @@ const Header: React.FC = () => {
                   key={item.label}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-card px-4 py-3 font-display text-[16px] font-normal text-text-primary transition-colors hover:bg-canvas-light"
+                  className="block rounded-[12px] px-4 py-3 font-display text-[16px] font-normal text-text-primary transition-all hover:bg-black/[0.03] hover:translate-x-1"
                 >
                   {item.label}
                 </Link>
@@ -135,7 +135,7 @@ const Header: React.FC = () => {
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-card px-4 py-3 text-[15px] font-medium text-text-primary transition-colors hover:bg-canvas-light"
+                  className="block rounded-[12px] px-4 py-3 font-display text-[16px] font-normal text-text-primary transition-all hover:bg-black/[0.03] hover:translate-x-1"
                 >
                   Dashboard
                 </Link>

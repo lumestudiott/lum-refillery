@@ -6,6 +6,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import { v } from "convex/values";
+import { rateLimiter } from "./lib/rateLimit";
 
 type ClerkRoleClaims = {
   publicMetadata?: { role?: string };
@@ -94,6 +95,12 @@ export const createGiftSubscription = mutation({
 
     if (args.amount <= 0) {
       throw new Error("Amount must be greater than zero");
+    }
+
+    // ── Rate limiting ────────────────────────────────────────────
+    const status = await rateLimiter.limit(ctx, "giftCreation", { key: identity.subject });
+    if (!status.ok) {
+      throw new Error("Rate limit exceeded for gift creation");
     }
 
     const giftSubscriptionId = await ctx.db.insert("giftSubscriptions", {

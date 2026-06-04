@@ -10,37 +10,7 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email) && email.length <= 254;
 }
 
-/**
- * Simple in-memory rate limiter for newsletter subscribes.
- * Tracks recent subscribe attempts per email to prevent spam.
- * Resets on server restart (Convex function re-deploy), which is fine
- * for basic protection — for production hardening, use a counter table.
- */
-const recentSubscribes = new Map<string, number>();
-const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const MAX_SUBSCRIBES_PER_WINDOW = 3;
-
-function checkRateLimit(email: string): boolean {
-  const now = Date.now();
-  const key = email.toLowerCase();
-
-  // Clean up expired entries periodically
-  if (recentSubscribes.size > 1000) {
-    for (const [k, timestamp] of recentSubscribes.entries()) {
-      if (now - timestamp > RATE_LIMIT_WINDOW_MS) {
-        recentSubscribes.delete(k);
-      }
-    }
-  }
-
-  const lastAttempt = recentSubscribes.get(key);
-  if (lastAttempt && now - lastAttempt < RATE_LIMIT_WINDOW_MS) {
-    return false; // Rate limited
-  }
-
-  recentSubscribes.set(key, now);
-  return true;
-}
+import { rateLimiter } from "./lib/rateLimit";
 
 export const subscribe = mutation({
   args: {
@@ -55,8 +25,9 @@ export const subscribe = mutation({
     }
 
     // ── Rate limiting ────────────────────────────────────────────
-    if (!checkRateLimit(email)) {
-      return { success: false, message: "Too many attempts. Please try again in a minute." };
+    const status = await rateLimiter.limit(ctx, "newsletter", { key: email });
+    if (!status.ok) {
+      return { success: false, message: `Too many attempts. Please try again later.` };
     }
 
     // ── Check for existing subscriber ────────────────────────────

@@ -102,7 +102,7 @@ export default function OurMissionPage() {
           eyebrow="Get involved"
           title="Join our mission"
           description="Every subscription helps build a more sustainable food system for Trinidad & Tobago."
-          primaryHref="/sample-hauls"
+          primaryHref="/shop"
           primaryLabel="Start a subscription"
           secondaryHref="/shop"
           secondaryLabel="Browse the shop"

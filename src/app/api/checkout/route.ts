@@ -77,6 +77,12 @@ export async function POST(request: NextRequest) {
     const convex = new ConvexHttpClient(getServerConvexUrl());
     convex.setAuth(convexToken);
 
+    // ── Rate Limit Check ──
+    const isAllowed = await convex.mutation(api.lib.rateLimit.checkCheckoutLimit, { clerkId: userId });
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Too many checkout attempts. Please try again later.' }, { status: 429 });
+    }
+
     let stripeCustomerId: string | null = null;
     const me = await convex.query(api.users.getUserByClerkId, {
       clerkId: userId,
@@ -123,6 +129,9 @@ export async function POST(request: NextRequest) {
           },
         },
       ],
+      shipping_address_collection: {
+        allowed_countries: ['TT'],
+      },
       subscription_data: {
         metadata: {
           tier_id: tier.id,
@@ -139,6 +148,8 @@ export async function POST(request: NextRequest) {
       },
       success_url: `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/cancel`,
+    }, {
+      idempotencyKey: `sub_checkout_${userId}_${tierId}_${Date.now()}`
     });
 
     return NextResponse.json({ sessionId: session.id, url: session.url });

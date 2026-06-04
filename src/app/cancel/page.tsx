@@ -11,7 +11,7 @@ export default function CancelPage() {
       icon={XCircle}
       title="Payment cancelled"
       description="Your payment was cancelled. No charges were made — you can try again anytime."
-      primaryAction={{ href: '/sample-hauls', label: 'Try again', icon: RotateCcw }}
+      primaryAction={{ href: '/shop', label: 'Try again', icon: RotateCcw }}
       secondaryAction={{ href: '/', label: 'Back to home', icon: Home }}
     />
   );

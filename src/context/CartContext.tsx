@@ -28,6 +28,14 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null);
 
 const STORAGE_KEY = 'lume-shop-cart-v1';
+export const MAX_CART_ITEM_QUANTITY = 20;
+export const MAX_CART_UNIQUE_ITEMS = 50;
+export const MAX_CART_TOTAL_QUANTITY = 200;
+
+function clampQuantity(qty: number) {
+  if (!Number.isFinite(qty)) return 1;
+  return Math.min(Math.max(Math.trunc(qty), 1), MAX_CART_ITEM_QUANTITY);
+}
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -54,12 +62,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addItem = useCallback((item: Omit<CartItem, 'quantity'>, qty = 1) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === item.productId);
+      const nextQty = clampQuantity(qty);
+      
+      let nextItems;
       if (existing) {
-        return prev.map((i) =>
-          i.productId === item.productId ? { ...i, quantity: i.quantity + qty } : i
+        nextItems = prev.map((i) =>
+          i.productId === item.productId
+            ? { ...i, quantity: clampQuantity(i.quantity + nextQty) }
+            : i
         );
+      } else {
+        if (prev.length >= MAX_CART_UNIQUE_ITEMS) {
+          alert(`You can only have up to ${MAX_CART_UNIQUE_ITEMS} unique items in your cart.`);
+          return prev;
+        }
+        nextItems = [...prev, { ...item, quantity: nextQty }];
       }
-      return [...prev, { ...item, quantity: qty }];
+
+      const totalQty = nextItems.reduce((s, i) => s + i.quantity, 0);
+      if (totalQty > MAX_CART_TOTAL_QUANTITY) {
+        alert(`You can only have up to ${MAX_CART_TOTAL_QUANTITY} total items in your cart.`);
+        return prev;
+      }
+
+      return nextItems;
     });
     setIsOpen(true);
   }, []);
@@ -69,11 +95,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateQuantity = useCallback((productId: string, qty: number) => {
-    setItems((prev) =>
-      qty <= 0
-        ? prev.filter((i) => i.productId !== productId)
-        : prev.map((i) => (i.productId === productId ? { ...i, quantity: qty } : i))
-    );
+    setItems((prev) => {
+      if (qty <= 0) return prev.filter((i) => i.productId !== productId);
+      
+      const nextItems = prev.map((i) =>
+        i.productId === productId ? { ...i, quantity: clampQuantity(qty) } : i
+      );
+      
+      const totalQty = nextItems.reduce((s, i) => s + i.quantity, 0);
+      if (totalQty > MAX_CART_TOTAL_QUANTITY) {
+        alert(`You can only have up to ${MAX_CART_TOTAL_QUANTITY} total items in your cart.`);
+        return prev;
+      }
+      return nextItems;
+    });
   }, []);
 
   const clearCart = useCallback(() => setItems([]), []);

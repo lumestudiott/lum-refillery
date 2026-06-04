@@ -38,7 +38,9 @@ export default function HomePage() {
       <div id="about">
         <About />
       </div>
-      <HowItWorks />
+      <div id="how-it-works">
+        <HowItWorks />
+      </div>
       <div id="sourcing">
         <Sourcing />
       </div>

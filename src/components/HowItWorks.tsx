@@ -41,7 +41,7 @@ const HowItWorks: React.FC = () => {
 
   const ctaButton = (
     <button
-      onClick={isSignedIn ? () => (window.location.href = '/sample-hauls') : undefined}
+      onClick={isSignedIn ? () => (window.location.href = '/shop') : undefined}
       className="btn-pill group inline-flex cursor-pointer items-center gap-2.5 bg-lume-house px-8 py-4 text-[15px] font-semibold tracking-tight text-white transition-all hover:bg-lume-accent shadow-soft-float"
     >
       See our plans

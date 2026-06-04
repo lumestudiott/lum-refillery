@@ -36,7 +36,7 @@ export const sendTransactional = internalAction({
           Authorization: `Bearer ${provider}`,
         },
         body: JSON.stringify({
-          from: "Lume Refillery <hello@lumerefillery.com>",
+          from: process.env.RESEND_FROM_EMAIL ?? "Lume Refillery <onboarding@resend.dev>",
           to: [args.to],
           subject: args.subject,
           html: `<p>${args.body}</p>`,

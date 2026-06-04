@@ -18,6 +18,7 @@ export default defineSchema({
   // ──────────────────────────────────────────────────────────────
   users: defineTable({
     clerkId: v.string(),
+    tokenIdentifier: v.optional(v.string()),
     email: v.string(),
     name: v.optional(v.string()),
     phone: v.optional(v.string()),
@@ -38,6 +39,7 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_clerk_id", ["clerkId"])
+    .index("by_token", ["tokenIdentifier"])
     .index("by_email", ["email"])
     .index("by_stripe_customer", ["stripeCustomerId"])
     .index("by_referral_code", ["referralCode"]),
@@ -52,8 +54,8 @@ export default defineSchema({
     line2: v.optional(v.string()),
     city: v.string(),
     state: v.string(),
-    zip: v.string(),
-    country: v.optional(v.string()), // default "US"
+    zip: v.optional(v.string()),
+    country: v.optional(v.string()), // default "TT"
     deliveryInstructions: v.optional(v.string()),
     isPrimary: v.boolean(),
     createdAt: v.number(),
@@ -124,7 +126,6 @@ export default defineSchema({
     weightGrams: v.optional(v.number()),
     basePriceCents: v.number(),
     imageUrl: v.optional(v.string()),
-    // attribute flags — kept as a record for forward-compat
     attributes: v.optional(
       v.object({
         organic: v.optional(v.boolean()),
@@ -137,14 +138,24 @@ export default defineSchema({
     ),
     sourcingPartner: v.optional(v.string()),
     sourcingOrigin: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())), // e.g. ["Sale", "New", "Best Seller"]
     // which tiers default-include this product (used by box generator).
     defaultForTiers: v.optional(v.array(v.string())),
+    // "one-time" (default) | "subscription"
+    purchaseType: v.optional(v.string()),
+    // e.g. ["1mo", "3mo", "6mo"] — only relevant when purchaseType = "subscription"
+    subscriptionIntervals: v.optional(v.array(v.string())),
     active: v.boolean(),
     createdAt: v.number(),
   })
     .index("by_sku", ["sku"])
     .index("by_category", ["category"])
-    .index("by_active", ["active"]),
+    .index("by_active", ["active"])
+    .index("by_active_and_category", ["active", "category"])
+    .searchIndex("search_products", {
+      searchField: "name",
+      filterFields: ["active", "category"],
+    }),
 
   // ──────────────────────────────────────────────────────────────
   // Per-week inventory allocation
@@ -290,10 +301,14 @@ export default defineSchema({
     eventId: v.string(),               // Stripe event.id / Clerk svix id
     eventType: v.string(),
     payload: v.optional(v.any()),      // Raw event payload for async processing
-    status: v.optional(v.string()),    // "pending" | "processed" | "failed"
+    status: v.optional(v.string()),    // "pending" | "processed" | "failed" | "poison"
     error: v.optional(v.string()),
     receivedAt: v.number(),
-  }).index("by_provider_event", ["provider", "eventId"]),
+    attempts: v.optional(v.number()),
+    nextRetryAt: v.optional(v.number()),
+  })
+    .index("by_provider_event", ["provider", "eventId"])
+    .index("by_status_retry", ["status", "nextRetryAt"]),
 
   // ──────────────────────────────────────────────────────────────
   // Newsletter & gifts (unchanged)

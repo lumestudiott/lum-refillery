@@ -96,7 +96,7 @@ export default function SustainabilityPage() {
           eyebrow="Take part"
           title="Join the sustainable food movement"
           description="Every subscription supports local farmers, reduces food miles, and helps build a more sustainable food system."
-          primaryHref="/sample-hauls"
+          primaryHref="/shop"
           primaryLabel="Start a subscription"
           secondaryHref="/sourcing-standards"
           secondaryLabel="See our sourcing"

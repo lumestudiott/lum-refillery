@@ -134,8 +134,8 @@ export default function SourcingStandardsPage() {
           eyebrow="Eat with confidence"
           title="Know what's on your plate"
           description="Every haul comes with sourcing details — origins, farmers, certifications. Total transparency."
-          primaryHref="/sample-hauls"
-          primaryLabel="Browse hauls"
+          primaryHref="/shop"
+          primaryLabel="Browse"
           secondaryHref="/sustainability"
           secondaryLabel="Our sustainability"
         />

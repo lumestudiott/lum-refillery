@@ -24,4 +24,11 @@ crons.interval(
   { batchSize: 100 }
 );
 
+// Every 5 minutes: retry any failed webhooks that are due
+crons.interval(
+  "retry failed webhooks",
+  { minutes: 5 },
+  internal.webhookRetry.processDueRetries
+);
+
 export default crons;

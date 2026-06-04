@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthedUser } from "./lib/auth";
+import { getAuthedUser, getAuthedUserOrNull } from "./lib/auth";
 
 /**
  * List the authenticated user's addresses, primary first.
@@ -8,7 +8,9 @@ import { getAuthedUser } from "./lib/auth";
 export const listMine = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getAuthedUser(ctx);
+    const user = await getAuthedUserOrNull(ctx);
+    if (!user) return [];
+    
     const rows = await ctx.db
       .query("addresses")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
@@ -28,18 +30,13 @@ export const add = mutation({
     line2: v.optional(v.string()),
     city: v.string(),
     state: v.string(),
-    zip: v.string(),
+    zip: v.optional(v.string()),
     country: v.optional(v.string()),
     deliveryInstructions: v.optional(v.string()),
     setPrimary: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getAuthedUser(ctx);
-
-    // Basic validation
-    if (!/^\d{5}(-\d{4})?$/.test(args.zip)) {
-      throw new Error("Invalid ZIP code (expected 5 or 5+4 digits)");
-    }
 
     const existing = await ctx.db
       .query("addresses")
@@ -64,7 +61,7 @@ export const add = mutation({
       city: args.city,
       state: args.state,
       zip: args.zip,
-      country: args.country ?? "US",
+      country: args.country ?? "TT",
       deliveryInstructions: args.deliveryInstructions,
       isPrimary: shouldBePrimary,
       createdAt: Date.now(),
