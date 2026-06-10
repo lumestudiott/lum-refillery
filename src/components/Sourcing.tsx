@@ -11,7 +11,7 @@ const sources = [
       'Seasonal produce and rare varieties with real flavor.',
     image: 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?auto=format&fit=crop&w=800&q=90',
     bg: '#A4A67B', // Vintage Olive
-    rotateClass: 'md:-rotate-6',
+    rotateClass: 'lg:-rotate-6',
   },
   {
     label: 'Local',
@@ -20,7 +20,7 @@ const sources = [
       "Pantry goods from independent producers you won't find in big stores.",
     image: 'https://images.unsplash.com/photo-1471943311424-646960669fbc?auto=format&fit=crop&w=800&q=90',
     bg: '#F37941', // Vintage Orange
-    rotateClass: 'md:-rotate-2',
+    rotateClass: 'lg:-rotate-2',
   },
   {
     label: 'Saved',
@@ -29,7 +29,7 @@ const sources = [
       'High-quality groceries that deserve a home. Still fresh, always useful.',
     image: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=800&q=90',
     bg: '#E7AD47', // Vintage Mustard
-    rotateClass: 'md:rotate-2',
+    rotateClass: 'lg:rotate-2',
   },
   {
     label: 'Rewards',
@@ -38,7 +38,7 @@ const sources = [
       'Celebrate your special day with exclusive rewards, treats, and bonus points on us.',
     image: 'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?auto=format&fit=crop&w=800&q=90',
     bg: '#C56D7A', // Vintage Rose/Pink
-    rotateClass: 'md:rotate-6',
+    rotateClass: 'lg:rotate-6',
   },
 ];
 
@@ -52,6 +52,22 @@ const Sourcing: React.FC = () => {
         .fan-card:hover {
           z-index: 50 !important;
           transition: z-index 0s linear 0s;
+        }
+        @media (max-width: 1023px) {
+          .sourcing-fan {
+            flex-direction: column !important;
+            align-items: center;
+            gap: 2.5rem;
+          }
+          .sourcing-fan .fan-card {
+            margin-left: 0 !important;
+            width: 100%;
+            max-width: 340px;
+          }
+          .sourcing-fan .fan-card-inner {
+            width: 100% !important;
+            transform: none !important;
+          }
         }
       `}</style>
 
@@ -75,11 +91,11 @@ const Sourcing: React.FC = () => {
       </div>
 
       {/* ── Premium Fanned Cards ── */}
-      <div className="relative overflow-visible px-6 pb-16 pt-8 md:pb-32 md:pt-20 lg:px-16">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-10 md:flex-row md:items-center md:justify-center md:gap-0">
+      <div className="relative overflow-visible px-6 pb-16 pt-8 lg:px-16 lg:pb-32 lg:pt-20">
+        <div className="sourcing-fan mx-auto flex max-w-5xl flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-center lg:gap-0">
           {sources.map((item, index) => {
             const isFirst = index === 0;
-            const marginClass = isFirst ? '' : 'md:-ml-[130px] lg:-ml-[160px]';
+            const marginClass = isFirst ? '' : 'lg:-ml-[160px]';
             const baseZ = [10, 20, 30, 40][index];
 
             return (
@@ -88,11 +104,11 @@ const Sourcing: React.FC = () => {
                 direction="up"
                 duration={900}
                 delay={index * 150}
-                className={`fan-card group relative w-full max-w-[340px] md:w-auto md:max-w-none ${marginClass}`}
+                className={`fan-card group relative w-full max-w-[340px] lg:w-auto lg:max-w-none ${marginClass}`}
                 style={{ zIndex: baseZ }}
               >
                 <div
-                  className={`flex h-[420px] w-full cursor-pointer flex-col overflow-hidden rounded-[4px] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.4)] transition-all duration-500 rotate-0 md:h-[520px] md:w-[320px] md:group-hover:-translate-y-8 md:group-hover:rotate-0 md:group-hover:scale-[1.04] md:group-hover:shadow-[0_40px_70px_-15px_rgba(0,0,0,0.5)] lg:h-[600px] lg:w-[380px] ${item.rotateClass}`}
+                  className={`fan-card-inner flex h-[420px] w-full cursor-pointer flex-col overflow-hidden rounded-[4px] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.4)] transition-all duration-500 rotate-0 lg:h-[520px] lg:w-[320px] lg:group-hover:-translate-y-8 lg:group-hover:rotate-0 lg:group-hover:scale-[1.04] lg:group-hover:shadow-[0_40px_70px_-15px_rgba(0,0,0,0.5)] xl:h-[600px] xl:w-[380px] ${item.rotateClass}`}
                   style={{ backgroundColor: item.bg }}
                 >
                   {/* Text Section (Top) */}
