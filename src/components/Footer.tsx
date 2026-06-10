@@ -27,6 +27,7 @@ const footerLinks = {
 const socials = [
   {
     name: 'Instagram',
+    href: 'https://www.instagram.com/lumerefillery/',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px]">
         <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
@@ -37,6 +38,7 @@ const socials = [
   },
   {
     name: 'Facebook',
+    href: 'https://www.facebook.com/profile.php?id=61564508792967',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px]">
         <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
@@ -45,6 +47,7 @@ const socials = [
   },
   {
     name: 'TikTok',
+    href: 'https://www.tiktok.com/@lumerefillery?is_from_webapp=1&sender_device=pc',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px]">
         <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
@@ -52,28 +55,12 @@ const socials = [
     )
   },
   {
-    name: 'Twitter',
+    name: 'X',
+    href: 'https://x.com/LumeRefillery',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px]">
-        <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/>
-      </svg>
-    )
-  },
-  {
-    name: 'YouTube',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px]">
-        <rect width="20" height="14" x="2" y="5" rx="4"/>
-        <path d="M10 9l5 3-5 3z"/>
-      </svg>
-    )
-  },
-  {
-    name: 'Pinterest',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px]">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M8 22l3-11a3 3 0 0 1 3-3h1a3 3 0 0 1 3 3 4 4 0 0 1-4 4h-2l-2 7"/>
+        <path d="M4 4l16 16"/>
+        <path d="M20 4L4 20"/>
       </svg>
     )
   }
@@ -117,7 +104,9 @@ const Footer: React.FC = () => {
                 return (
                   <a 
                     key={social.name} 
-                    href="#" 
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="group flex h-11 w-11 items-center justify-center bg-lume-green/10 text-lume-house transition-transform duration-300 hover:scale-110 hover:bg-lume-green hover:text-white"
                     style={{ borderRadius: blobs[idx % blobs.length] }}
                     aria-label={social.name}

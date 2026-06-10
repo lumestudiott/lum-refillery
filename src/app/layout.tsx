@@ -3,9 +3,63 @@ import { Providers } from './providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Lumë Refillery',
+  metadataBase: new URL('https://lumerefillery.com'),
+  title: {
+    default: 'Lumë Refillery — Sustainable Grocery Subscriptions',
+    template: '%s | Lumë Refillery',
+  },
   description:
-    'Reliable grocery subscriptions, thoughtfully built for everyday tables. Curated hauls delivered on your schedule.',
+    'Reliable grocery subscriptions, thoughtfully built for everyday tables. Curated hauls delivered on your schedule — zero waste, premium quality.',
+  keywords: [
+    'refillery',
+    'sustainable groceries',
+    'grocery subscription',
+    'zero waste',
+    'eco-friendly',
+    'bulk refill',
+    'Lumë Refillery',
+    'lume refillery',
+  ],
+  authors: [{ name: 'Lumë Refillery' }],
+  creator: 'Lumë Refillery',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://lumerefillery.com',
+    siteName: 'Lumë Refillery',
+    title: 'Lumë Refillery — Sustainable Grocery Subscriptions',
+    description:
+      'Reliable grocery subscriptions, thoughtfully built for everyday tables. Curated hauls delivered on your schedule.',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Lumë Refillery — Sustainable Grocery Subscriptions',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Lumë Refillery — Sustainable Grocery Subscriptions',
+    description:
+      'Reliable grocery subscriptions, thoughtfully built for everyday tables. Curated hauls delivered on your schedule.',
+    images: ['/og-image.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  alternates: {
+    canonical: 'https://lumerefillery.com',
+  },
 };
 
 export default function RootLayout({

@@ -490,7 +490,9 @@ const UserDashboard: React.FC = () => {
                     }
                     const tier = SUBSCRIPTION_TIERS.find((t) => t.id === s.tier);
                     if (!tier || s.status === 'cancelled') return sum;
-                    return sum + (tier.price ?? 0) * 100;
+                    const cadence = (s.cadence ?? s.frequency ?? 'monthly') as 'fortnightly' | 'monthly' | 'yearly';
+                    const price = tier.price[cadence] ?? tier.price.monthly;
+                    return sum + price * 100;
                   }, 0);
 
                   return (

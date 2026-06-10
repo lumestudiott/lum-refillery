@@ -46,7 +46,7 @@ const problems = [
 const benefits = [
   {
     title: 'Curated Hauls',
-    description: 'We offer light-bulk grocery shopping, food hauls inspired by the six Caribbean food groups, household and personal care items, all thoughtfully curated so you don\u2019t have to think as hard.',
+    description: 'We offer light-bulk grocery shopping, food hauls inspired by the six Caribbean food groups, household and personal care items, all thoughtfully curated to improve access to nutrition-rich foods without making you think as hard.',
     image: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&w=1400&q=90',
   },
   {
@@ -120,7 +120,7 @@ const ParallaxImage: React.FC<{ src: string; alt: string; className?: string }> 
           </Reveal>
 
           <Reveal as="p" direction="none" duration={800} delay={150} className="mx-auto mt-5 max-w-none text-[16px] leading-[1.8] text-text-secondary">
-            Big Grocery puts profit over people and the planet. Everyone loses and here&apos;s what you&apos;re left with:
+            Big Grocery puts profit over people and the planet, making nutrition-rich foods harder to access. Everyone loses and here&apos;s what you&apos;re left with:
           </Reveal>
         </div>
 
