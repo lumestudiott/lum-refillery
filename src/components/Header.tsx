@@ -4,15 +4,15 @@ import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SignInButton, UserButton, useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LayoutDashboard } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Menu, X, LayoutDashboard, Cake } from 'lucide-react';
 import AnnouncementBar from './AnnouncementBar';
 
 const navItems = [
   { label: 'Shop', href: '/shop' },
-  { label: 'About Us', href: '/#about' },
-  { label: 'How It Works', href: '/#how-it-works' },
-  { label: 'Producers', href: '/#sourcing' },
+  { label: 'Our Story', href: '/#about' },
+  { label: 'Method', href: '/#how-it-works' },
+  { label: 'Sourcing', href: '/#sourcing' },
 ];
 
 const Header: React.FC = () => {
@@ -21,9 +21,6 @@ const Header: React.FC = () => {
   const { isSignedIn } = useUser();
   const pathname = usePathname();
   const isHome = pathname === '/';
-
-  // On non-home pages, always show the solid header
-  const showSolid = scrolled || !isHome;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -41,8 +38,8 @@ const Header: React.FC = () => {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ 
-        duration: 0.56, // --duration-long (560ms)
-        ease: [0.22, 0.61, 0.36, 1.00] // --ease-settle
+        duration: 0.56,
+        ease: [0.22, 0.61, 0.36, 1.00]
       }}
       className="fixed left-0 right-0 top-0 z-[100] flex flex-col bg-canvas/95 backdrop-blur-md transition-all duration-500"
     >
@@ -72,7 +69,16 @@ const Header: React.FC = () => {
         </nav>
 
         {/* Desktop actions */}
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-4 lg:flex">
+          {/* Birthday Club Button */}
+          <Link href="/birthday-club">
+            <button className="group relative flex cursor-pointer items-center gap-1.5 overflow-hidden rounded-full border border-lume-accent/20 bg-lume-accent/5 px-5 py-2 text-[13px] font-medium tracking-tight text-lume-accent transition-all duration-300 hover:border-lume-accent/40 hover:bg-lume-accent/10 active:scale-[0.98]">
+              <Cake className="h-3.5 w-3.5 animate-pulse" />
+              <span className="relative z-10 font-semibold">Birthdays</span>
+              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-lume-accent/10 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
+            </button>
+          </Link>
+
           {isSignedIn ? (
             <>
               <UserButton afterSignOutUrl="/">
@@ -129,7 +135,16 @@ const Header: React.FC = () => {
                 </Link>
               ))}
 
-              <div className="my-2 h-px bg-black/5" />
+              <div className="my-2.5 h-px bg-black/5" />
+
+              {/* Mobile Birthday Club Button */}
+              <Link href="/birthday-club" onClick={() => setMobileMenuOpen(false)} className="block mb-3">
+                <button className="group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-full border border-lume-accent/20 bg-lume-accent/5 py-3 text-[14px] font-semibold text-lume-accent transition-all duration-300 hover:border-lume-accent/40 hover:bg-lume-accent/10 active:scale-[0.98]">
+                  <Cake className="h-4 w-4 animate-pulse" />
+                  <span className="relative z-10">Birthdays</span>
+                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-lume-accent/10 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
+                </button>
+              </Link>
 
               {isSignedIn ? (
                 <Link
@@ -142,7 +157,7 @@ const Header: React.FC = () => {
               ) : (
                 <SignInButton mode="modal">
                   <button
-                    className="btn-pill mt-2 w-full cursor-pointer bg-lume-accent px-4 py-3 text-[15px] font-semibold text-white transition-all hover:bg-lume-green"
+                    className="btn-pill w-full cursor-pointer bg-lume-accent px-4 py-3 text-[15px] font-semibold text-white transition-all hover:bg-lume-green"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Get Started

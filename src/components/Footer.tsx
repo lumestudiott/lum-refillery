@@ -11,16 +11,34 @@ const footerLinks = {
     { label: 'Sustainability', href: '/sustainability' },
     { label: 'Sourcing Standards', href: '/sourcing' },
   ],
-  Product: [
-    { label: 'How It Works', href: '/#how-it-works' },
-    { label: 'Shop', href: '/shop' },
-    { label: 'Quiz', href: '/quiz' },
+  Shop: [
+    { label: 'Fresh produce', href: '/shop?category=fresh-produce' },
+    { label: 'Meat & seafood', href: '/shop?category=meat-seafood' },
+    { label: 'Dairy & eggs', href: '/shop?category=dairy-eggs' },
+    { label: 'Bakery', href: '/shop?category=bakery' },
+    { label: 'Pantry essentials', href: '/shop?category=pantry-essentials' },
+    { label: 'Weekly specials', badge: 'Sale', href: '/shop?category=weekly-specials' },
   ],
-  'Contact Us': [
+  Orders: [
+    { label: 'Delivery & pickup', href: '/delivery-pickup' },
+    { label: 'Track your order', href: '/track-order' },
+    { label: 'Order history', href: '/order-history' },
+    { label: 'Returns & refunds', href: '/returns-refunds' },
+    { label: 'Gift cards', href: '/gift-cards' },
+  ],
+  Community: [
+    { label: 'Recipes', href: '/recipes' },
+    { label: 'Small Makers', href: '/small-makers' },
+    { label: 'Loyalty rewards', href: '/loyalty-rewards' },
+    { label: 'Events & tastings', href: '/events-tastings' },
+    { label: 'Rescued Refills', href: '/rescued-refills' },
+  ],
+  Help: [
     { label: 'FAQ', href: '/faq' },
+    { label: 'Contact us', href: '/contact' },
     { label: 'Careers', href: '/careers' },
-    { label: 'Contact Us', href: '/contact' },
-    { label: 'Support', href: '/support' },
+    { label: 'Accessibility', href: '/accessibility' },
+    { label: 'News', href: '/news' },
   ],
 };
 
@@ -72,10 +90,11 @@ const Footer: React.FC = () => {
       <div className="mx-auto max-w-7xl">
 
         {/* Columns */}
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex flex-col lg:flex-row gap-12 lg:gap-8 xl:gap-16">
 
           {/* Brand */}
           <motion.div
+            className="lg:w-[280px] xl:w-[320px] flex-shrink-0"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -119,8 +138,9 @@ const Footer: React.FC = () => {
           </motion.div>
 
           {/* Link columns */}
-          {Object.entries(footerLinks).map(([title, links], colIndex) => (
-            <motion.div
+          <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 lg:gap-4 xl:gap-8">
+            {Object.entries(footerLinks).map(([title, links], colIndex) => (
+              <motion.div
               key={title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -131,18 +151,24 @@ const Footer: React.FC = () => {
                 {title}
               </h4>
               <nav className="mt-5 space-y-3.5">
-                {links.map((link) => (
+                {links.map((link: any) => (
                   <Link
                     key={link.label}
                     href={link.href}
-                    className="block text-[13px] text-text-primary/60 transition-colors duration-300 hover:text-text-primary"
+                    className="group flex items-center gap-2 text-[13px] text-text-primary/60 transition-colors duration-300 hover:text-text-primary"
                   >
-                    {link.label}
+                    <span>{link.label}</span>
+                    {link.badge && (
+                      <span className="rounded-full bg-copper-600/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-copper-600 transition-colors group-hover:bg-copper-600/20">
+                        {link.badge}
+                      </span>
+                    )}
                   </Link>
                 ))}
               </nav>
             </motion.div>
           ))}
+          </div>
         </div>
 
         {/* Bottom bar */}
@@ -158,6 +184,7 @@ const Footer: React.FC = () => {
                 <a href="#" className="text-[12px] text-text-primary/40 transition-colors hover:text-text-primary/80">Privacy Policy</a>
                 <a href="#" className="text-[12px] text-text-primary/40 transition-colors hover:text-text-primary/80">Terms & Services</a>
                 <a href="#" className="text-[12px] text-text-primary/40 transition-colors hover:text-text-primary/80">Cookies Policy</a>
+                <Link href="/substitution-policy" className="text-[12px] text-text-primary/40 transition-colors hover:text-text-primary/80">Substitution Policy</Link>
               </div>
             </div>
             
