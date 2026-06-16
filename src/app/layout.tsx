@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Providers } from './providers';
+import MaintenanceBanner, { MAINTENANCE_MODE } from '@/components/MaintenanceBanner';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -77,7 +78,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="bg-cream-50 text-stone-800 antialiased" suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        {MAINTENANCE_MODE ? (
+          <MaintenanceBanner />
+        ) : (
+          <Providers>{children}</Providers>
+        )}
       </body>
     </html>
   );
