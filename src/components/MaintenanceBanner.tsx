@@ -85,7 +85,7 @@ export default function MaintenanceBanner() {
           Lumë Refillery is temporarily offline for scheduled maintenance.
         </p>
         <p className="font-sans text-base text-text-secondary/70 leading-relaxed mb-10">
-          We're making things better behind the scenes. We'll be back shortly — thank you for your patience!
+          We're making things better behind the scenes. We'll be back shortly, thank you for your patience!
         </p>
 
         {/* Status pill */}
@@ -108,10 +108,10 @@ export default function MaintenanceBanner() {
         <p className="mt-8 text-sm text-text-secondary/50 font-sans">
           Questions? Email us at{' '}
           <a
-            href="mailto:hello@lumerefillery.com"
+            href="mailto:lumestudiott@gmail.com"
             className="text-lume-accent hover:underline"
           >
-            hello@lumerefillery.com
+            lumestudiott@gmail.com
           </a>
         </p>
       </div>
