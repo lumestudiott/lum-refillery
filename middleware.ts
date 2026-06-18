@@ -1,64 +1,37 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
-import {
-  NextResponse,
-  type NextRequest,
-  type NextFetchEvent,
-} from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 /**
- * Maintenance-mode domains — requests to these hosts are rewritten
- * to /maintenance at the edge, before any HTML is served.
+ * Simplified middleware — maintenance rewrite ONLY.
+ * Clerk auth is temporarily removed to isolate the rewrite issue.
  */
-const MAINTENANCE_DOMAINS = ['lumerefillery.com', 'www.lumerefillery.com'];
-
-/**
- * Paths that bypass maintenance (static assets, the maintenance page itself, etc.)
- */
-const MAINTENANCE_BYPASS = [
-  '/maintenance',
-  '/_next',
-  '/api',
-  '/favicon',
-  '/videos',
-  '/images',
-  '/robots.txt',
-  '/sitemap.xml',
-];
-
-/** Pre-initialised Clerk middleware for non-maintenance requests. */
-const clerk = clerkMiddleware();
-
-/**
- * Top-level middleware: checks maintenance FIRST (before Clerk),
- * so the rewrite happens at the earliest possible point.
- */
-export default function middleware(req: NextRequest, event: NextFetchEvent) {
-  const hostname = req.headers.get('host') || req.nextUrl.hostname || '';
+export function middleware(req: NextRequest) {
+  const host = req.headers.get('host') || '';
   const { pathname } = req.nextUrl;
 
-  const isMaintenanceDomain = MAINTENANCE_DOMAINS.some((d) =>
-    hostname.includes(d),
-  );
+  // Debug: always set a header so we can verify middleware runs
+  const isMatch = host.includes('lumerefillery.com');
 
-  // Rewrite to /maintenance immediately — no Clerk, no auth, no flash
+  // Maintenance rewrite for production domain
   if (
-    isMaintenanceDomain &&
-    !MAINTENANCE_BYPASS.some((p) => pathname.startsWith(p))
+    isMatch &&
+    !pathname.startsWith('/maintenance') &&
+    !pathname.startsWith('/_next') &&
+    !pathname.startsWith('/api') &&
+    !pathname.startsWith('/favicon') &&
+    !pathname.startsWith('/videos') &&
+    !pathname.startsWith('/images')
   ) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/maintenance';
-    return NextResponse.rewrite(url);
+    const response = NextResponse.rewrite(new URL('/maintenance', req.url));
+    response.headers.set('x-maint-debug', `host=${host},match=true,rewrite=yes`);
+    return response;
   }
 
-  // Non-maintenance requests go through Clerk as normal
-  return clerk(req, event);
+  const response = NextResponse.next();
+  response.headers.set('x-maint-debug', `host=${host},match=${isMatch},rewrite=no`);
+  return response;
 }
 
 export const config = {
-  matcher: [
-    // Run middleware on all routes except static assets / Next internals.
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ico|webmanifest|woff2?|ttf|otf)).*)',
-    // Always run for API routes.
-    '/(api|trpc)(.*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:css|js|png|jpg|svg|ico|woff2?|ttf|otf)).*)'],
 };
