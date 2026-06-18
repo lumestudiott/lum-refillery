@@ -1,41 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-/**
- * Full-page maintenance overlay.
- *
- * Maintenance mode is automatically enabled on the **production domain**
- * (lumerefillery.com) and disabled everywhere else (Vercel preview URLs,
- * localhost, etc.).
- *
- * To force maintenance OFF everywhere, set MAINTENANCE_ENABLED = false.
- * To force maintenance ON  everywhere, set MAINTENANCE_ENABLED = true and
- * remove the hostname check below.
- */
-const MAINTENANCE_ENABLED = true;
-
-/** Domains where maintenance mode should be active. */
-const MAINTENANCE_DOMAINS = ['lumerefillery.com', 'www.lumerefillery.com'];
-
-/**
- * Exported so layout.tsx can still conditionally render.
- * During SSR / first render this is `true` (safe default for prod),
- * but the component itself double-checks on the client.
- */
-export const MAINTENANCE_MODE = MAINTENANCE_ENABLED;
-
-export default function MaintenanceBanner() {
-  const [isMaintenanceDomain, setIsMaintenanceDomain] = useState(false);
-
-  useEffect(() => {
-    if (MAINTENANCE_ENABLED) {
-      const host = window.location.hostname;
-      setIsMaintenanceDomain(MAINTENANCE_DOMAINS.includes(host));
-    }
-  }, []);
-
-  if (!MAINTENANCE_ENABLED || !isMaintenanceDomain) return null;
+export default function MaintenanceBanner({ forceShow = false }: { forceShow?: boolean }) {
+  if (!forceShow) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-canvas overflow-hidden">

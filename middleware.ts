@@ -1,15 +1,30 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
-/**
- * Clerk middleware — required for `auth()` from `@clerk/nextjs/server`
- * to work in route handlers and server components.
- *
- * All routes are public by default. To require auth on a route, use
- * `await auth.protect()` inside the route handler or wrap with
- * `createRouteMatcher` here. We do per-route gating in handlers
- * (see `src/app/api/checkout/route.ts`) for now.
- */
-export default clerkMiddleware();
+const MAINTENANCE_DOMAINS = ['lumerefillery.com', 'www.lumerefillery.com'];
+
+export default clerkMiddleware((auth, req) => {
+  const hostname = req.headers.get('host') || '';
+  const isMaintenanceDomain = MAINTENANCE_DOMAINS.includes(hostname);
+
+  if (isMaintenanceDomain) {
+    const url = req.nextUrl.clone();
+
+    // Return 503 JSON for API routes
+    if (url.pathname.startsWith('/api/')) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Service Unavailable (Maintenance)' }),
+        { status: 503, headers: { 'content-type': 'application/json' } }
+      );
+    }
+
+    // Rewrite pages to the /maintenance page
+    if (url.pathname !== '/maintenance') {
+      url.pathname = '/maintenance';
+      return NextResponse.rewrite(url);
+    }
+  }
+});
 
 export const config = {
   matcher: [
