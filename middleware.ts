@@ -9,6 +9,8 @@ export default function middleware(req: NextRequest, event: any) {
   const domain = hostname.split(':')[0];
   const isMaintenanceDomain = MAINTENANCE_DOMAINS.includes(domain);
 
+  console.log('MAINT_DEBUG:', { hostname, domain, isMaintenanceDomain, url: req.nextUrl.pathname });
+
   if (isMaintenanceDomain) {
     const url = req.nextUrl.clone();
 
