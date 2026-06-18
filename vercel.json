@@ -1,1 +1,24 @@
-{"name": "lum-refillery"}
+{
+  "rewrites": [
+    {
+      "source": "/((?!maintenance|_next|api|favicon|videos|images|robots\\.txt|sitemap\\.xml).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "lumerefillery.com"
+        }
+      ],
+      "destination": "/maintenance"
+    },
+    {
+      "source": "/((?!maintenance|_next|api|favicon|videos|images|robots\\.txt|sitemap\\.xml).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.lumerefillery.com"
+        }
+      ],
+      "destination": "/maintenance"
+    }
+  ]
+}
