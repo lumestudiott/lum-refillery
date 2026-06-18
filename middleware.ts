@@ -1,11 +1,13 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 const MAINTENANCE_DOMAINS = ['lumerefillery.com', 'www.lumerefillery.com'];
 
-export default clerkMiddleware((auth, req) => {
-  const hostname = req.headers.get('host') || '';
-  const isMaintenanceDomain = MAINTENANCE_DOMAINS.includes(hostname);
+export default function middleware(req: NextRequest, event: any) {
+  const hostname = req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.hostname || '';
+  const domain = hostname.split(':')[0];
+  const isMaintenanceDomain = MAINTENANCE_DOMAINS.includes(domain);
 
   if (isMaintenanceDomain) {
     const url = req.nextUrl.clone();
@@ -24,7 +26,10 @@ export default clerkMiddleware((auth, req) => {
       return NextResponse.rewrite(url);
     }
   }
-});
+
+  // Fallback to clerkMiddleware
+  return clerkMiddleware()(req, event);
+}
 
 export const config = {
   matcher: [
