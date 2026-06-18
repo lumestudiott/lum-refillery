@@ -1,16 +1,18 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+import {
+  NextResponse,
+  type NextRequest,
+  type NextFetchEvent,
+} from 'next/server';
 
 /**
  * Maintenance-mode domains — requests to these hosts are rewritten
- * to /maintenance at the edge, before any static HTML is served.
- * This guarantees zero flash of the homepage.
+ * to /maintenance at the edge, before any HTML is served.
  */
 const MAINTENANCE_DOMAINS = ['lumerefillery.com', 'www.lumerefillery.com'];
 
 /**
- * Paths that should NOT be rewritten even on maintenance domains.
- * This allows the maintenance page itself, static assets, and APIs to load.
+ * Paths that bypass maintenance (static assets, the maintenance page itself, etc.)
  */
 const MAINTENANCE_BYPASS = [
   '/maintenance',
@@ -23,25 +25,34 @@ const MAINTENANCE_BYPASS = [
   '/sitemap.xml',
 ];
 
-export default clerkMiddleware(async (_auth, req) => {
-  const hostname = req.headers.get('host') || '';
+/** Pre-initialised Clerk middleware for non-maintenance requests. */
+const clerk = clerkMiddleware();
+
+/**
+ * Top-level middleware: checks maintenance FIRST (before Clerk),
+ * so the rewrite happens at the earliest possible point.
+ */
+export default function middleware(req: NextRequest, event: NextFetchEvent) {
+  const hostname = req.headers.get('host') || req.nextUrl.hostname || '';
   const { pathname } = req.nextUrl;
 
-  // Check if this request is hitting a maintenance domain
   const isMaintenanceDomain = MAINTENANCE_DOMAINS.some((d) =>
     hostname.includes(d),
   );
 
-  // If on a maintenance domain and not on a bypass path, rewrite to /maintenance
+  // Rewrite to /maintenance immediately — no Clerk, no auth, no flash
   if (
     isMaintenanceDomain &&
     !MAINTENANCE_BYPASS.some((p) => pathname.startsWith(p))
   ) {
-    const maintenanceUrl = req.nextUrl.clone();
-    maintenanceUrl.pathname = '/maintenance';
-    return NextResponse.rewrite(maintenanceUrl);
+    const url = req.nextUrl.clone();
+    url.pathname = '/maintenance';
+    return NextResponse.rewrite(url);
   }
-});
+
+  // Non-maintenance requests go through Clerk as normal
+  return clerk(req, event);
+}
 
 export const config = {
   matcher: [
