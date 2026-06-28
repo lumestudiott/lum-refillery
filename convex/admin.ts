@@ -4,6 +4,7 @@ import {
   internalQuery,
   mutation,
   query,
+  type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -35,6 +36,39 @@ async function buildUserMap(
   const map = new Map<Id<"users">, Doc<"users">>();
   for (const u of users) map.set(u._id, u);
   return map;
+}
+
+/**
+ * Recompute a user's denormalized subscription summary from the source of
+ * truth (their `subscriptions` rows) and write it back to `users`. Keeps
+ * `users.subscriptionTier/Status` consistent whenever an admin edits a sub.
+ * Picks the "most relevant" subscription: active > paused > past_due > other,
+ * tie-broken by most recently created.
+ */
+async function syncUserSubscriptionSummary(
+  ctx: MutationCtx,
+  userId: Id<"users">
+): Promise<void> {
+  const subs = await ctx.db
+    .query("subscriptions")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  if (subs.length === 0) {
+    await ctx.db.patch(userId, {
+      subscriptionTier: undefined,
+      subscriptionStatus: undefined,
+    });
+    return;
+  }
+  const rank = (status: string) =>
+    status === "active" ? 3 : status === "paused" ? 2 : status === "past_due" ? 1 : 0;
+  const best = subs
+    .slice()
+    .sort((a, b) => rank(b.status) - rank(a.status) || b.createdAt - a.createdAt)[0];
+  await ctx.db.patch(userId, {
+    subscriptionTier: best.tier,
+    subscriptionStatus: best.status,
+  });
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -267,7 +301,11 @@ export const setSubscriptionStatus = mutation({
         `Invalid status: ${args.status}. Must be one of: ${SUBSCRIPTION_STATUSES.join(", ")}`
       );
     }
+    const sub = await ctx.db.get(args.subscriptionId);
+    if (!sub) throw new Error("Subscription not found");
     await ctx.db.patch(args.subscriptionId, { status: args.status });
+    // Keep the denormalized summary on the user record in sync.
+    await syncUserSubscriptionSummary(ctx, sub.userId);
     return args.subscriptionId;
   },
 });
