@@ -8,8 +8,11 @@ import {
 /**
  * Maintenance-mode domains — requests to these hosts are rewritten
  * to /maintenance at the edge, before any HTML is served.
+ *
+ * Empty = site is LIVE. To put the site back into maintenance, re-add the
+ * domains, e.g. ['lumerefillery.com', 'www.lumerefillery.com'].
  */
-const MAINTENANCE_DOMAINS = ['lumerefillery.com', 'www.lumerefillery.com'];
+const MAINTENANCE_DOMAINS: string[] = [];
 
 /**
  * Paths that bypass maintenance (static assets, the maintenance page itself, etc.)
