@@ -16,6 +16,7 @@ const MAINTENANCE_DOMAINS = ['lumerefillery.com', 'www.lumerefillery.com'];
  */
 const MAINTENANCE_BYPASS = [
   '/maintenance',
+  '/admin', // admins manage the store while the public site shows maintenance
   '/_next',
   '/api',
   '/favicon',
