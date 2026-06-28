@@ -19,13 +19,13 @@ const problems = [
   {
     icon: '/icons/store.png',
     title: 'Big Brands Only',
-    description: 'Big stores leave no room for local makers who can\u2019t pay for shelf space.',
+    description: 'Local makers and AgriMSEs face high barriers to entry. Without the same resources to handle rigid registration systems or pay high slotting fees, they are kept off the shelves.',
     blob: '50% 50% 60% 40% / 40% 65% 35% 60%',
   },
   {
     icon: '/icons/money.png',
     title: 'Surprise Bills',
-    description: 'A simple restock becomes an unpredictable expense every single trip.',
+    description: 'At the checkout, a simple restock becomes an unpredictable expense every single trip.',
     blob: '70% 30% 50% 50% / 45% 55% 50% 50%',
   },
   {
@@ -46,17 +46,17 @@ const problems = [
 const benefits = [
   {
     title: 'Curated Hauls',
-    description: 'We offer light-bulk grocery shopping, food hauls inspired by the six Caribbean food groups, household and personal care items, all thoughtfully curated to improve access to nutrition-rich foods without making you think as hard.',
+    description: 'We offer light-bulk grocery shopping, food hauls inspired by the six Caribbean food groups, household and personal care items, all thoughtfully curated to improve access to nutrition, improve your overall well-being and give you back some time to do other equally important things without making you think as hard.',
     image: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&w=1400&q=90',
   },
   {
     title: 'Built for Caribbean Life',
-    description: ' Caribbean Life is shaped by the climate and landscape. Our culture, history, the heat and humidity, the way we live, cook, and think.',
+    description: "Caribbean life isn't just shaped by the climate and landscape. It's our culture, our history, the heat and humidity, and the unique ways we live, cook, and think.",
     image: 'https://images.unsplash.com/photo-1506368249639-73a05d6f6488?auto=format&fit=crop&w=1400&q=90',
   },
   {
     title: 'Honouring Food Rituals',
-    description: 'Because food is never just one thing. It is fuel, yes, but it is also culture, memory, celebration, and daily ritual. It is the Sunday morning fry bake, the pot of soup that fixes everything, and the spread that brings everyone to the table.',
+    description: 'Because food is never just one thing. Food is fuel, culture, memory, celebration, and daily ritual. It is the Sunday morning fry bake, the pot of soup that fixes everything, and the spread that brings everyone to a true Caribbean lime. At our table, we honour all of it.',
   },
   {
     title: 'Beverages for Every Moment',
@@ -65,7 +65,7 @@ const benefits = [
   },
   {
     title: 'A Deliberate Low-Waste Approach',
-    description: "We believe in doing better by the planet, one small step at a time. Lumë takes a low-waste approach, not a perfect one, but a deliberate one. Because hygiene, health, and regulatory compliance mean some packaging is non-negotiable, you may notice that certain items are lightly packaged while others appear more protected than expected. Please don't be alarmed, every decision is made with your safety and well-being in mind.",
+    description: "We believe in doing better by the planet, one small step at a time. Lumë Refillery takes a low-waste approach, not a perfect one, but a deliberate one. Because hygiene, health, and regulatory compliance mean some packaging is non-negotiable, you may notice that certain items are lightly packaged while others appear more protected than expected. Please don't be alarmed, every decision is made with your safety and well-being in mind.",
     image: 'https://images.unsplash.com/photo-1522184216316-3c25379f9760?auto=format&fit=crop&w=1400&q=90',
   },
   {
@@ -120,7 +120,7 @@ const ParallaxImage: React.FC<{ src: string; alt: string; className?: string }> 
           </Reveal>
 
           <Reveal as="p" direction="none" duration={800} delay={150} className="mx-auto mt-5 max-w-none text-[16px] leading-[1.8] text-text-secondary">
-            Big Grocery puts profit over people and the planet, making nutrition-rich foods harder to access. Everyone loses and here&apos;s what you&apos;re left with:
+            When profits are placed over people and planet, nutrient-rich foods remain hard to access. Everyone loses and here&apos;s what you&apos;re left with:
           </Reveal>
         </div>
 
@@ -169,7 +169,7 @@ const ParallaxImage: React.FC<{ src: string; alt: string; className?: string }> 
             Why Choose Lumë
           </Reveal>
           <Reveal as="h2" direction="up" duration={1000} className="mt-4 font-display text-[clamp(2rem,4vw,3.2rem)] font-normal leading-[1.1] tracking-tight text-text-primary">
-            Why Lumë is different
+            Why Lumë Refillery is different
           </Reveal>
           <Reveal as="p" direction="none" duration={800} delay={150} className="mx-auto mt-4 max-w-2xl text-[16px] leading-[1.7] text-text-secondary">
             Life is expensive and time is scarce. Eating well shouldn&apos;t feel like a second job. We exist to trade you back two of your most valuable resources: time and mental energy.

@@ -77,22 +77,6 @@ export default function AddressForm({ onSuccess, onCancel, requirePrimary = fals
 
       <div>
         <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary mb-1">
-          Address Label
-        </label>
-        <select
-          name="label"
-          value={formData.label}
-          onChange={handleChange}
-          className="w-full rounded-md border border-lume-house/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-lume-house"
-        >
-          <option value="Home">Home</option>
-          <option value="Work">Work</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary mb-1">
           Street Address (Line 1) *
         </label>
         <input

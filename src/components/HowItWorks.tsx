@@ -8,27 +8,35 @@ import Reveal from './Reveal';
 const steps = [
   {
     number: '01',
-    title: 'Subscribe and customize',
+    title: 'Browse',
     description:
-      'Based on your household size and preferences, subscribe to a tailored haul and easily add your favorite extra items.',
+      'Discover a curated marketplace of fresh provisions, local makers, and everyday pantry essentials.',
     blob: '60% 40% 70% 30% / 50% 60% 40% 50%',
     icon: '/icons/shopping-basket.png',
   },
   {
     number: '02',
-    title: 'Flexible changes',
+    title: 'Select',
     description:
-      'Add or change items before your delivery. Keep in mind there is a 2-day cancellation window.',
+      'Choose exactly what you need, customize for your household size, and add your favorite locals or brands.',
     blob: '40% 60% 30% 70% / 55% 45% 60% 40%',
     icon: '/icons/switch.png',
   },
   {
     number: '03',
-    title: 'Receive and reuse',
+    title: 'Schedule',
     description:
-      'Receive your items the next day. Your haul arrives fresh in low-waste packaging that comes back to us next round.',
+      'Saturday delivery windows. Pick a delivery/restock date that fits your routine. Life changes, so adjusting and managing your window is completely hassle-free.',
     blob: '50% 50% 60% 40% / 40% 65% 35% 60%',
     icon: '/icons/shipped.png',
+  },
+  {
+    number: '04',
+    title: 'Checkout',
+    description:
+      'Receive, reuse, repeat. Complete your order and expect a fresh haul arriving in low-waste packaging on the Saturday schedule you just set.',
+    blob: '70% 30% 50% 50% / 45% 55% 50% 50%',
+    icon: '/icons/refresh.png',
   },
 ];
 
@@ -83,12 +91,12 @@ const HowItWorks: React.FC = () => {
               rootMargin="0px 0px -60px 0px"
               className="mt-6 max-w-3xl font-display text-[clamp(2.4rem,5vw,4.2rem)] font-normal leading-[1.08] text-stone-900"
             >
-              Three steps to a better
+              Four steps to a better
               <br />
               grocery routine.
             </Reveal>
 
-            <div className="mt-12 md:mt-16 grid gap-12 md:gap-8 md:grid-cols-3">
+            <div className="mt-12 md:mt-16 grid gap-12 md:gap-8 md:grid-cols-2 lg:grid-cols-4">
               {steps.map((step, index) => (
                 <Reveal
                   key={step.number}

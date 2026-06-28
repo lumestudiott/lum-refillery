@@ -90,7 +90,7 @@ const Hero: React.FC = () => {
             </h1>
 
             <p className="mt-6 max-w-xl text-[17px] font-normal leading-[1.7] text-text-secondary">
-              Reliable grocery subscriptions, thoughtfully built for everyday tables.
+              A grocery system focused on delivering nutrition to the Essential Adult.
             </p>
 
             <div className="mt-10">

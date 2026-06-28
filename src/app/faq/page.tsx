@@ -36,7 +36,7 @@ const faqSections: FAQSection[] = [
       {
         question: 'Why shop at Lumë Refillery?',
         answer:
-          'Lumë Refillery is an innovative grocery ecosystem designed to change how we provision our homes. We curate everyday essentials based on strict standards of quality, nutrition, and environmental stewardship. By partnering with local farmers, large distributors and emerging ethical producers, we are designing a more transparent and less wasteful regional food system. From nutrient-dense staples to home goods and personal care items, our service delivers everything you need in a seamless, circular subscription and light bulk model. And because modern living is noisy, we seek to eliminate that decision fatigue and supply-chain uncertainty.\n\nShopping with Lumë isn\'t just about buying groceries; when you shop with us, you are reclaiming your time, supporting the local agri-food economy, and investing in a structured foundation that is built to nourish you—not just feed you.',
+          'Lumë Refillery is an innovative grocery ecosystem designed to change how we provision our homes. We curate everyday essentials based on strict standards of quality, nutrition, and environmental stewardship. By partnering with local farmers, large distributors and emerging ethical producers, we are designing a more transparent and less wasteful regional food system.\n\nFrom nutrient-dense staples to home goods and personal care items, our service delivers everything you need in a seamless, circular subscription and light bulk model. And because modern living is noisy, we seek to eliminate that decision fatigue and supply-chain uncertainty.\n\nShopping with Lumë isn\'t just about buying groceries; when you shop with us, you are reclaiming your time, supporting the local agri-food economy, and investing in a structured foundation that is built to nourish you—not just feed you.',
       },
       {
         question:
@@ -62,14 +62,22 @@ const faqSections: FAQSection[] = [
       {
         question: 'Can I shop without a subscription?',
         answer:
-          'Absolutely! We offer light bulk retail purchases for those who prefer to shop on their own terms. Whether you choose to order as needed or lock in a recurring subscription to automate your life, the quality and curation of our goods remain the same.',
+          'Absolutely! We offer light bulk retail purchases for those who prefer to shop on their own terms. Whether you choose to order as needed or lock-in a recurring subscription to automate your life, the quality and curation of our goods remain the same.',
       },
       {
         question: 'What if I have allergies?',
         answer: (
           <div className="space-y-4">
             <p>
-              Your safety matters to us. Because we work with a network of small makers, we prioritize transparency regarding all ingredients. If you have a specific allergy, please contact us before placing your order so we can verify the production environment of your selected items and ensure they meet your requirements.
+              <strong className="font-semibold text-lume-accent">Your Safety Matters.</strong>{' '}
+              Because we partner closely with a network of independent local small makers, we prioritize absolute transparency regarding all ingredients and{' '}
+              <a
+                href="/sourcing-standards"
+                className="font-medium text-lume-accent underline decoration-lume-accent/40 underline-offset-4 transition-all duration-300 hover:decoration-lume-accent"
+              >
+                sourcing standards
+              </a>
+              . If you manage a severe food allergy or sensitivity, please contact us before placing your order. We will gladly provide you with the exact details of the maker&apos;s production environment so you have the transparent data needed to ensure it safely meets your household requirements.
             </p>
             <p className="text-[13px] italic text-text-secondary/70 border-l-2 border-lume-accent/30 pl-4">
               You can only substitute select products. Please review hauls carefully prior to making a commitment. If there is an oversight on the substitution of an item, simply inform us and we will work towards making our hauls more inclusive and accommodating.
@@ -254,8 +262,8 @@ export default function FAQPage() {
                 Frequently Asked Questions
               </h1>
               <p className="mx-auto mt-5 max-w-lg text-[16px] leading-[1.7] text-text-secondary">
-                Everything you need to know about shopping with Lumë Refillery from how
-                we source to how we deliver.
+                Everything you need to know about shopping with Lumë Refillery. From how
+                we source, to how we deliver and celebrate!
               </p>
             </Reveal>
           </div>

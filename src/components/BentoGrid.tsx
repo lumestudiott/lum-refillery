@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 
 const bentoItems = [
   {
@@ -13,6 +14,7 @@ const bentoItems = [
     colSpan: 'lg:col-span-2',
     rowSpan: 'lg:row-span-2',
     link: '#',
+    comingSoon: true,
   },
   {
     title: 'Pantry Staples',
@@ -21,6 +23,7 @@ const bentoItems = [
     colSpan: 'lg:col-span-1',
     rowSpan: 'lg:row-span-1',
     link: '#',
+    comingSoon: true,
   },
   {
     title: 'Fresh Produce',
@@ -29,6 +32,7 @@ const bentoItems = [
     colSpan: 'lg:col-span-1',
     rowSpan: 'lg:row-span-1',
     link: '#',
+    comingSoon: true,
   },
   {
     title: 'Beverages',
@@ -37,6 +41,7 @@ const bentoItems = [
     colSpan: 'lg:col-span-2',
     rowSpan: 'lg:row-span-1',
     link: '#',
+    comingSoon: true,
   },
   {
     title: 'Weekly Specials',
@@ -45,14 +50,7 @@ const bentoItems = [
     colSpan: 'lg:col-span-2',
     rowSpan: 'lg:row-span-1',
     link: '#',
-  },
-  {
-    title: 'Meats & Seafood',
-    subtitle: 'Pasture-Raised & Wild',
-    image: '/images/bento/meats_seafood_bento_1779397334558.png',
-    colSpan: 'lg:col-span-1',
-    rowSpan: 'lg:row-span-1',
-    link: '#',
+    comingSoon: true,
   },
   {
     title: 'Dairy & Eggs',
@@ -61,6 +59,16 @@ const bentoItems = [
     colSpan: 'lg:col-span-1',
     rowSpan: 'lg:row-span-1',
     link: '#',
+    comingSoon: true,
+  },
+  {
+    title: 'Snacks',
+    subtitle: 'Peckish Discoveries',
+    image: '/images/bento/pantry_staples_bento_1779397114716.png', // Placeholder image pending a dedicated snacks photo
+    colSpan: 'lg:col-span-1',
+    rowSpan: 'lg:row-span-1',
+    link: '#',
+    comingSoon: true,
   },
 ];
 
@@ -116,6 +124,17 @@ const BentoGrid: React.FC = () => {
 
               {/* Content */}
               <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
+                {/* Coming Soon sticker */}
+                {(item as any).comingSoon && (
+                  <div className="absolute top-4 right-4 z-20 md:top-5 md:right-5">
+                    <span className="relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-lume-accent px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white shadow-[0_6px_18px_rgba(0,117,74,0.45)] ring-1 ring-white/25">
+                      <Sparkles className="h-3 w-3 animate-pulse" />
+                      <span className="relative z-10">Coming Soon</span>
+                      <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
+                    </span>
+                  </div>
+                )}
+
                 {/* Badge at top */}
                 {(item as any).badge && (
                   <div className="absolute top-6 left-6 md:top-8 md:left-8">

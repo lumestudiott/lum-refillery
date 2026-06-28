@@ -7,7 +7,7 @@ import { Plus, Minus } from 'lucide-react';
 const faqs = [
   {
     question: "Why shop at Lumë Refillery?",
-    answer: "Lumë Refillery is an innovative grocery ecosystem designed to change how we provision our homes. We curate everyday essentials based on strict standards of quality, nutrition, and environmental stewardship. By partnering with local farmers, large distributors and emerging ethical producers, we are designing a more transparent and less wasteful regional food system. From nutrient-dense staples to home goods and personal care items, our service delivers everything you need in a seamless, circular subscription and light bulk model. And because modern living is noisy, we seek to eliminate that decision fatigue and supply-chain uncertainty by delivering a predictable and automated schedule.\n\nShopping with Lumë isn’t just about buying groceries; when you shop with us, you are reclaiming your time, supporting the local agri-food economy, and investing in a structured foundation that is built to nourish and support you—not just feed you."
+    answer: "Lumë Refillery is an innovative grocery ecosystem designed to change how we provision our homes. We curate everyday essentials based on strict standards of quality, nutrition, and environmental stewardship. By partnering with local farmers, large distributors and emerging ethical producers, we are designing a more transparent and less wasteful regional food system.\n\nFrom nutrient-dense staples to home goods and personal care items, our service delivers everything you need in a seamless, circular subscription and light bulk model. And because modern living is noisy, we seek to eliminate that decision fatigue and supply-chain uncertainty by delivering a predictable and automated schedule.\n\nShopping with Lumë isn’t just about buying groceries; when you shop with us, you are reclaiming your time, supporting the local agri-food economy, and investing in a structured foundation that is built to nourish and support you—not just feed you."
   },
   {
     question: "Is there a cost to shop?",
@@ -15,7 +15,7 @@ const faqs = [
   },
   {
     question: "Can I shop without a subscription?",
-    answer: "Absolutely! We offer light bulk retail purchases for those who prefer to shop on their own terms. Whether you choose to order as needed or lock in a recurring subscription to automate your life, the quality and curation of our goods remain the same."
+    answer: "Absolutely! We offer light bulk retail purchases for those who prefer to shop on their own terms. Whether you choose to order as needed or lock-in a recurring subscription to automate your life, the quality and curation of our goods remain the same."
   },
   {
     question: "How long will my order take to arrive?",
