@@ -9,6 +9,7 @@
  */
 
 import type * as addresses from "../addresses.js";
+import type * as admin from "../admin.js";
 import type * as boxes from "../boxes.js";
 import type * as credits from "../credits.js";
 import type * as crons from "../crons.js";
@@ -42,6 +43,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   addresses: typeof addresses;
+  admin: typeof admin;
   boxes: typeof boxes;
   credits: typeof credits;
   crons: typeof crons;

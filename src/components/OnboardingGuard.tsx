@@ -10,7 +10,7 @@ import { api } from '../../convex/_generated/api';
  * The onboarding page itself, API routes, sign-in/up pages, and public pages
  * that unauthenticated users visit.
  */
-const EXCLUDED_PATHS = ['/onboarding', '/sign-in', '/sign-up'];
+const EXCLUDED_PATHS = ['/onboarding', '/sign-in', '/sign-up', '/admin'];
 
 export default function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
