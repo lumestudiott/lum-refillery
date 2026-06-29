@@ -12,7 +12,14 @@ import {
  * Empty = site is LIVE. To put the site back into maintenance, re-add the
  * domains, e.g. ['lumerefillery.com', 'www.lumerefillery.com'].
  */
-const MAINTENANCE_DOMAINS: string[] = ['lumerefillery.com', 'www.lumerefillery.com'];
+const MAINTENANCE_DOMAINS: string[] = [
+  'lumerefillery.com',
+  'www.lumerefillery.com',
+  // Vercel's auto production alias — gate it too so it can't leak the real
+  // site while in maintenance. (Preview/staging *.vercel.app URLs are NOT
+  // listed here, so the test site still shows the real site on dev backend.)
+  'lum-refillery-ten.vercel.app',
+];
 
 /**
  * Paths that bypass maintenance (static assets, the maintenance page itself, etc.)
