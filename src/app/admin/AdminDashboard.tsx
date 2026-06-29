@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../../convex/_generated/api';
 import { Spinner, ToastProvider } from './lib';
+import GroceryField from './GroceryField';
 import Overview from './sections/Overview';
 import Products from './sections/Products';
 import UsersSection from './sections/Users';
@@ -204,7 +205,7 @@ export default function AdminDashboard() {
   return (
     <ToastProvider>
       <div className="relative min-h-screen bg-canvas text-text-primary">
-        <CanvasGlow />
+        <GroceryField />
 
         {/* Desktop sidebar */}
         <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 lg:block">
