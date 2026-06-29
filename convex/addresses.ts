@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthedUser, getAuthedUserOrNull } from "./lib/auth";
+import { TT_COUNTRY_CODE, isValidTTRegion } from "./lib/regions";
 
 /**
  * List the authenticated user's addresses, primary first.
@@ -38,6 +39,21 @@ export const add = mutation({
   handler: async (ctx, args) => {
     const user = await getAuthedUser(ctx);
 
+    // ── Trinidad & Tobago only ──────────────────────────────────
+    // Enforced server-side so the restriction can't be bypassed by
+    // calling the mutation directly.
+    const country = args.country ?? TT_COUNTRY_CODE;
+    if (country !== TT_COUNTRY_CODE) {
+      throw new Error(
+        "Lumë Refillery currently delivers only within Trinidad & Tobago."
+      );
+    }
+    if (!isValidTTRegion(args.state)) {
+      throw new Error(
+        "Please choose a valid Trinidad & Tobago region for your delivery address."
+      );
+    }
+
     const existing = await ctx.db
       .query("addresses")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
@@ -61,7 +77,7 @@ export const add = mutation({
       city: args.city,
       state: args.state,
       zip: args.zip,
-      country: args.country ?? "TT",
+      country: TT_COUNTRY_CODE,
       deliveryInstructions: args.deliveryInstructions,
       isPrimary: shouldBePrimary,
       createdAt: Date.now(),

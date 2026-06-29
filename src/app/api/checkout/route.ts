@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
       shipping_address_collection: {
         allowed_countries: ['TT'],
       },
+      billing_address_collection: 'required',
       subscription_data: {
         metadata: {
           tier_id: tier.id,

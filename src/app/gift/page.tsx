@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Gift, Check, Sparkles } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { SUBSCRIPTION_TIERS } from '@/data/tiers';
+import { TT_REGIONS, TT_COUNTRY_NAME } from '@/data/ttRegions';
 import { calculateYearlySavings } from '@/utils/pricing';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -33,7 +34,7 @@ export default function GiftSubscriptionPage() {
     recipientEmail: '',
     recipientAddress: '',
     recipientCity: '',
-    recipientState: '',
+    recipientState: TT_REGIONS[0],
     recipientZip: '',
     giftMessage: '',
   });
@@ -267,6 +268,16 @@ export default function GiftSubscriptionPage() {
                           required
                         />
                       </div>
+                      <div className="flex items-center gap-2 rounded-xl border border-lume-accent/20 bg-lume-accent/[0.06] px-4 py-2.5 text-[13px] text-text-secondary">
+                        <span aria-hidden="true">🇹🇹</span>
+                        <span>
+                          We deliver gifts within{' '}
+                          <strong className="font-semibold text-text-primary">
+                            {TT_COUNTRY_NAME}
+                          </strong>{' '}
+                          only.
+                        </span>
+                      </div>
                       <input
                         type="text"
                         name="recipientAddress"
@@ -286,15 +297,19 @@ export default function GiftSubscriptionPage() {
                           className={inputClass}
                           required
                         />
-                        <input
-                          type="text"
+                        <select
                           name="recipientState"
-                          placeholder="State"
                           value={formData.recipientState}
                           onChange={handleInputChange}
                           className={inputClass}
                           required
-                        />
+                        >
+                          {TT_REGIONS.map((region) => (
+                            <option key={region} value={region}>
+                              {region}
+                            </option>
+                          ))}
+                        </select>
                         <input
                           type="text"
                           name="recipientZip"

@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
       shipping_address_collection: {
         allowed_countries: ['TT'],
       },
+      billing_address_collection: 'required',
       metadata: {
         clerk_user_id: userId,
         type: 'shop_order',

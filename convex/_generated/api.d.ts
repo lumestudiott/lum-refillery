@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as inventory from "../inventory.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_rateLimit from "../lib/rateLimit.js";
+import type * as lib_regions from "../lib/regions.js";
 import type * as lib_time from "../lib/time.js";
 import type * as newsletter from "../newsletter.js";
 import type * as products from "../products.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   inventory: typeof inventory;
   "lib/auth": typeof lib_auth;
   "lib/rateLimit": typeof lib_rateLimit;
+  "lib/regions": typeof lib_regions;
   "lib/time": typeof lib_time;
   newsletter: typeof newsletter;
   products: typeof products;
