@@ -4,15 +4,17 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from 'convex/react';
 import {
-  Users,
-  Package,
+  UsersRound,
+  PackageOpen,
+  CalendarSync,
   Repeat,
   Truck,
-  ShoppingBag,
+  ShoppingCart,
   Gift,
   Mail,
   TrendingUp,
   ArrowUpRight,
+  type LucideIcon,
 } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import { MotionCard, Loading, cents, StatusBadge, useCountUp } from '../lib';
@@ -48,7 +50,7 @@ function Stat({
   label: string;
   value: number;
   sub?: string;
-  Icon: typeof Users;
+  Icon: LucideIcon;
   currency?: boolean;
   delay: number;
   onClick?: () => void;
@@ -71,8 +73,8 @@ function Stat({
             <div className="mt-1.5 text-[12px] text-text-secondary">{sub}</div>
           )}
         </div>
-        <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-lume-accent/10 transition-colors group-hover:bg-lume-accent/15">
-          <Icon className="h-5 w-5 text-lume-accent" strokeWidth={1.9} />
+        <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-lume-accent/[0.16] to-lume-accent/[0.04] ring-1 ring-inset ring-lume-accent/15 transition-all duration-300 group-hover:from-lume-accent/25 group-hover:ring-lume-accent/30 group-hover:shadow-[0_4px_14px_rgba(0,117,74,0.12)]">
+          <Icon className="h-[22px] w-[22px] text-lume-accent" strokeWidth={1.75} />
           {onClick && (
             <ArrowUpRight className="absolute -right-1 -top-1 h-3.5 w-3.5 text-lume-accent opacity-0 transition-opacity group-hover:opacity-100" />
           )}
@@ -146,7 +148,7 @@ export default function Overview({
           label="Active subscriptions"
           value={counts.activeSubscriptions}
           sub={`${counts.subscriptions} total`}
-          Icon={Repeat}
+          Icon={CalendarSync}
           delay={0.05}
           onClick={() => onNavigate('subscriptions')}
         />
@@ -154,7 +156,7 @@ export default function Overview({
           label="Customers"
           value={counts.users}
           sub={`${counts.admins} admins`}
-          Icon={Users}
+          Icon={UsersRound}
           delay={0.1}
           onClick={() => onNavigate('users')}
         />
@@ -162,7 +164,7 @@ export default function Overview({
           label="Products"
           value={counts.products}
           sub={`${counts.activeProducts} active`}
-          Icon={Package}
+          Icon={PackageOpen}
           delay={0.15}
           onClick={() => onNavigate('products')}
         />
@@ -181,7 +183,7 @@ export default function Overview({
         <Stat
           label="Shop orders"
           value={counts.shopOrders}
-          Icon={ShoppingBag}
+          Icon={ShoppingCart}
           delay={0.25}
           onClick={() => onNavigate('orders')}
         />

@@ -88,7 +88,7 @@ function BoxesTab() {
 
   const [search, setSearch] = useState('');
   const [shipFor, setShipFor] = useState<Doc<'boxes'> | null>(null);
-  const [carrier, setCarrier] = useState('');
+  const [carrier, setCarrier] = useState('CSF Couriers');
   const [tracking, setTracking] = useState('');
   const [trackingUrl, setTrackingUrl] = useState('');
 
@@ -124,7 +124,7 @@ function BoxesTab() {
       });
       toast('Box marked shipped');
       setShipFor(null);
-      setCarrier('');
+      setCarrier('CSF Couriers');
       setTracking('');
       setTrackingUrl('');
     } catch (err) {
@@ -232,7 +232,7 @@ function BoxesTab() {
             label="Carrier"
             value={carrier}
             onChange={(e) => setCarrier(e.target.value)}
-            placeholder="e.g. TTPost, DHL"
+            placeholder="CSF Couriers"
           />
           <TextField
             label="Tracking number"

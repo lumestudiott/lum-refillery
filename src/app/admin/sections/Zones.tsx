@@ -44,7 +44,7 @@ function emptyForm(): FormState {
     cutoffDayOfWeek: 2,
     cutoffHour: 23,
     deliveryDayOfWeek: 6,
-    carrier: '',
+    carrier: 'CSF Couriers',
     feeDollars: '',
     active: true,
   };
@@ -252,10 +252,10 @@ export default function Zones() {
           />
           <div className="sm:col-span-2">
             <TextField
-              label="Carrier (optional)"
+              label="Carrier"
               value={form.carrier}
               onChange={(e) => setForm({ ...form, carrier: e.target.value })}
-              placeholder="e.g. TTPost"
+              placeholder="CSF Couriers"
             />
           </div>
           <label className="flex cursor-pointer items-center gap-2 text-[13px] sm:col-span-2">
