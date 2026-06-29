@@ -122,7 +122,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-[20px] border border-white/70 bg-white/70 shadow-soft-float backdrop-blur-xl ${className}`}
+      className={`rounded-[20px] border border-[#E9DEC8] bg-gradient-to-b from-[#FDF9F1]/90 to-[#F4ECDB]/85 shadow-soft-float backdrop-blur-xl ${className}`}
     >
       {children}
     </div>
@@ -147,7 +147,7 @@ export function MotionCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.22, 0.61, 0.36, 1] }}
       whileHover={lift ? { y: -3 } : undefined}
-      className={`rounded-[20px] border border-white/70 bg-white/70 shadow-soft-float backdrop-blur-xl ${className}`}
+      className={`rounded-[20px] border border-[#E9DEC8] bg-gradient-to-b from-[#FDF9F1]/90 to-[#F4ECDB]/85 shadow-soft-float backdrop-blur-xl ${className}`}
     >
       {children}
     </motion.div>
@@ -195,7 +195,7 @@ const BTN: Record<BtnVariant, string> = {
   primary:
     'bg-lume-accent text-white shadow-frap hover:bg-lume-green hover:shadow-[0_4px_20px_rgba(0,117,74,0.35)]',
   ghost:
-    'border border-black/[0.1] bg-white/70 text-text-primary backdrop-blur hover:border-lume-accent/30 hover:bg-white',
+    'border border-[#E6DBC4] bg-[#FCF8EF]/80 text-text-primary backdrop-blur hover:border-lume-accent/40 hover:bg-[#FFFDF8]',
   danger: 'bg-copper-600 text-white hover:brightness-110',
   subtle: 'bg-black/[0.04] text-text-primary hover:bg-black/[0.07]',
 };
@@ -221,7 +221,7 @@ export function Btn({
    ──────────────────────────────────────────────── */
 
 const fieldBase =
-  'w-full rounded-xl border border-black/[0.1] bg-white/80 px-3.5 py-2.5 text-[14px] text-text-primary outline-none transition-all focus:border-lume-accent focus:ring-4 focus:ring-lume-accent/10';
+  'w-full rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/85 px-3.5 py-2.5 text-[14px] text-text-primary outline-none transition-all focus:border-lume-accent focus:ring-4 focus:ring-lume-accent/10';
 
 export function Label({ children }: { children: React.ReactNode }) {
   return (
@@ -344,7 +344,7 @@ export function Modal({
             </div>
             <div className="px-6 py-5">{children}</div>
             {footer && (
-              <div className="flex items-center justify-end gap-2 border-t border-black/[0.06] bg-white/40 px-6 py-4">
+              <div className="flex items-center justify-end gap-2 border-t border-black/[0.06] bg-[#F4ECDB]/50 px-6 py-4">
                 {footer}
               </div>
             )}

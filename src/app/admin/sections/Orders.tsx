@@ -41,7 +41,7 @@ export default function Orders() {
         title="Orders"
         subtitle="Recurring delivery boxes and one-off shop purchases."
       />
-      <div className="mb-5 inline-flex rounded-xl border border-black/[0.08] bg-white p-1">
+      <div className="mb-5 inline-flex rounded-xl border border-black/[0.08] bg-[#FCF8EF] p-1">
         <TabBtn active={tab === 'boxes'} onClick={() => setTab('boxes')}>
           <Truck className="h-4 w-4" /> Delivery boxes
         </TabBtn>
@@ -141,13 +141,13 @@ function BoxesTab() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search email or week…"
-            className="w-full rounded-lg border border-black/[0.1] bg-white py-2 pl-9 pr-3 text-[14px] outline-none focus:border-lume-accent"
+            className="w-full rounded-lg border border-black/[0.1] bg-[#FCF8EF] py-2 pl-9 pr-3 text-[14px] outline-none focus:border-lume-accent"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-black/[0.1] bg-white px-3 py-2 text-[14px] outline-none focus:border-lume-accent"
+          className="rounded-lg border border-black/[0.1] bg-[#FCF8EF] px-3 py-2 text-[14px] outline-none focus:border-lume-accent"
         >
           <option value="">All statuses</option>
           {BOX_STATUSES.map((s) => (
@@ -194,7 +194,7 @@ function BoxesTab() {
                   <select
                     value={b.status}
                     onChange={(e) => change(b._id, e.target.value)}
-                    className="rounded-lg border border-black/[0.1] bg-white px-2.5 py-1.5 text-[12px] font-semibold capitalize outline-none focus:border-lume-accent"
+                    className="rounded-lg border border-black/[0.1] bg-[#FCF8EF] px-2.5 py-1.5 text-[12px] font-semibold capitalize outline-none focus:border-lume-accent"
                   >
                     {BOX_STATUSES.map((st) => (
                       <option key={st} value={st}>
@@ -285,7 +285,7 @@ function ShopTab() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search email…"
-            className="w-full rounded-lg border border-black/[0.1] bg-white py-2 pl-9 pr-3 text-[14px] outline-none focus:border-lume-accent"
+            className="w-full rounded-lg border border-black/[0.1] bg-[#FCF8EF] py-2 pl-9 pr-3 text-[14px] outline-none focus:border-lume-accent"
           />
         </div>
       </div>
@@ -318,7 +318,7 @@ function ShopTab() {
                   <select
                     value={o.status}
                     onChange={(e) => change(o._id, e.target.value)}
-                    className="rounded-lg border border-black/[0.1] bg-white px-2.5 py-1.5 text-[12px] font-semibold capitalize outline-none focus:border-lume-accent"
+                    className="rounded-lg border border-black/[0.1] bg-[#FCF8EF] px-2.5 py-1.5 text-[12px] font-semibold capitalize outline-none focus:border-lume-accent"
                   >
                     {SHOP_STATUSES.map((st) => (
                       <option key={st} value={st}>

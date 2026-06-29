@@ -202,13 +202,13 @@ export default function Products() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, SKU, category…"
-            className="w-full rounded-lg border border-black/[0.1] bg-white py-2 pl-9 pr-3 text-[14px] outline-none focus:border-lume-accent"
+            className="w-full rounded-lg border border-black/[0.1] bg-[#FCF8EF] py-2 pl-9 pr-3 text-[14px] outline-none focus:border-lume-accent"
           />
         </div>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-lg border border-black/[0.1] bg-white px-3 py-2 text-[14px] outline-none focus:border-lume-accent"
+          className="rounded-lg border border-black/[0.1] bg-[#FCF8EF] px-3 py-2 text-[14px] outline-none focus:border-lume-accent"
         >
           <option value="">All categories</option>
           {categories.map((c) => (

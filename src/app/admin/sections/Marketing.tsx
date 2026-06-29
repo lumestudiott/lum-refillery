@@ -32,7 +32,7 @@ export default function Marketing() {
         title="Marketing"
         subtitle="Newsletter list, referral program, and gift subscriptions."
       />
-      <div className="mb-5 inline-flex rounded-xl border border-black/[0.08] bg-white p-1">
+      <div className="mb-5 inline-flex rounded-xl border border-black/[0.08] bg-[#FCF8EF] p-1">
         <TabBtn active={tab === 'newsletter'} onClick={() => setTab('newsletter')}>
           <Mail className="h-4 w-4" /> Newsletter
         </TabBtn>
@@ -266,7 +266,7 @@ function Gifts() {
                 <select
                   value={g.status}
                   onChange={(e) => change(g._id, e.target.value)}
-                  className="rounded-lg border border-black/[0.1] bg-white px-2.5 py-1.5 text-[12px] font-semibold capitalize outline-none focus:border-lume-accent"
+                  className="rounded-lg border border-black/[0.1] bg-[#FCF8EF] px-2.5 py-1.5 text-[12px] font-semibold capitalize outline-none focus:border-lume-accent"
                 >
                   {GIFT_STATUSES.map((st) => (
                     <option key={st} value={st}>

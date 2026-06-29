@@ -101,7 +101,7 @@ export default function UsersSection() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search email or name…"
-            className="w-full rounded-lg border border-black/[0.1] bg-white py-2 pl-9 pr-3 text-[14px] outline-none focus:border-lume-accent"
+            className="w-full rounded-lg border border-black/[0.1] bg-[#FCF8EF] py-2 pl-9 pr-3 text-[14px] outline-none focus:border-lume-accent"
           />
         </div>
         <span className="text-[13px] text-text-secondary">
