@@ -12,7 +12,7 @@ import {
  * Empty = site is LIVE. To put the site back into maintenance, re-add the
  * domains, e.g. ['lumerefillery.com', 'www.lumerefillery.com'].
  */
-const MAINTENANCE_DOMAINS: string[] = [];
+const MAINTENANCE_DOMAINS: string[] = ['lumerefillery.com', 'www.lumerefillery.com'];
 
 /**
  * Paths that bypass maintenance (static assets, the maintenance page itself, etc.)
