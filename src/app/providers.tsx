@@ -34,6 +34,11 @@ export function Providers({ children }: { children: ReactNode }) {
         'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
         process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
       )}
+      // Relative redirects keep the user on the SAME origin after auth
+      // (e.g. staging.lumerefillery.com stays on staging) instead of
+      // falling back to the Clerk instance's absolute home URL (.com).
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/onboarding"
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <CartProvider>
