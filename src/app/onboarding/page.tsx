@@ -19,6 +19,7 @@ import { api } from '../../../convex/_generated/api';
 import { TT_REGIONS, TT_COUNTRY_NAME } from '@/data/ttRegions';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import PaymentCardForm from './PaymentCardForm';
 
 type Step = 'delivery' | 'payment';
 
@@ -406,32 +407,29 @@ function PaymentStep({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="rounded-[20px] border border-black/[0.08] bg-white p-6">
-        <div className="flex items-center gap-2 text-[14px] font-semibold text-text-primary">
+        <div className="mb-1 flex items-center gap-2 text-[14px] font-semibold text-text-primary">
           <CreditCard className="h-5 w-5 text-lume-accent" />
           Secure card payment
         </div>
-        <p className="mt-2 text-[13px] leading-[1.6] text-text-secondary">
-          Powered by Stripe. Your first weekly payment is only authorized when your
-          order ships — nothing is charged today.
+        <p className="mb-4 text-[13px] leading-[1.6] text-text-secondary">
+          We save your card so checkout is one tap later. Your first weekly payment is
+          only authorized when an order ships — nothing is charged today.
         </p>
-        <div className="mt-4 rounded-xl border border-dashed border-black/15 bg-black/[0.02] p-4 text-center text-[13px] text-text-secondary">
-          Card entry goes here — being wired up next.
-        </div>
+        <PaymentCardForm onSaved={() => router.push('/dashboard')} />
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <button
-          onClick={() => router.push('/shop')}
-          className="btn-pill inline-flex flex-1 items-center justify-center gap-2 bg-lume-accent px-7 py-3.5 text-[15px] font-semibold tracking-tight text-white shadow-frap transition-all hover:bg-lume-green"
-        >
-          Browse hauls
-          <ArrowRight className="h-4 w-4" />
-        </button>
+      <div className="flex items-center justify-between text-[13px]">
         <button
           onClick={onBack}
-          className="btn-pill inline-flex items-center justify-center border border-black/[0.1] bg-white px-6 py-3.5 text-[14px] font-semibold text-text-primary transition-all hover:bg-black/[0.03]"
+          className="font-semibold text-text-secondary transition-colors hover:text-text-primary"
         >
-          Back
+          ← Back
+        </button>
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="font-semibold text-text-secondary transition-colors hover:text-text-primary"
+        >
+          Skip for now
         </button>
       </div>
     </div>
