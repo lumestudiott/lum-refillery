@@ -311,6 +311,16 @@ export default defineSchema({
     .index("by_status_retry", ["status", "nextRetryAt"]),
 
   // ──────────────────────────────────────────────────────────────
+  // App settings — simple key/value store for admin-controlled flags
+  // (e.g. the active payment provider: "stripe" | "wipay").
+  // ──────────────────────────────────────────────────────────────
+  appSettings: defineTable({
+    key: v.string(),
+    value: v.string(),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  // ──────────────────────────────────────────────────────────────
   // Newsletter & gifts (unchanged)
   // ──────────────────────────────────────────────────────────────
   newsletterSubscribers: defineTable({

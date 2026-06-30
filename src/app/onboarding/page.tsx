@@ -14,6 +14,7 @@ import {
   Leaf,
   ArrowRight,
   Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import { api } from '../../../convex/_generated/api';
 import { TT_REGIONS, TT_COUNTRY_NAME } from '@/data/ttRegions';
@@ -392,8 +393,63 @@ function DeliveryStep({ onDone }: { onDone: () => void }) {
    Payment step (UI shell — see note in chat)
    ──────────────────────────────────────────────── */
 
+/** WiPay (hosted redirect) — used when the active provider is "wipay". */
+function WiPayPanel({ onPaid }: { onPaid: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function pay() {
+    setLoading(true);
+    setNotice(null);
+    try {
+      const res = await fetch('/api/wipay/create-payment', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setNotice(data.error || 'WiPay isn’t available yet.');
+    } catch {
+      setNotice('WiPay isn’t available yet.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <button
+        onClick={pay}
+        disabled={loading}
+        className="btn-pill inline-flex w-full items-center justify-center gap-2 bg-lume-accent px-7 py-3.5 text-[15px] font-semibold tracking-tight text-white shadow-frap transition-all hover:bg-lume-green disabled:opacity-60"
+      >
+        {loading ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <>
+            Pay with WiPay
+            <ArrowRight className="h-4 w-4" />
+          </>
+        )}
+      </button>
+      {notice && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-300/50 bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          {notice}
+        </div>
+      )}
+      <p className="text-center text-[12px] text-text-secondary">
+        You&apos;ll be redirected to WiPay&apos;s secure page.
+      </p>
+    </div>
+  );
+}
+
 function PaymentStep({ onBack }: { onBack: () => void }) {
   const router = useRouter();
+  const provider = useQuery(api.payments.getActiveProvider);
+  const onDone = () => router.push('/dashboard');
+
   return (
     <div className="space-y-5">
       <div>
@@ -407,15 +463,35 @@ function PaymentStep({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="rounded-[20px] border border-black/[0.08] bg-white p-6">
-        <div className="mb-1 flex items-center gap-2 text-[14px] font-semibold text-text-primary">
-          <CreditCard className="h-5 w-5 text-lume-accent" />
-          Secure card payment
-        </div>
-        <p className="mb-4 text-[13px] leading-[1.6] text-text-secondary">
-          We save your card so checkout is one tap later. Your first weekly payment is
-          only authorized when an order ships — nothing is charged today.
-        </p>
-        <PaymentCardForm onSaved={() => router.push('/dashboard')} />
+        {provider === undefined ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-lume-accent" />
+          </div>
+        ) : provider === 'wipay' ? (
+          <>
+            <div className="mb-1 flex items-center gap-2 text-[14px] font-semibold text-text-primary">
+              <CreditCard className="h-5 w-5 text-lume-accent" />
+              Pay with WiPay
+            </div>
+            <p className="mb-4 text-[13px] leading-[1.6] text-text-secondary">
+              Pay securely with your local card through WiPay — Trinidad &amp; Tobago&apos;s
+              payment gateway.
+            </p>
+            <WiPayPanel onPaid={onDone} />
+          </>
+        ) : (
+          <>
+            <div className="mb-1 flex items-center gap-2 text-[14px] font-semibold text-text-primary">
+              <CreditCard className="h-5 w-5 text-lume-accent" />
+              Secure card payment
+            </div>
+            <p className="mb-4 text-[13px] leading-[1.6] text-text-secondary">
+              We save your card so checkout is one tap later. Your first weekly payment is
+              only authorized when an order ships — nothing is charged today.
+            </p>
+            <PaymentCardForm onSaved={onDone} />
+          </>
+        )}
       </div>
 
       <div className="flex items-center justify-between text-[13px]">
@@ -426,7 +502,7 @@ function PaymentStep({ onBack }: { onBack: () => void }) {
           ← Back
         </button>
         <button
-          onClick={() => router.push('/dashboard')}
+          onClick={onDone}
           className="font-semibold text-text-secondary transition-colors hover:text-text-primary"
         >
           Skip for now

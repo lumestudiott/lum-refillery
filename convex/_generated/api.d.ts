@@ -23,6 +23,7 @@ import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_regions from "../lib/regions.js";
 import type * as lib_time from "../lib/time.js";
 import type * as newsletter from "../newsletter.js";
+import type * as payments from "../payments.js";
 import type * as products from "../products.js";
 import type * as referrals from "../referrals.js";
 import type * as scratch from "../scratch.js";
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   "lib/regions": typeof lib_regions;
   "lib/time": typeof lib_time;
   newsletter: typeof newsletter;
+  payments: typeof payments;
   products: typeof products;
   referrals: typeof referrals;
   scratch: typeof scratch;
