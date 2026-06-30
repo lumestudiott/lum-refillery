@@ -44,12 +44,15 @@ const clerk = clerkMiddleware();
  * so the rewrite happens at the earliest possible point.
  */
 export default function middleware(req: NextRequest, event: NextFetchEvent) {
-  const hostname = req.headers.get('host') || req.nextUrl.hostname || '';
+  // Strip any port and lowercase so we can match the host exactly. Exact
+  // match (not `includes`) is important so subdomains like
+  // `staging.lumerefillery.com` are NOT swept into maintenance.
+  const hostname = (req.headers.get('host') || req.nextUrl.hostname || '')
+    .split(':')[0]
+    .toLowerCase();
   const { pathname } = req.nextUrl;
 
-  const isMaintenanceDomain = MAINTENANCE_DOMAINS.some((d) =>
-    hostname.includes(d),
-  );
+  const isMaintenanceDomain = MAINTENANCE_DOMAINS.includes(hostname);
 
   // Rewrite to /maintenance immediately — no Clerk, no auth, no flash
   if (
