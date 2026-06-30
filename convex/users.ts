@@ -158,3 +158,31 @@ export const updateUserSubscription = internalMutation({
     return user._id;
   },
 });
+
+/**
+ * Save the caller's contact info (phone + marketing opt-in) — used by the
+ * onboarding Delivery step. Identity derived from the JWT, never trusted
+ * from args.
+ */
+export const updateContactInfo = mutation({
+  args: {
+    phone: v.optional(v.string()),
+    marketingOptIn: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) throw new Error("User not found");
+
+    const patch: { phone?: string; marketingOptIn?: boolean } = {};
+    if (args.phone !== undefined) patch.phone = args.phone;
+    if (args.marketingOptIn !== undefined) patch.marketingOptIn = args.marketingOptIn;
+    await ctx.db.patch(user._id, patch);
+    return user._id;
+  },
+});
