@@ -12,7 +12,14 @@ import {
  * Empty = site is LIVE. To put the site back into maintenance, re-add the
  * domains, e.g. ['lumerefillery.com', 'www.lumerefillery.com'].
  */
-const MAINTENANCE_DOMAINS: string[] = ['lumerefillery.com', 'www.lumerefillery.com'];
+const MAINTENANCE_DOMAINS: string[] = [
+  'lumerefillery.com',
+  'www.lumerefillery.com',
+  // Vercel's auto production alias — gate it too so it can't leak the real
+  // site while in maintenance. (Preview/staging *.vercel.app URLs are NOT
+  // listed here, so the test site still shows the real site on dev backend.)
+  'lum-refillery-ten.vercel.app',
+];
 
 /**
  * Paths that bypass maintenance (static assets, the maintenance page itself, etc.)
@@ -37,12 +44,15 @@ const clerk = clerkMiddleware();
  * so the rewrite happens at the earliest possible point.
  */
 export default function middleware(req: NextRequest, event: NextFetchEvent) {
-  const hostname = req.headers.get('host') || req.nextUrl.hostname || '';
+  // Strip any port and lowercase so we can match the host exactly. Exact
+  // match (not `includes`) is important so subdomains like
+  // `staging.lumerefillery.com` are NOT swept into maintenance.
+  const hostname = (req.headers.get('host') || req.nextUrl.hostname || '')
+    .split(':')[0]
+    .toLowerCase();
   const { pathname } = req.nextUrl;
 
-  const isMaintenanceDomain = MAINTENANCE_DOMAINS.some((d) =>
-    hostname.includes(d),
-  );
+  const isMaintenanceDomain = MAINTENANCE_DOMAINS.includes(hostname);
 
   // Rewrite to /maintenance immediately — no Clerk, no auth, no flash
   if (
