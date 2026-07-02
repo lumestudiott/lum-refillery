@@ -26,7 +26,7 @@ function CardFields({ onSaved }: { onSaved: () => void }) {
     if (!stripe || !elements) return;
     setSubmitting(true);
     setError(null);
-    const { error } = await stripe.confirmSetup({
+    const { error, setupIntent } = await stripe.confirmSetup({
       elements,
       redirect: 'if_required',
     });
@@ -34,6 +34,19 @@ function CardFields({ onSaved }: { onSaved: () => void }) {
       setError(error.message ?? 'Could not save your card.');
       setSubmitting(false);
       return;
+    }
+    // Best-effort: set the saved card as the customer's default so a later
+    // checkout reuses it. Don't block finishing if this call fails.
+    if (setupIntent?.id) {
+      try {
+        await fetch('/api/setup-intent/finalize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setupIntentId: setupIntent.id }),
+        });
+      } catch {
+        /* card is still saved; default just wasn't set */
+      }
     }
     onSaved();
   }
