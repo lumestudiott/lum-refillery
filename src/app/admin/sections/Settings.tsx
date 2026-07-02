@@ -46,7 +46,7 @@ export default function Settings() {
               Icon={CreditCard}
               name="Stripe"
               desc="Inline card payments. Live now."
-              tag="Active &amp; ready"
+              tag="Active & ready"
               tagOk
             />
             <Option
@@ -115,8 +115,9 @@ function Option({
         className={`mt-2.5 inline-block rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.04em] ${
           tagOk ? 'bg-lume-accent/10 text-lume-accent' : 'bg-gold/15 text-[#8a6a22]'
         }`}
-        dangerouslySetInnerHTML={{ __html: tag }}
-      />
+      >
+        {tag}
+      </div>
     </button>
   );
 }
