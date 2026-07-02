@@ -1,7 +1,5 @@
 import { v } from "convex/values";
 import {
-  internalMutation,
-  internalQuery,
   mutation,
   query,
   type MutationCtx,
@@ -492,38 +490,5 @@ export const setGiftStatus = mutation({
     if (args.status === "paid") patch.paidAt = Date.now();
     await ctx.db.patch(args.id, patch);
     return args.id;
-  },
-});
-
-// ──────────────────────────────────────────────────────────────
-// Bootstrap helpers — INTERNAL ONLY
-// ──────────────────────────────────────────────────────────────
-// These have no Clerk identity to gate against (they run from the
-// Convex CLI via a deploy key), so they are `internal*` and therefore
-// unreachable from the public client API. Use them once to mint the
-// first admin; after that, admins manage each other from the UI.
-
-export const _listUsersForBootstrap = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const users = await ctx.db.query("users").take(100);
-    return users.map((u) => ({
-      email: u.email,
-      name: u.name ?? null,
-      isAdmin: u.isAdmin ?? false,
-    }));
-  },
-});
-
-export const _grantAdminByEmail = internalMutation({
-  args: { email: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
-    if (!user) throw new Error(`No user found with email "${args.email}"`);
-    await ctx.db.patch(user._id, { isAdmin: true });
-    return { email: user.email, isAdmin: true };
   },
 });

@@ -33,6 +33,17 @@ export async function POST() {
     const convex = new ConvexHttpClient(getServerConvexUrl());
     convex.setAuth(convexToken);
 
+    // ── Rate limit ──────────────────────────────────────────────
+    const isAllowed = await convex.mutation(api.lib.rateLimit.checkCheckoutLimit, {
+      clerkId: userId,
+    });
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Please try again shortly.' },
+        { status: 429 }
+      );
+    }
+
     // ── Stripe customer (lazy create + persist) ─────────────────
     let stripeCustomerId: string | null = null;
     const me = await convex.query(api.users.getUserByClerkId, {
