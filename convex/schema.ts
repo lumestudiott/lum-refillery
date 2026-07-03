@@ -128,14 +128,23 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     attributes: v.optional(
       v.object({
+        // Food & pantry
         organic: v.optional(v.boolean()),
         local: v.optional(v.boolean()),
         glutenFree: v.optional(v.boolean()),
         dairyFree: v.optional(v.boolean()),
         vegan: v.optional(v.boolean()),
         nutFree: v.optional(v.boolean()),
+        // Home, kitchen & retail
+        sustainableMaterial: v.optional(v.boolean()),
+        reusable: v.optional(v.boolean()),
+        plasticFree: v.optional(v.boolean()),
+        foodSafe: v.optional(v.boolean()),
+        upcycled: v.optional(v.boolean()),
       })
     ),
+    // Refundable container deposit (cents) — only for purchaseType "deposit".
+    depositCents: v.optional(v.number()),
     sourcingPartner: v.optional(v.string()),
     sourcingOrigin: v.optional(v.string()),
     tags: v.optional(v.array(v.string())), // e.g. ["Sale", "New", "Best Seller"]

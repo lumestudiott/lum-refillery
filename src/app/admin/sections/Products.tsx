@@ -2,9 +2,19 @@
 
 import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Upload } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
-import type { Doc } from '../../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../../../convex/_generated/dataModel';
+import {
+  PRODUCT_CATEGORIES,
+  PRODUCT_UNITS,
+  PURCHASE_TYPES,
+  FOOD_ATTRIBUTES,
+  HOME_ATTRIBUTES,
+  ATTRIBUTE_LABELS,
+  categoryLabel,
+  isHomeCategory,
+} from '@/data/productCategories';
 import {
   Btn,
   Card,
@@ -27,23 +37,13 @@ import {
 
 type Product = Doc<'products'>;
 
-const UNITS = ['ea', 'lb', 'oz', 'kg', 'g', 'L', 'ml', 'pkg', 'pack'];
-const ATTR_KEYS = [
-  'organic',
-  'local',
-  'glutenFree',
-  'dairyFree',
-  'vegan',
-  'nutFree',
-] as const;
-
 type FormState = {
-  sku: string;
   name: string;
   description: string;
   category: string;
   unit: string;
   priceDollars: string;
+  depositDollars: string;
   imageUrl: string;
   tags: string;
   purchaseType: string;
@@ -53,12 +53,12 @@ type FormState = {
 
 function emptyForm(): FormState {
   return {
-    sku: '',
     name: '',
     description: '',
     category: '',
     unit: 'ea',
     priceDollars: '',
+    depositDollars: '',
     imageUrl: '',
     tags: '',
     purchaseType: 'one-time',
@@ -69,12 +69,12 @@ function emptyForm(): FormState {
 
 function fromProduct(p: Product): FormState {
   return {
-    sku: p.sku,
     name: p.name,
     description: p.description ?? '',
     category: p.category,
     unit: p.unit,
     priceDollars: (p.basePriceCents / 100).toFixed(2),
+    depositDollars: p.depositCents ? (p.depositCents / 100).toFixed(2) : '',
     imageUrl: p.imageUrl ?? '',
     tags: (p.tags ?? []).join(', '),
     purchaseType: p.purchaseType ?? 'one-time',
@@ -88,6 +88,8 @@ export default function Products() {
   const upsert = useMutation(api.products.upsertProduct);
   const setActive = useMutation(api.admin.setProductActive);
   const del = useMutation(api.admin.deleteProduct);
+  const genUploadUrl = useMutation(api.products.generateUploadUrl);
+  const getImageUrl = useMutation(api.products.getImageUrl);
   const toast = useToast();
 
   const [search, setSearch] = useState('');
@@ -96,6 +98,7 @@ export default function Products() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const toggleActive = useAction(
     (p: Product) => setActive({ productId: p._id, active: !p.active }),
@@ -116,7 +119,7 @@ export default function Products() {
         return (
           p.name.toLowerCase().includes(q) ||
           p.sku.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q)
+          categoryLabel(p.category).toLowerCase().includes(q)
         );
       }
       return true;
@@ -134,9 +137,32 @@ export default function Products() {
     setCreating(true);
   }
 
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await genUploadUrl();
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      const { storageId } = (await res.json()) as { storageId: string };
+      const publicUrl = await getImageUrl({ storageId: storageId as Id<'_storage'> });
+      if (publicUrl) setForm((f) => ({ ...f, imageUrl: publicUrl }));
+      toast('Image uploaded');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Upload failed', 'error');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function save() {
-    if (!form.sku.trim() || !form.name.trim() || !form.category.trim()) {
-      toast('SKU, name, and category are required', 'error');
+    if (!form.name.trim() || !form.category.trim()) {
+      toast('Name and category are required', 'error');
       return;
     }
     const priceCents = Math.round(parseFloat(form.priceDollars || '0') * 100);
@@ -144,18 +170,26 @@ export default function Products() {
       toast('Enter a valid price', 'error');
       return;
     }
+
+    const relevant = isHomeCategory(form.category) ? HOME_ATTRIBUTES : FOOD_ATTRIBUTES;
     const attributes: Record<string, boolean> = {};
-    for (const k of ATTR_KEYS) if (form.attributes[k]) attributes[k] = true;
+    for (const k of relevant) if (form.attributes[k]) attributes[k] = true;
+
+    const depositCents =
+      form.purchaseType === 'deposit'
+        ? Math.round(parseFloat(form.depositDollars || '0') * 100)
+        : undefined;
 
     setSaving(true);
     try {
       await upsert({
-        sku: form.sku.trim(),
+        sku: editing ? editing.sku : undefined, // undefined → auto-generated
         name: form.name.trim(),
         description: form.description.trim() || undefined,
-        category: form.category.trim(),
+        category: form.category,
         unit: form.unit,
         basePriceCents: priceCents,
+        depositCents,
         imageUrl: form.imageUrl.trim() || undefined,
         attributes: Object.keys(attributes).length ? attributes : undefined,
         tags: form.tags
@@ -183,11 +217,14 @@ export default function Products() {
     }
   }
 
+  const isHome = isHomeCategory(form.category);
+  const attrKeys = isHome ? HOME_ATTRIBUTES : FOOD_ATTRIBUTES;
+
   return (
     <div>
       <SectionHeader
         title="Products"
-        subtitle="Your full catalogue — create, edit, activate, or remove items."
+        subtitle="Your full catalogue — SKUs are auto-generated per category."
         actions={
           <Btn variant="primary" onClick={openCreate}>
             <Plus className="h-4 w-4" /> New product
@@ -213,7 +250,7 @@ export default function Products() {
           <option value="">All categories</option>
           {categories.map((c) => (
             <option key={c} value={c}>
-              {c}
+              {categoryLabel(c)}
             </option>
           ))}
         </select>
@@ -243,19 +280,27 @@ export default function Products() {
             {filtered.map((p) => (
               <tr key={p._id} className="hover:bg-black/[0.015]">
                 <Td>
-                  <div className="font-semibold text-text-primary">{p.name}</div>
-                  <div className="text-[12px] text-text-secondary">
-                    {p.unit}
-                    {p.tags && p.tags.length > 0 && ` · ${p.tags.join(', ')}`}
+                  <div className="flex items-center gap-3">
+                    {p.imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.imageUrl}
+                        alt=""
+                        className="h-9 w-9 rounded-lg border border-black/10 object-cover"
+                      />
+                    )}
+                    <div>
+                      <div className="font-semibold text-text-primary">{p.name}</div>
+                      <div className="text-[12px] text-text-secondary">
+                        {p.unit}
+                        {p.tags && p.tags.length > 0 && ` · ${p.tags.join(', ')}`}
+                      </div>
+                    </div>
                   </div>
                 </Td>
-                <Td className="font-mono text-[12px] text-text-secondary">
-                  {p.sku}
-                </Td>
-                <Td className="capitalize">{p.category}</Td>
-                <Td className="text-right tabular-nums">
-                  {cents(p.basePriceCents)}
-                </Td>
+                <Td className="font-mono text-[12px] text-text-secondary">{p.sku}</Td>
+                <Td>{categoryLabel(p.category)}</Td>
+                <Td className="text-right tabular-nums">{cents(p.basePriceCents)}</Td>
                 <Td>
                   <button onClick={() => toggleActive(p)} title="Toggle active">
                     <StatusBadge status={p.active ? 'active' : 'draft'} />
@@ -301,30 +346,37 @@ export default function Products() {
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
-            label="SKU"
-            value={form.sku}
-            disabled={!!editing}
-            onChange={(e) => setForm({ ...form, sku: e.target.value })}
-            placeholder="e.g. PROD-001"
+            label="SKU (auto-generated)"
+            value={editing ? editing.sku : ''}
+            disabled
+            placeholder="Assigned automatically on save"
           />
           <TextField
-            label="Name"
+            label="Name *"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="e.g. Organic Brown Rice"
           />
-          <TextField
-            label="Category"
+          <SelectField
+            label="Category *"
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
-            placeholder="e.g. pantry"
-          />
+          >
+            <option value="" disabled>
+              Select a category…
+            </option>
+            {PRODUCT_CATEGORIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label} ({c.code})
+              </option>
+            ))}
+          </SelectField>
           <SelectField
             label="Unit"
             value={form.unit}
             onChange={(e) => setForm({ ...form, unit: e.target.value })}
           >
-            {UNITS.map((u) => (
+            {PRODUCT_UNITS.map((u) => (
               <option key={u} value={u}>
                 {u}
               </option>
@@ -344,23 +396,61 @@ export default function Products() {
             value={form.purchaseType}
             onChange={(e) => setForm({ ...form, purchaseType: e.target.value })}
           >
-            <option value="one-time">One-time</option>
-            <option value="subscription">Subscription</option>
+            {PURCHASE_TYPES.map((pt) => (
+              <option key={pt.value} value={pt.value}>
+                {pt.label}
+              </option>
+            ))}
           </SelectField>
+          {form.purchaseType === 'deposit' && (
+            <TextField
+              label="Deposit (USD, refundable)"
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.depositDollars}
+              onChange={(e) => setForm({ ...form, depositDollars: e.target.value })}
+              placeholder="0.00"
+            />
+          )}
+
+          {/* Image */}
           <div className="sm:col-span-2">
             <TextField
-              label="Image URL"
+              label="Image"
               value={form.imageUrl}
               onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              placeholder="https://…"
+              placeholder="Paste a URL, or upload below"
             />
+            <div className="mt-2 flex items-center gap-3">
+              {form.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={form.imageUrl}
+                  alt=""
+                  className="h-12 w-12 rounded-lg border border-black/10 object-cover"
+                />
+              )}
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-black/[0.12] bg-[#FCF8EF] px-3.5 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:border-lume-accent/40">
+                <Upload className="h-4 w-4" />
+                {uploading ? 'Uploading…' : 'Upload photo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={onFile}
+                />
+              </label>
+            </div>
           </div>
+
           <div className="sm:col-span-2">
             <TextField
               label="Tags (comma-separated)"
               value={form.tags}
               onChange={(e) => setForm({ ...form, tags: e.target.value })}
-              placeholder="Sale, New, Best Seller"
+              placeholder="Zero Waste, Pantry Staple, Best Seller"
             />
           </div>
           <div className="sm:col-span-2">
@@ -370,15 +460,17 @@ export default function Products() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </div>
+
+          {/* Conditional attributes */}
           <div className="sm:col-span-2">
             <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.05em] text-text-secondary">
-              Attributes
+              {isHome ? 'Home & retail attributes' : 'Food & pantry attributes'}
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {ATTR_KEYS.map((k) => (
+              {attrKeys.map((k) => (
                 <CheckRow
                   key={k}
-                  label={k}
+                  label={ATTRIBUTE_LABELS[k] ?? k}
                   checked={!!form.attributes[k]}
                   onChange={(v) =>
                     setForm({
@@ -390,6 +482,7 @@ export default function Products() {
               ))}
             </div>
           </div>
+
           <div className="sm:col-span-2 border-t border-black/[0.06] pt-4">
             <CheckRow
               label="Active (visible in shop)"
