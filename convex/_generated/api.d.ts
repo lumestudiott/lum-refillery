@@ -19,6 +19,7 @@ import type * as giftSubscriptions from "../giftSubscriptions.js";
 import type * as http from "../http.js";
 import type * as inventory from "../inventory.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_productCategories from "../lib/productCategories.js";
 import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_regions from "../lib/regions.js";
 import type * as lib_time from "../lib/time.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   inventory: typeof inventory;
   "lib/auth": typeof lib_auth;
+  "lib/productCategories": typeof lib_productCategories;
   "lib/rateLimit": typeof lib_rateLimit;
   "lib/regions": typeof lib_regions;
   "lib/time": typeof lib_time;

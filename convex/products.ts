@@ -7,6 +7,7 @@ import {
 } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { requireAdmin } from "./lib/auth";
+import { skuPrefixForCategory } from "./lib/productCategories";
 
 const attributesValidator = v.optional(
   v.object({
@@ -16,6 +17,11 @@ const attributesValidator = v.optional(
     dairyFree: v.optional(v.boolean()),
     vegan: v.optional(v.boolean()),
     nutFree: v.optional(v.boolean()),
+    sustainableMaterial: v.optional(v.boolean()),
+    reusable: v.optional(v.boolean()),
+    plasticFree: v.optional(v.boolean()),
+    foodSafe: v.optional(v.boolean()),
+    upcycled: v.optional(v.boolean()),
   })
 );
 
@@ -132,7 +138,7 @@ export const getManyBySku = query({
 // ─── Admin write API ───────────────────────────────────────────────
 export const upsertProduct = mutation({
   args: {
-    sku: v.string(),
+    sku: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     category: v.string(),
@@ -141,6 +147,7 @@ export const upsertProduct = mutation({
     basePriceCents: v.number(),
     imageUrl: v.optional(v.string()),
     attributes: attributesValidator,
+    depositCents: v.optional(v.number()),
     sourcingPartner: v.optional(v.string()),
     sourcingOrigin: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
@@ -160,7 +167,7 @@ export const upsertProduct = mutation({
  */
 export const internalUpsertProduct = internalMutation({
   args: {
-    sku: v.string(),
+    sku: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     category: v.string(),
@@ -169,6 +176,7 @@ export const internalUpsertProduct = internalMutation({
     basePriceCents: v.number(),
     imageUrl: v.optional(v.string()),
     attributes: attributesValidator,
+    depositCents: v.optional(v.number()),
     sourcingPartner: v.optional(v.string()),
     sourcingOrigin: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
@@ -183,7 +191,7 @@ export const internalUpsertProduct = internalMutation({
 async function upsertImpl(
   ctx: MutationCtx,
   args: {
-    sku: string;
+    sku?: string;
     name: string;
     description?: string;
     category: string;
@@ -191,16 +199,20 @@ async function upsertImpl(
     weightGrams?: number;
     basePriceCents: number;
     imageUrl?: string;
-    attributes?:
-      | {
-          organic?: boolean;
-          local?: boolean;
-          glutenFree?: boolean;
-          dairyFree?: boolean;
-          vegan?: boolean;
-          nutFree?: boolean;
-        }
-      | undefined;
+    attributes?: {
+      organic?: boolean;
+      local?: boolean;
+      glutenFree?: boolean;
+      dairyFree?: boolean;
+      vegan?: boolean;
+      nutFree?: boolean;
+      sustainableMaterial?: boolean;
+      reusable?: boolean;
+      plasticFree?: boolean;
+      foodSafe?: boolean;
+      upcycled?: boolean;
+    };
+    depositCents?: number;
     sourcingPartner?: string;
     sourcingOrigin?: string;
     tags?: string[];
@@ -210,17 +222,71 @@ async function upsertImpl(
     active: boolean;
   }
 ) {
-  const existing = await ctx.db
-    .query("products")
-    .withIndex("by_sku", (q) => q.eq("sku", args.sku))
-    .unique();
+  const providedSku = args.sku?.trim();
 
-  if (existing) {
-    await ctx.db.patch(existing._id, args);
-    return existing._id;
+  if (providedSku) {
+    const existing = await ctx.db
+      .query("products")
+      .withIndex("by_sku", (q) => q.eq("sku", providedSku))
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, { ...args, sku: providedSku });
+      return existing._id;
+    }
+    return await ctx.db.insert("products", {
+      ...args,
+      sku: providedSku,
+      createdAt: Date.now(),
+    });
   }
+
+  // No SKU supplied → auto-generate a product number, e.g. "GP-0007".
+  const sku = await nextSku(ctx, args.category);
   return await ctx.db.insert("products", {
     ...args,
+    sku,
     createdAt: Date.now(),
   });
 }
+
+/**
+ * Atomically allocate the next product number. Runs inside the mutation
+ * transaction, so concurrent creates never collide. Format: PREFIX-NNNN.
+ */
+async function nextSku(ctx: MutationCtx, category: string): Promise<string> {
+  const prefix = skuPrefixForCategory(category);
+  const row = await ctx.db
+    .query("appSettings")
+    .withIndex("by_key", (q) => q.eq("key", "productSeq"))
+    .unique();
+  const next = (row ? parseInt(row.value, 10) || 0 : 0) + 1;
+  if (row) {
+    await ctx.db.patch(row._id, { value: String(next), updatedAt: Date.now() });
+  } else {
+    await ctx.db.insert("appSettings", {
+      key: "productSeq",
+      value: String(next),
+      updatedAt: Date.now(),
+    });
+  }
+  return `${prefix}-${String(next).padStart(4, "0")}`;
+}
+
+// ─── Image upload (Convex file storage) ─────────────────────────────
+/** Admin: get a one-time upload URL to POST an image file to. */
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/** Admin: resolve a stored file's public URL after upload. */
+export const getImageUrl = mutation({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    return await ctx.storage.getUrl(args.storageId);
+  },
+});
