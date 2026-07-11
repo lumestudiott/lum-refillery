@@ -125,6 +125,11 @@ export default defineSchema({
     unit: v.string(),                  // "ea", "lb", "oz", "pkg"
     weightGrams: v.optional(v.number()),
     basePriceCents: v.number(),
+    // Shopify-style on-hand stock for à-la-carte retail. Only enforced when
+    // trackInventory is true; fresh/made-to-order items can leave it off.
+    stockQuantity: v.optional(v.number()),
+    trackInventory: v.optional(v.boolean()),
+    lowStockThreshold: v.optional(v.number()), // alert level (default 5)
     imageUrl: v.optional(v.string()),
     attributes: v.optional(
       v.object({

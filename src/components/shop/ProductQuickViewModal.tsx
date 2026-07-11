@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { X, Check, Plus } from 'lucide-react';
 import { ShopProduct } from './ProductCard';
 import { useCart } from '@/context/CartContext';
+import { stockStatus } from '@/lib/stock';
 
 // Beautiful mock data
 const MOCK_CONTENTS = [
@@ -98,6 +99,8 @@ export default function ProductQuickViewModal({ product, onClose }: ProductQuick
   
   const formatDate = (d: Date) => `${d.getMonth() + 1}.${d.getDate()}.${d.getFullYear().toString().slice(-2)}`;
 
+  const stock = stockStatus(product);
+
   return (
     <div 
       className="fixed inset-0 z-[100] flex items-center justify-center bg-lume-house/30 p-4 backdrop-blur-md transition-opacity duration-500 sm:p-6"
@@ -171,10 +174,23 @@ export default function ProductQuickViewModal({ product, onClose }: ProductQuick
             <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-lume-house">
               TT${(product.basePriceCents / 100).toFixed(2)} / {product.unit}
             </p>
+            {stock.low && (
+              <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.12em] text-[#B45309]">
+                Only {stock.quantity} left
+              </p>
+            )}
           </div>
 
           <div className="flex w-full sm:w-auto items-center justify-end">
-            {product.purchaseType === 'subscription' ? (
+            {stock.soldOut ? (
+              <button
+                type="button"
+                disabled
+                className="flex h-[46px] w-full sm:w-56 items-center justify-center gap-2 border border-lume-house/15 text-[11px] font-medium uppercase tracking-[0.15em] text-lume-house/40 cursor-not-allowed"
+              >
+                Sold Out
+              </button>
+            ) : product.purchaseType === 'subscription' ? (
               <QuickViewSubscriptionSelector product={product} />
             ) : (
               <button

@@ -135,6 +135,34 @@ export const getManyBySku = query({
   },
 });
 
+// ─── Stock management (Shopify-style on-hand count) ─────────────────
+/**
+ * Admin: nudge on-hand stock up or down (e.g. the +/- steppers in the
+ * catalogue table). Never goes below zero. Returns the new quantity.
+ */
+export const adjustStock = mutation({
+  args: { productId: v.id("products"), delta: v.number() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const product = await ctx.db.get(args.productId);
+    if (!product) throw new Error("Product not found");
+    const next = Math.max(0, Math.round((product.stockQuantity ?? 0) + args.delta));
+    await ctx.db.patch(args.productId, { stockQuantity: next });
+    return next;
+  },
+});
+
+/** Admin: set on-hand stock to an exact number (inline edit / restock). */
+export const setStock = mutation({
+  args: { productId: v.id("products"), stockQuantity: v.number() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const qty = Math.max(0, Math.round(args.stockQuantity));
+    await ctx.db.patch(args.productId, { stockQuantity: qty });
+    return qty;
+  },
+});
+
 // ─── Admin write API ───────────────────────────────────────────────
 export const upsertProduct = mutation({
   args: {
@@ -145,6 +173,9 @@ export const upsertProduct = mutation({
     unit: v.string(),
     weightGrams: v.optional(v.number()),
     basePriceCents: v.number(),
+    stockQuantity: v.optional(v.number()),
+    trackInventory: v.optional(v.boolean()),
+    lowStockThreshold: v.optional(v.number()),
     imageUrl: v.optional(v.string()),
     attributes: attributesValidator,
     depositCents: v.optional(v.number()),
@@ -174,6 +205,9 @@ export const internalUpsertProduct = internalMutation({
     unit: v.string(),
     weightGrams: v.optional(v.number()),
     basePriceCents: v.number(),
+    stockQuantity: v.optional(v.number()),
+    trackInventory: v.optional(v.boolean()),
+    lowStockThreshold: v.optional(v.number()),
     imageUrl: v.optional(v.string()),
     attributes: attributesValidator,
     depositCents: v.optional(v.number()),
@@ -198,6 +232,9 @@ async function upsertImpl(
     unit: string;
     weightGrams?: number;
     basePriceCents: number;
+    stockQuantity?: number;
+    trackInventory?: boolean;
+    lowStockThreshold?: number;
     imageUrl?: string;
     attributes?: {
       organic?: boolean;

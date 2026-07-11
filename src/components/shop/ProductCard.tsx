@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Check } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { stockStatus } from '@/lib/stock';
 
 export interface ShopProduct {
   _id: string;
@@ -21,6 +22,10 @@ export interface ShopProduct {
   // e.g. ["1mo", "3mo", "6mo"]
   subscriptionIntervals?: string[];
   tags?: string[];
+  // On-hand stock (Shopify-style). Only enforced when trackInventory is true.
+  trackInventory?: boolean;
+  stockQuantity?: number;
+  lowStockThreshold?: number;
 }
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=85';
@@ -56,12 +61,22 @@ export default function ProductCard({
   };
 
   const isSubscription = product.purchaseType === 'subscription';
+  const stock = stockStatus(product);
 
   return (
     <article className="group relative flex flex-col bg-transparent">
       {/* Editorial Image Container */}
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#F0EFEB] rounded-[4px]">
-        
+
+        {/* Sold-out overlay */}
+        {stock.soldOut && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/55 backdrop-blur-[1px]">
+            <span className="border border-lume-house/25 bg-white/80 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-lume-house shadow-sm">
+              Sold Out
+            </span>
+          </div>
+        )}
+
         {/* Badges / Tags */}
         {product.tags && product.tags.length > 0 && (
           <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
@@ -129,8 +144,23 @@ export default function ProductCard({
           {product.description || 'Curated seasonal selection for your everyday rituals.'}
         </span>
 
+        {/* Low-stock nudge */}
+        {stock.low && (
+          <span className="mt-3 text-[11px] font-medium uppercase tracking-[0.12em] text-[#B45309]">
+            Only {stock.quantity} left
+          </span>
+        )}
+
         {/* Add to Cart / Subscribe */}
-        {isSubscription ? (
+        {stock.soldOut ? (
+          <button
+            type="button"
+            disabled
+            className="mt-6 flex h-[42px] items-center justify-center gap-2 border border-lume-house/15 bg-transparent text-[11px] font-medium uppercase tracking-[0.15em] text-lume-house/40 cursor-not-allowed"
+          >
+            Sold Out
+          </button>
+        ) : isSubscription ? (
           <SubscriptionSelector product={product} />
         ) : (
           <button
