@@ -7,6 +7,7 @@ import { Check, Plus, ArrowLeft, Info, Leaf, Package } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
+import { stockStatus } from '@/lib/stock';
 import { Doc } from '../../../../convex/_generated/dataModel';
 
 type ProductDetailClientProps = {
@@ -17,6 +18,9 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
   const [deliveryFrequency, setDeliveryFrequency] = useState('One-time Purchase');
+
+  const stock = stockStatus(product);
+  const unavailable = !product.active || stock.soldOut;
 
   const handleSubscribe = () => {
     addItem({
@@ -81,6 +85,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   ${(product.basePriceCents / 100).toFixed(2)} <span className="text-[14px] text-text-secondary font-light">/ {product.unit}</span>
                 </p>
 
+                {stock.low && (
+                  <p className="-mt-3 mb-6 text-[11px] font-medium uppercase tracking-[0.15em] text-[#B45309]">
+                    Only {stock.quantity} left in stock
+                  </p>
+                )}
+
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="relative flex-1">
                     <select 
@@ -102,16 +112,16 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
                   <button
                     onClick={handleSubscribe}
-                    disabled={!product.active}
+                    disabled={unavailable}
                     className={`flex flex-1 items-center justify-center gap-2 border py-4 text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-500 ${
-                      !product.active 
+                      unavailable
                         ? 'bg-gray-200 text-gray-500 border-gray-200 cursor-not-allowed'
                         : added
                           ? 'bg-lume-house text-white border-lume-house'
                           : 'bg-lume-house text-white border-lume-house hover:bg-transparent hover:text-lume-house'
                     }`}
                   >
-                    {!product.active ? 'Out of Stock' : added ? (
+                    {unavailable ? 'Out of Stock' : added ? (
                       <><Check className="h-4 w-4" /> Added</>
                     ) : (
                       <><Plus className="h-4 w-4" /> {deliveryFrequency === 'One-time Purchase' ? 'Add to Cart' : 'Subscribe'}</>

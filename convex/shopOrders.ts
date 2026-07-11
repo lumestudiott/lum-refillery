@@ -57,9 +57,18 @@ export const fulfillShopOrder = internalMutation({
         quantity: item.quantity,
         priceCents: item.priceCents,
       });
-      
-      // Optional: Decrement inventory here if tracked globally
-      // (Currently inventory is managed on a weekly cycle in Lume, but this supports future a la carte stock tracking)
+
+      // Decrement on-hand stock for products that track inventory. The
+      // already-fulfilled guard above makes this safe against webhook
+      // retries (we only reach here once per Stripe session).
+      const product = await ctx.db
+        .query("products")
+        .withIndex("by_sku", (q) => q.eq("sku", item.sku))
+        .unique();
+      if (product?.trackInventory) {
+        const next = Math.max(0, (product.stockQuantity ?? 0) - item.quantity);
+        await ctx.db.patch(product._id, { stockQuantity: next });
+      }
     }
 
     return orderId;

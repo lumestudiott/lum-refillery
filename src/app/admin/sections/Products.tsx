@@ -1,20 +1,33 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
-import { Plus, Pencil, Trash2, Search, Upload } from 'lucide-react';
+import {
+  Plus,
+  Minus,
+  Pencil,
+  Trash2,
+  Search,
+  Upload,
+  Info,
+  Tag,
+  Image as ImageIcon,
+  SlidersHorizontal,
+  Boxes,
+} from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
 import {
   PRODUCT_CATEGORIES,
-  PRODUCT_UNITS,
   PURCHASE_TYPES,
   FOOD_ATTRIBUTES,
   HOME_ATTRIBUTES,
   ATTRIBUTE_LABELS,
   categoryLabel,
   isHomeCategory,
+  unitsForCategory,
 } from '@/data/productCategories';
+import { stockStatus } from '@/lib/stock';
 import {
   Btn,
   Card,
@@ -37,6 +50,21 @@ import {
 
 type Product = Doc<'products'>;
 
+type TabId = 'general' | 'pricing' | 'inventory' | 'media' | 'attributes';
+
+const TABS: { id: TabId; label: string; hint: string; icon: React.ElementType }[] = [
+  { id: 'general', label: 'General', hint: 'Baseline info for every item.', icon: Info },
+  { id: 'pricing', label: 'Pricing', hint: 'How it’s sold and measured.', icon: Tag },
+  { id: 'inventory', label: 'Inventory', hint: 'Track stock and low-stock alerts.', icon: Boxes },
+  { id: 'media', label: 'Media', hint: 'Photo and discovery tags.', icon: ImageIcon },
+  {
+    id: 'attributes',
+    label: 'Attributes',
+    hint: 'Diet or eco labels for filters.',
+    icon: SlidersHorizontal,
+  },
+];
+
 type FormState = {
   name: string;
   description: string;
@@ -44,6 +72,9 @@ type FormState = {
   unit: string;
   priceDollars: string;
   depositDollars: string;
+  trackInventory: boolean;
+  stockQuantity: string;
+  lowStockThreshold: string;
   imageUrl: string;
   tags: string;
   purchaseType: string;
@@ -59,6 +90,9 @@ function emptyForm(): FormState {
     unit: 'ea',
     priceDollars: '',
     depositDollars: '',
+    trackInventory: false,
+    stockQuantity: '',
+    lowStockThreshold: '',
     imageUrl: '',
     tags: '',
     purchaseType: 'one-time',
@@ -75,6 +109,9 @@ function fromProduct(p: Product): FormState {
     unit: p.unit,
     priceDollars: (p.basePriceCents / 100).toFixed(2),
     depositDollars: p.depositCents ? (p.depositCents / 100).toFixed(2) : '',
+    trackInventory: p.trackInventory ?? false,
+    stockQuantity: p.stockQuantity != null ? String(p.stockQuantity) : '',
+    lowStockThreshold: p.lowStockThreshold != null ? String(p.lowStockThreshold) : '',
     imageUrl: p.imageUrl ?? '',
     tags: (p.tags ?? []).join(', '),
     purchaseType: p.purchaseType ?? 'one-time',
@@ -88,6 +125,8 @@ export default function Products() {
   const upsert = useMutation(api.products.upsertProduct);
   const setActive = useMutation(api.admin.setProductActive);
   const del = useMutation(api.admin.deleteProduct);
+  const adjustStock = useMutation(api.products.adjustStock);
+  const setStock = useMutation(api.products.setStock);
   const genUploadUrl = useMutation(api.products.generateUploadUrl);
   const getImageUrl = useMutation(api.products.getImageUrl);
   const toast = useToast();
@@ -96,6 +135,7 @@ export default function Products() {
   const [category, setCategory] = useState('');
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
+  const [tab, setTab] = useState<TabId>('general');
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -129,12 +169,22 @@ export default function Products() {
   function openCreate() {
     setForm(emptyForm());
     setEditing(null);
+    setTab('general');
     setCreating(true);
   }
   function openEdit(p: Product) {
     setForm(fromProduct(p));
     setEditing(p);
+    setTab('general');
     setCreating(true);
+  }
+
+  /** Changing category re-scopes the unit list; keep the unit valid. */
+  function changeCategory(code: string) {
+    setForm((f) => {
+      const units = unitsForCategory(code);
+      return { ...f, category: code, unit: units.includes(f.unit) ? f.unit : units[0] };
+    });
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -162,11 +212,13 @@ export default function Products() {
 
   async function save() {
     if (!form.name.trim() || !form.category.trim()) {
+      setTab('general');
       toast('Name and category are required', 'error');
       return;
     }
     const priceCents = Math.round(parseFloat(form.priceDollars || '0') * 100);
     if (!Number.isFinite(priceCents) || priceCents < 0) {
+      setTab('pricing');
       toast('Enter a valid price', 'error');
       return;
     }
@@ -180,6 +232,15 @@ export default function Products() {
         ? Math.round(parseFloat(form.depositDollars || '0') * 100)
         : undefined;
 
+    const trackInventory = form.trackInventory;
+    const stockQuantity = trackInventory
+      ? Math.max(0, Math.round(parseFloat(form.stockQuantity || '0')))
+      : undefined;
+    const lowStockThreshold =
+      trackInventory && form.lowStockThreshold.trim()
+        ? Math.max(0, Math.round(parseFloat(form.lowStockThreshold)))
+        : undefined;
+
     setSaving(true);
     try {
       await upsert({
@@ -189,6 +250,9 @@ export default function Products() {
         category: form.category,
         unit: form.unit,
         basePriceCents: priceCents,
+        trackInventory,
+        stockQuantity,
+        lowStockThreshold,
         depositCents,
         imageUrl: form.imageUrl.trim() || undefined,
         attributes: Object.keys(attributes).length ? attributes : undefined,
@@ -207,6 +271,21 @@ export default function Products() {
     }
   }
 
+  async function adjust(p: Product, delta: number) {
+    try {
+      await adjustStock({ productId: p._id, delta });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Could not update stock', 'error');
+    }
+  }
+  async function setQty(p: Product, quantity: number) {
+    try {
+      await setStock({ productId: p._id, stockQuantity: quantity });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Could not update stock', 'error');
+    }
+  }
+
   async function confirmDelete(p: Product) {
     if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
     try {
@@ -219,6 +298,8 @@ export default function Products() {
 
   const isHome = isHomeCategory(form.category);
   const attrKeys = isHome ? HOME_ATTRIBUTES : FOOD_ATTRIBUTES;
+  const units = unitsForCategory(form.category);
+  const activeTab = TABS.find((t) => t.id === tab);
 
   return (
     <div>
@@ -272,6 +353,7 @@ export default function Products() {
                 <Th>SKU</Th>
                 <Th>Category</Th>
                 <Th className="text-right">Price</Th>
+                <Th>Stock</Th>
                 <Th>Status</Th>
                 <Th className="text-right">Actions</Th>
               </>
@@ -301,6 +383,13 @@ export default function Products() {
                 <Td className="font-mono text-[12px] text-text-secondary">{p.sku}</Td>
                 <Td>{categoryLabel(p.category)}</Td>
                 <Td className="text-right tabular-nums">{cents(p.basePriceCents)}</Td>
+                <Td>
+                  <StockCell
+                    product={p}
+                    onAdjust={(d) => adjust(p, d)}
+                    onSet={(q) => setQty(p, q)}
+                  />
+                </Td>
                 <Td>
                   <button onClick={() => toggleActive(p)} title="Toggle active">
                     <StatusBadge status={p.active ? 'active' : 'draft'} />
@@ -344,108 +433,202 @@ export default function Products() {
           </>
         }
       >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField
-            label="SKU (auto-generated)"
-            value={editing ? editing.sku : ''}
-            disabled
-            placeholder="Assigned automatically on save"
-          />
-          <TextField
-            label="Name *"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="e.g. Organic Brown Rice"
-          />
-          <SelectField
-            label="Category *"
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-          >
-            <option value="" disabled>
-              Select a category…
-            </option>
-            {PRODUCT_CATEGORIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.label} ({c.code})
-              </option>
-            ))}
-          </SelectField>
-          <SelectField
-            label="Unit"
-            value={form.unit}
-            onChange={(e) => setForm({ ...form, unit: e.target.value })}
-          >
-            {PRODUCT_UNITS.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </SelectField>
-          <TextField
-            label="Price (USD)"
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.priceDollars}
-            onChange={(e) => setForm({ ...form, priceDollars: e.target.value })}
-            placeholder="0.00"
-          />
-          <SelectField
-            label="Purchase type"
-            value={form.purchaseType}
-            onChange={(e) => setForm({ ...form, purchaseType: e.target.value })}
-          >
-            {PURCHASE_TYPES.map((pt) => (
-              <option key={pt.value} value={pt.value}>
-                {pt.label}
-              </option>
-            ))}
-          </SelectField>
-          {form.purchaseType === 'deposit' && (
+        {/* Tab bar */}
+        <div className="flex gap-1 rounded-2xl border border-[#E6DBC4] bg-[#F4ECDB]/50 p-1">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[13px] font-semibold transition-colors ${
+                  tab === t.id
+                    ? 'bg-canvas text-text-primary shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mb-5 mt-2.5 text-[12px] text-text-secondary">{activeTab?.hint}</p>
+
+        {/* ── General ── */}
+        {tab === 'general' && (
+          <div className="grid gap-4 sm:grid-cols-2">
             <TextField
-              label="Deposit (USD, refundable)"
+              label="Name *"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="e.g. Organic Brown Rice"
+            />
+            <TextField
+              label="SKU (auto-generated)"
+              value={editing ? editing.sku : ''}
+              disabled
+              placeholder="Assigned automatically on save"
+            />
+            <div className="sm:col-span-2">
+              <SelectField
+                label="Category *"
+                value={form.category}
+                onChange={(e) => changeCategory(e.target.value)}
+              >
+                <option value="" disabled>
+                  Select a category…
+                </option>
+                {PRODUCT_CATEGORIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label} ({c.code})
+                  </option>
+                ))}
+              </SelectField>
+            </div>
+            <div className="sm:col-span-2">
+              <TextArea
+                label="Description"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Sourcing & flavour notes for food, or material & care for retail."
+              />
+            </div>
+            <div className="sm:col-span-2 border-t border-black/[0.06] pt-4">
+              <CheckRow
+                label="Active (visible in shop)"
+                checked={form.active}
+                onChange={(v) => setForm({ ...form, active: v })}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── Pricing & fulfillment ── */}
+        {tab === 'pricing' && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField
+              label="Price (USD)"
               type="number"
               step="0.01"
               min="0"
-              value={form.depositDollars}
-              onChange={(e) => setForm({ ...form, depositDollars: e.target.value })}
+              value={form.priceDollars}
+              onChange={(e) => setForm({ ...form, priceDollars: e.target.value })}
               placeholder="0.00"
             />
-          )}
-
-          {/* Image */}
-          <div className="sm:col-span-2">
-            <TextField
-              label="Image"
-              value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              placeholder="Paste a URL, or upload below"
-            />
-            <div className="mt-2 flex items-center gap-3">
-              {form.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={form.imageUrl}
-                  alt=""
-                  className="h-12 w-12 rounded-lg border border-black/10 object-cover"
-                />
-              )}
-              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-black/[0.12] bg-[#FCF8EF] px-3.5 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:border-lume-accent/40">
-                <Upload className="h-4 w-4" />
-                {uploading ? 'Uploading…' : 'Upload photo'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={uploading}
-                  onChange={onFile}
-                />
-              </label>
+            <SelectField
+              label={form.category ? `Unit (${categoryLabel(form.category)})` : 'Unit'}
+              value={form.unit}
+              onChange={(e) => setForm({ ...form, unit: e.target.value })}
+            >
+              {units.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </SelectField>
+            <div className={form.purchaseType === 'deposit' ? undefined : 'sm:col-span-2'}>
+              <SelectField
+                label="Purchase type"
+                value={form.purchaseType}
+                onChange={(e) => setForm({ ...form, purchaseType: e.target.value })}
+              >
+                {PURCHASE_TYPES.map((pt) => (
+                  <option key={pt.value} value={pt.value}>
+                    {pt.label}
+                  </option>
+                ))}
+              </SelectField>
             </div>
+            {form.purchaseType === 'deposit' && (
+              <TextField
+                label="Deposit (USD, refundable)"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.depositDollars}
+                onChange={(e) => setForm({ ...form, depositDollars: e.target.value })}
+                placeholder="0.00"
+              />
+            )}
           </div>
+        )}
 
-          <div className="sm:col-span-2">
+        {/* ── Inventory ── */}
+        {tab === 'inventory' && (
+          <div className="grid gap-4">
+            <div className="rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 p-4">
+              <CheckRow
+                label="Track quantity for this item"
+                checked={form.trackInventory}
+                onChange={(v) => setForm({ ...form, trackInventory: v })}
+              />
+              <p className="mt-2 text-[12px] leading-relaxed text-text-secondary">
+                When on, the shop shows remaining stock, warns at low levels, and
+                stops selling once it hits zero. Leave off for made-to-order or
+                fresh items you always keep available.
+              </p>
+            </div>
+            {form.trackInventory && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label="Quantity on hand"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.stockQuantity}
+                  onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })}
+                  placeholder="0"
+                />
+                <TextField
+                  label="Low-stock alert at"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.lowStockThreshold}
+                  onChange={(e) =>
+                    setForm({ ...form, lowStockThreshold: e.target.value })
+                  }
+                  placeholder="5"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Media & discovery ── */}
+        {tab === 'media' && (
+          <div className="grid gap-4">
+            <div>
+              <TextField
+                label="Image"
+                value={form.imageUrl}
+                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                placeholder="Paste a URL, or upload below"
+              />
+              <div className="mt-2 flex items-center gap-3">
+                {form.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={form.imageUrl}
+                    alt=""
+                    className="h-12 w-12 rounded-lg border border-black/10 object-cover"
+                  />
+                )}
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-black/[0.12] bg-[#FCF8EF] px-3.5 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:border-lume-accent/40">
+                  <Upload className="h-4 w-4" />
+                  {uploading ? 'Uploading…' : 'Upload photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={onFile}
+                  />
+                </label>
+              </div>
+            </div>
             <TextField
               label="Tags (comma-separated)"
               value={form.tags}
@@ -453,19 +636,21 @@ export default function Products() {
               placeholder="Zero Waste, Pantry Staple, Best Seller"
             />
           </div>
-          <div className="sm:col-span-2">
-            <TextArea
-              label="Description"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </div>
+        )}
 
-          {/* Conditional attributes */}
-          <div className="sm:col-span-2">
+        {/* ── Dynamic attributes ── */}
+        {tab === 'attributes' && (
+          <div>
             <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.05em] text-text-secondary">
               {isHome ? 'Home & retail attributes' : 'Food & pantry attributes'}
             </div>
+            <p className="mb-3 text-[12px] text-text-secondary">
+              {form.category
+                ? isHome
+                  ? 'Eco & material labels for Home & Kitchen items.'
+                  : 'Dietary labels — shown as shop filters.'
+                : 'Pick a category first; the label set changes for Home & Kitchen.'}
+            </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {attrKeys.map((k) => (
                 <CheckRow
@@ -482,16 +667,85 @@ export default function Products() {
               ))}
             </div>
           </div>
-
-          <div className="sm:col-span-2 border-t border-black/[0.06] pt-4">
-            <CheckRow
-              label="Active (visible in shop)"
-              checked={form.active}
-              onChange={(v) => setForm({ ...form, active: v })}
-            />
-          </div>
-        </div>
+        )}
       </Modal>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────
+   Inline stock control for the catalogue table.
+   ──────────────────────────────────────────────── */
+function StockCell({
+  product,
+  onAdjust,
+  onSet,
+}: {
+  product: Product;
+  onAdjust: (delta: number) => void;
+  onSet: (quantity: number) => void;
+}) {
+  const st = stockStatus(product);
+  const [val, setVal] = useState(String(product.stockQuantity ?? 0));
+
+  // Keep the input in sync when the reactive query pushes a new value.
+  useEffect(() => {
+    setVal(String(product.stockQuantity ?? 0));
+  }, [product.stockQuantity]);
+
+  if (!st.tracked) {
+    return <span className="text-[12px] text-text-secondary">Not tracked</span>;
+  }
+
+  const commit = () => {
+    const n = Math.max(0, Math.round(parseFloat(val || '0')) || 0);
+    if (n !== (product.stockQuantity ?? 0)) onSet(n);
+    setVal(String(n));
+  };
+
+  const badge = st.soldOut
+    ? { label: 'Out', cls: 'bg-red-50 text-red-600 ring-red-600/20' }
+    : st.low
+      ? { label: 'Low', cls: 'bg-amber-50 text-amber-700 ring-amber-600/20' }
+      : { label: 'In stock', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' };
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="inline-flex items-center rounded-lg border border-black/10 bg-[#FCF8EF]">
+        <button
+          type="button"
+          onClick={() => onAdjust(-1)}
+          className="flex h-7 w-7 items-center justify-center rounded-l-lg text-text-secondary hover:bg-black/[0.05] hover:text-text-primary disabled:opacity-30"
+          disabled={(product.stockQuantity ?? 0) <= 0}
+          aria-label="Decrease stock"
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </button>
+        <input
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          }}
+          inputMode="numeric"
+          className="w-10 border-x border-black/10 bg-transparent py-1 text-center text-[13px] tabular-nums outline-none focus:bg-white"
+          aria-label={`${product.name} stock quantity`}
+        />
+        <button
+          type="button"
+          onClick={() => onAdjust(1)}
+          className="flex h-7 w-7 items-center justify-center rounded-r-lg text-text-secondary hover:bg-black/[0.05] hover:text-text-primary"
+          aria-label="Increase stock"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <span
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${badge.cls}`}
+      >
+        {badge.label}
+      </span>
     </div>
   );
 }

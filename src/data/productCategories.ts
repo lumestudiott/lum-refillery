@@ -16,8 +16,28 @@ export const PRODUCT_CATEGORIES = [
 /** Only this pillar uses the retail attribute set; the rest use dietary. */
 export const HOME_CATEGORY_CODE = 'HK';
 
-/** Base metrics + count units. */
+/** Base metrics + count units (the full set). */
 export const PRODUCT_UNITS = ['lb', 'g', 'kg', 'ml', 'L', 'ea', 'pc', 'pk'];
+
+/**
+ * Which units make sense per pillar, so the admin only sees relevant options.
+ * Household / personal-care (HK) items aren't sold by lb/g/kg; bakery is
+ * count-based; fresh & pantry lean on weight. Falls back to the full list
+ * for any code not listed here.
+ */
+export const CATEGORY_UNITS: Record<string, string[]> = {
+  FP: ['g', 'kg', 'ml', 'L', 'ea', 'pk'], // dry goods, oils, sauces
+  GP: ['lb', 'kg', 'g', 'ea', 'pk'],      // roots, tubers, produce — by weight
+  SN: ['g', 'ml', 'L', 'ea', 'pk'],       // snacks, teas, juices
+  FR: ['lb', 'kg', 'g', 'ea', 'pk'],      // meat, seafood, dairy, eggs
+  BK: ['ea', 'pk', 'pc'],                 // loaves & pastries — by count
+  HK: ['ea', 'pc', 'pk', 'ml', 'L'],      // cookware, tools, liquid refills
+};
+
+/** Units to offer for a given category (full list when unknown/empty). */
+export function unitsForCategory(code: string): string[] {
+  return CATEGORY_UNITS[code] ?? PRODUCT_UNITS;
+}
 
 export const PURCHASE_TYPES = [
   { value: 'one-time', label: 'One-time' },

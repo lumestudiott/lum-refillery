@@ -4,6 +4,7 @@ import { stripe } from '@/lib/stripe';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../../../convex/_generated/api';
 import { getServerConvexUrl } from '@/lib/env';
+import { stockStatus } from '@/lib/stock';
 
 /**
  * POST /api/checkout/shop
@@ -77,6 +78,21 @@ export async function POST(request: NextRequest) {
       if (!product || !product.active) {
         return NextResponse.json(
           { error: `Product no longer available: ${item.sku}` },
+          { status: 400 }
+        );
+      }
+      // Enforce on-hand stock for tracked products so zeroing stock in the
+      // admin actually stops sales — no developer/code change needed.
+      const stock = stockStatus(product);
+      if (stock.soldOut) {
+        return NextResponse.json(
+          { error: `Sold out: ${product.name}` },
+          { status: 400 }
+        );
+      }
+      if (stock.tracked && item.quantity > stock.quantity) {
+        return NextResponse.json(
+          { error: `Only ${stock.quantity} left of ${product.name}` },
           { status: 400 }
         );
       }
