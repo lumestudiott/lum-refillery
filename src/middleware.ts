@@ -1,4 +1,4 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import {
   NextResponse,
   type NextRequest,
@@ -36,8 +36,21 @@ const MAINTENANCE_BYPASS = [
   '/sitemap.xml',
 ];
 
+/**
+ * Routes that require the user to be signed in.
+ * Everything else (/, /shop, /faq, etc.) is publicly accessible.
+ */
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/onboarding(.*)',
+]);
+
 /** Pre-initialised Clerk middleware for non-maintenance requests. */
-const clerk = clerkMiddleware();
+const clerk = clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect();
+  }
+});
 
 /**
  * Top-level middleware: checks maintenance FIRST (before Clerk),
