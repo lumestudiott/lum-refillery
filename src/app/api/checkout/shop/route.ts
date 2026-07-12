@@ -106,7 +106,9 @@ export async function POST(request: NextRequest) {
       lineItems.push({
         quantity: item.quantity,
         price_data: {
-          currency: 'usd',
+          // Storefront prices are TTD cents — bill in TTD so the Stripe
+          // charge matches the displayed TT$ amount exactly.
+          currency: 'ttd',
           unit_amount: unitAmount,
           product_data: {
             name: displayName,

@@ -166,27 +166,25 @@ function emptyForm(): FormState {
 function fromProduct(p: Product): FormState {
   return {
     name: p.name,
-    brand: (p as any).brand ?? '',
+    brand: p.brand ?? '',
     sku: p.sku,
     description: p.description ?? '',
     category: p.category,
-    shopCategorySlug: (p as any).shopCategorySlug ?? '',
-    shopSubcategorySlug: (p as any).shopSubcategorySlug ?? '',
+    shopCategorySlug: p.shopCategorySlug ?? '',
+    shopSubcategorySlug: p.shopSubcategorySlug ?? '',
     unit: p.unit,
-    unitType: (p as any).unitType ?? '',
+    unitType: p.unitType ?? '',
     priceDollars: (p.basePriceCents / 100).toFixed(2),
     depositDollars: p.depositCents ? (p.depositCents / 100).toFixed(2) : '',
-    discountTier: (p as any).discountTier ?? 'tier0',
+    discountTier: p.discountTier ?? 'tier0',
     customDiscountPercent:
-      (p as any).customDiscountPercent != null
-        ? String((p as any).customDiscountPercent)
-        : '',
+      p.customDiscountPercent != null ? String(p.customDiscountPercent) : '',
     trackInventory: p.trackInventory ?? false,
     stockQuantity: p.stockQuantity != null ? String(p.stockQuantity) : '',
     lowStockThreshold: p.lowStockThreshold != null ? String(p.lowStockThreshold) : '',
     imageUrl: p.imageUrl ?? '',
-    images: (p as any).images ?? [],
-    videoUrl: (p as any).videoUrl ?? '',
+    images: p.images ?? [],
+    videoUrl: p.videoUrl ?? '',
     tags: p.tags ?? [],
     purchaseType: p.purchaseType ?? 'one-time',
     active: p.active,
@@ -632,7 +630,7 @@ export default function Products() {
                     <div>
                       <div className="font-semibold text-text-primary">{p.name}</div>
                       <div className="text-[12px] text-text-secondary">
-                        {(p as any).brand && <span>{(p as any).brand} · </span>}
+                        {p.brand && <span>{p.brand} · </span>}
                         {p.unit}
                         {p.tags && p.tags.length > 0 && ` · ${p.tags.join(', ')}`}
                       </div>

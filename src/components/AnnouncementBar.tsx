@@ -7,7 +7,7 @@ import { api } from '../../convex/_generated/api';
 
 const FALLBACK_ITEMS = [
   "10% off your first refill with code LUMEFIRST",
-  "Free local delivery on orders over $50",
+  "Free local delivery on orders over TT$50",
 ];
 
 const AnnouncementBar = () => {
