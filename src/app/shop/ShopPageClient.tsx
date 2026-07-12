@@ -3,11 +3,13 @@
 import React, { useMemo, useState, useTransition, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { useQuery } from 'convex/react';
 import { Check, ChevronDown, Search, ShoppingBasket, SlidersHorizontal, X } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard, { ShopProduct } from '@/components/shop/ProductCard';
 import { useCart } from '@/context/CartContext';
+import { api } from '../../../convex/_generated/api';
 import {
   SHOP_CATEGORIES,
   SHOP_SORT_OPTIONS,
@@ -22,6 +24,12 @@ const ProductQuickViewModal = dynamic(
   () => import('@/components/shop/ProductQuickViewModal'),
   { ssr: false }
 );
+
+type DynamicCategory = {
+  id: string;
+  label: string;
+  subcategories: string[];
+};
 
 type ShopPageClientProps = {
   initialProducts: ShopProduct[];
@@ -62,10 +70,27 @@ export default function ShopPageClient({
   const [dropdownLeft, setDropdownLeft] = useState<number>(0);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Dynamic categories from DB, falling back to static config
+  const dbShopCats = useQuery(api.shopCategories.listActive, {});
+  const categories: DynamicCategory[] = useMemo(() => {
+    if (dbShopCats && dbShopCats.length > 0) {
+      return dbShopCats.map((cat) => ({
+        id: cat.slug,
+        label: cat.label,
+        subcategories: cat.subcategories.map((s: { label: string }) => s.label),
+      }));
+    }
+    return SHOP_CATEGORIES.map((c) => ({
+      id: c.id,
+      label: c.label,
+      subcategories: [...c.subcategories],
+    }));
+  }, [dbShopCats]);
+
   const handleMouseEnterCategory = (id: string, event?: React.MouseEvent) => {
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     setHoveredCategory(id);
-    
+
     if (event) {
       const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
       const container = (event.currentTarget as HTMLElement).closest('nav')?.parentElement;
@@ -90,15 +115,15 @@ export default function ShopPageClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [quickViewProduct, setQuickViewProduct] = useState<ShopProduct | null>(null);
 
-  const currentCategory = SHOP_CATEGORIES.find((category) => category.id === activeCategory) ?? SHOP_CATEGORIES[0];
+  const currentCategory = categories.find((c) => c.id === activeCategory) ?? categories[0];
   const currentSort = SHOP_SORT_OPTIONS.find((option) => option.id === sortBy) ?? SHOP_SORT_OPTIONS[0];
 
   const updateUrl = (next: {
-    category?: ShopCategoryId;
+    category?: string;
     query?: string;
     sort?: ShopSortId;
   }) => {
-    const category = normalizeCategory(next.category ?? activeCategory);
+    const category = next.category ?? activeCategory;
     const query = next.query ?? searchQuery;
     const sort = normalizeSort(next.sort ?? sortBy);
     const params = new URLSearchParams();
@@ -122,11 +147,11 @@ export default function ShopPageClient({
     }, 400);
   }, [activeCategory, sortBy]);
 
-  const selectCategory = (category: ShopCategoryId) => {
-    setActiveCategory(category);
+  const selectCategory = (categoryId: string) => {
+    setActiveCategory(categoryId as ShopCategoryId);
     setCurrentPage(1);
     setIsFilterOpen(false);
-    updateUrl({ category });
+    updateUrl({ category: categoryId });
   };
 
   const selectSort = (sort: ShopSortId) => {
@@ -166,13 +191,13 @@ export default function ShopPageClient({
       <Header />
 
       <main className="pt-[100px]">
-        <div 
+        <div
           className="sticky top-[100px] z-30 border-b border-lume-house/10 bg-canvas/95 backdrop-blur-xl"
         >
           <div className="relative mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-16">
             <div className="relative hidden min-w-0 flex-1 lg:block">
               <nav aria-label="Shop categories" className="flex items-center gap-6 overflow-x-auto xl:gap-8 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {SHOP_CATEGORIES.map((category) => (
+                {categories.map((category) => (
                   <div
                     key={category.id}
                     className="relative shrink-0 py-4 xl:py-6"
@@ -204,30 +229,34 @@ export default function ShopPageClient({
               </nav>
 
               {/* Dropdown Menu */}
-              {hoveredCategory && SHOP_CATEGORIES.find(c => c.id === hoveredCategory)?.subcategories.length! > 0 && (
-                <div 
-                  className="absolute top-full z-50 w-[240px] animate-in fade-in slide-in-from-top-2 duration-200 hidden lg:block"
-                  style={{ left: `${dropdownLeft}px` }}
-                  onMouseEnter={() => handleMouseEnterCategory(hoveredCategory)}
-                  onMouseLeave={handleMouseLeaveCategory}
-                >
-                  <div className="inline-flex w-full flex-col gap-1 rounded-b-xl border border-t-0 border-lume-house/10 bg-canvas p-4 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)]">
-                    {SHOP_CATEGORIES.find(c => c.id === hoveredCategory)?.subcategories.map((sub) => (
-                      <button
-                        type="button"
-                        key={sub}
-                        onClick={() => {
-                          selectCategory(hoveredCategory as ShopCategoryId);
-                          setHoveredCategory(null);
-                        }}
-                        className="rounded-lg px-4 py-2.5 text-left text-[14px] font-medium text-lume-house/80 transition-all hover:bg-lume-house/5 hover:text-lume-house"
-                      >
-                        {sub}
-                      </button>
-                    ))}
+              {hoveredCategory && (() => {
+                const hovered = categories.find(c => c.id === hoveredCategory);
+                if (!hovered || hovered.subcategories.length === 0) return null;
+                return (
+                  <div
+                    className="absolute top-full z-50 w-[240px] animate-in fade-in slide-in-from-top-2 duration-200 hidden lg:block"
+                    style={{ left: `${dropdownLeft}px` }}
+                    onMouseEnter={() => handleMouseEnterCategory(hoveredCategory)}
+                    onMouseLeave={handleMouseLeaveCategory}
+                  >
+                    <div className="inline-flex w-full flex-col gap-1 rounded-b-xl border border-t-0 border-lume-house/10 bg-canvas p-4 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)]">
+                      {hovered.subcategories.map((sub) => (
+                        <button
+                          type="button"
+                          key={sub}
+                          onClick={() => {
+                            selectCategory(hoveredCategory);
+                            setHoveredCategory(null);
+                          }}
+                          className="rounded-lg px-4 py-2.5 text-left text-[14px] font-medium text-lume-house/80 transition-all hover:bg-lume-house/5 hover:text-lume-house"
+                        >
+                          {sub}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             <button
@@ -283,7 +312,7 @@ export default function ShopPageClient({
                     The Shop
                   </span>
                   <h1 id="shop-heading" className="font-display text-4xl font-normal leading-none tracking-tight text-lume-house md:text-5xl lg:text-[64px]">
-                    {currentCategory.label}
+                    {currentCategory?.label ?? 'All'}
                   </h1>
                 </div>
 
@@ -396,7 +425,7 @@ export default function ShopPageClient({
                       >
                         Prev
                       </button>
-                      
+
                       {Array.from({ length: totalPages }).map((_, i) => {
                         const page = i + 1;
                         return (
@@ -458,7 +487,11 @@ export default function ShopPageClient({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <CategorySidebar activeCategory={activeCategory} onSelectCategory={selectCategory} />
+            <CategorySidebar
+              categories={categories}
+              activeCategory={activeCategory}
+              onSelectCategory={selectCategory}
+            />
           </div>
         </div>
       )}
@@ -473,22 +506,24 @@ export default function ShopPageClient({
 }
 
 function CategorySidebar({
+  categories,
   activeCategory,
   onSelectCategory,
 }: {
-  activeCategory: ShopCategoryId;
-  onSelectCategory: (category: ShopCategoryId) => void;
+  categories: DynamicCategory[];
+  activeCategory: string;
+  onSelectCategory: (category: string) => void;
 }) {
-  const currentCategory = SHOP_CATEGORIES.find((category) => category.id === activeCategory) ?? SHOP_CATEGORIES[0];
+  const currentCategory = categories.find((c) => c.id === activeCategory) ?? categories[0];
 
   return (
     <div>
       <div className="mb-10">
         <h2 className="mb-6 text-[11px] font-medium uppercase tracking-[0.2em] text-text-secondary">
-          {currentCategory.label}
+          {currentCategory?.label ?? 'All'}
         </h2>
         <div className="flex flex-col space-y-3 text-[13px] font-light text-lume-house/70">
-          {SHOP_CATEGORIES.map((category) => (
+          {categories.map((category) => (
             <button
               type="button"
               key={category.id}
@@ -504,7 +539,7 @@ function CategorySidebar({
         </div>
       </div>
 
-      {currentCategory.subcategories.length > 0 && (
+      {currentCategory && currentCategory.subcategories.length > 0 && (
         <div className="border-t border-lume-house/10 pt-8">
           <h3 className="mb-5 text-[11px] font-medium uppercase tracking-[0.15em] text-lume-house">
             Collections

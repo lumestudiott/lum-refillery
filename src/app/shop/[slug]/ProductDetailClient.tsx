@@ -1,33 +1,86 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Check, Plus, ArrowLeft, Info, Leaf, Package } from 'lucide-react';
+import { Check, Plus, ArrowLeft, Leaf, Package } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
-import { stockStatus } from '@/lib/stock';
+import { stockStatus, type StockFields } from '@/lib/stock';
 import { Doc } from '../../../../convex/_generated/dataModel';
+
+type Variant = Doc<"productVariants">;
 
 type ProductDetailClientProps = {
   product: Doc<"products">;
+  variants?: Variant[];
 };
 
-export default function ProductDetailClient({ product }: ProductDetailClientProps) {
+type GalleryImage = { url: string; alt?: string };
+
+export default function ProductDetailClient({ product, variants = [] }: ProductDetailClientProps) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
   const [deliveryFrequency, setDeliveryFrequency] = useState('One-time Purchase');
 
-  const stock = stockStatus(product);
-  const unavailable = !product.active || stock.soldOut;
+  const brand = (product as any).brand as string | undefined;
+  const extraImages = ((product as any).images ?? []) as GalleryImage[];
+
+  const galleryImages: GalleryImage[] = useMemo(() => {
+    const imgs: GalleryImage[] = [];
+    if (product.imageUrl) {
+      imgs.push({ url: product.imageUrl, alt: product.name });
+    }
+    for (const img of extraImages) {
+      if (img.url && img.url !== product.imageUrl) {
+        imgs.push(img);
+      }
+    }
+    return imgs;
+  }, [product.imageUrl, product.name, extraImages]);
+
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const activeImage = galleryImages[activeImageIndex] ?? null;
+
+  const hasVariants = (product.options?.length ?? 0) > 0 && variants.length > 0;
+  const options = product.options ?? [];
+
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
+    if (!hasVariants) return {};
+    const initial: Record<string, string> = {};
+    for (const opt of options) {
+      if (opt.values.length > 0) initial[opt.name] = opt.values[0];
+    }
+    return initial;
+  });
+
+  const selectedVariant = useMemo(() => {
+    if (!hasVariants) return null;
+    return variants.find((v) =>
+      options.every((opt) => v.optionValues[opt.name] === selectedOptions[opt.name])
+    ) ?? null;
+  }, [hasVariants, variants, options, selectedOptions]);
+
+  const displayPrice = selectedVariant?.priceCents ?? product.basePriceCents;
+  const stockSource: StockFields = selectedVariant
+    ? { trackInventory: selectedVariant.trackInventory, stockQuantity: selectedVariant.stockQuantity, lowStockThreshold: selectedVariant.lowStockThreshold }
+    : product;
+  const stock = stockStatus(stockSource);
+  const unavailable = !product.active || stock.soldOut || (hasVariants && !selectedVariant);
+
+  const variantLabel = hasVariants
+    ? options.map((o) => selectedOptions[o.name]).join(' / ')
+    : undefined;
 
   const handleSubscribe = () => {
     addItem({
       productId: product._id,
-      sku: product.sku,
+      variantId: selectedVariant?._id,
+      variantLabel,
+      sku: selectedVariant?.sku ?? product.sku,
       name: product.name,
-      priceCents: product.basePriceCents,
+      priceCents: displayPrice,
       imageUrl: product.imageUrl,
       unit: product.unit,
     });
@@ -49,12 +102,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
             {/* Image Gallery Column */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[8px] bg-[#F0EFEB]">
-                {product.imageUrl ? (
+                {activeImage ? (
                   <Image
-                    src={product.imageUrl}
-                    alt={product.name}
+                    src={activeImage.url}
+                    alt={activeImage.alt ?? product.name}
                     fill
                     className="object-cover"
                     sizes="(max-width: 1024px) 100vw, 50vw"
@@ -66,10 +119,40 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   </div>
                 )}
               </div>
+
+              {galleryImages.length > 1 && (
+                <div className="flex gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                  {galleryImages.map((img, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setActiveImageIndex(i)}
+                      className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-md transition-all ${
+                        activeImageIndex === i
+                          ? 'ring-2 ring-lume-house ring-offset-2 ring-offset-[#FAF9F5]'
+                          : 'opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <Image
+                        src={img.url}
+                        alt={img.alt ?? `${product.name} ${i + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="80px"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Details Column */}
             <div className="flex flex-col pt-4">
+              {brand && (
+                <span className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-lume-accent">
+                  {brand}
+                </span>
+              )}
               <span className="mb-4 text-[10px] font-medium uppercase tracking-[0.2em] text-text-secondary">
                 {product.category}
               </span>
@@ -82,18 +165,46 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
               <div className="mb-10 pb-10 border-b border-lume-house/10">
                 <p className="text-[20px] font-medium text-lume-house mb-6">
-                  ${(product.basePriceCents / 100).toFixed(2)} <span className="text-[14px] text-text-secondary font-light">/ {product.unit}</span>
+                  {hasVariants && !selectedVariant ? 'From ' : ''}TT${(displayPrice / 100).toFixed(2)} <span className="text-[14px] text-text-secondary font-light">/ {product.unit}</span>
                 </p>
 
+                {/* Variant option selectors */}
+                {hasVariants && options.map((opt) => (
+                  <div key={opt.name} className="mb-5">
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.15em] text-text-secondary">
+                      {opt.name}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {opt.values.map((val) => {
+                        const isSelected = selectedOptions[opt.name] === val;
+                        return (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setSelectedOptions((prev) => ({ ...prev, [opt.name]: val }))}
+                            className={`border px-4 py-2.5 text-[12px] font-medium transition-all ${
+                              isSelected
+                                ? 'border-lume-house bg-lume-house text-white'
+                                : 'border-lume-house/20 text-lume-house hover:border-lume-house/50'
+                            }`}
+                          >
+                            {val}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
                 {stock.low && (
-                  <p className="-mt-3 mb-6 text-[11px] font-medium uppercase tracking-[0.15em] text-[#B45309]">
+                  <p className="-mt-1 mb-6 text-[11px] font-medium uppercase tracking-[0.15em] text-[#B45309]">
                     Only {stock.quantity} left in stock
                   </p>
                 )}
 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="relative flex-1">
-                    <select 
+                    <select
                       value={deliveryFrequency}
                       onChange={(e) => setDeliveryFrequency(e.target.value)}
                       className="w-full appearance-none rounded-none border border-lume-house/20 bg-transparent px-4 py-4 text-[11px] font-medium uppercase tracking-[0.15em] text-lume-house outline-none focus:border-lume-house cursor-pointer"
@@ -147,7 +258,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   <div className="mt-4 text-[14px] font-light leading-relaxed text-text-secondary pb-2">
                     <p className="mb-2"><strong>Origin:</strong> {product.sourcingOrigin || 'Locally sourced'}</p>
                     {product.sourcingPartner && <p className="mb-4"><strong>Partner:</strong> {product.sourcingPartner}</p>}
-                    
+
                     {product.attributes && (
                       <div className="flex flex-wrap gap-2 mt-4">
                         {Object.entries(product.attributes).map(([key, value]) => {

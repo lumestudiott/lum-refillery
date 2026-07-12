@@ -19,6 +19,8 @@ import { stockStatus } from '@/lib/stock';
 
 interface ShopLineItem {
   productId: string;
+  variantId?: string;
+  variantLabel?: string;
   sku: string;
   name: string;
   priceCents: number;
@@ -96,16 +98,25 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      const unitAmount = item.variantId ? item.priceCents : product.basePriceCents;
+      const displayName = item.variantLabel
+        ? `${product.name} — ${item.variantLabel}`
+        : product.name;
+
       lineItems.push({
         quantity: item.quantity,
         price_data: {
           currency: 'usd',
-          unit_amount: product.basePriceCents,
+          unit_amount: unitAmount,
           product_data: {
-            name: product.name,
+            name: displayName,
             description: product.description ?? undefined,
             images: product.imageUrl ? [product.imageUrl] : undefined,
-            metadata: { sku: product.sku, product_id: String(product._id) },
+            metadata: {
+              sku: item.sku,
+              product_id: String(product._id),
+              ...(item.variantId ? { variant_id: item.variantId } : {}),
+            },
           },
         },
       });
