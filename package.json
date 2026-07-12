@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "tsc --noEmit --pretty false",
     "deploy": "npx vercel --prod",
-    "deploy:test": "npx vercel"
+    "deploy:test": "npx vercel",
+    "deploy:staging": "url=$(npx vercel --yes) && npx vercel alias set \"$url\" staging.lumerefillery.com"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",

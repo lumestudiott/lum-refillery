@@ -24,8 +24,8 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
   const [added, setAdded] = useState(false);
   const [deliveryFrequency, setDeliveryFrequency] = useState('One-time Purchase');
 
-  const brand = (product as any).brand as string | undefined;
-  const extraImages = ((product as any).images ?? []) as GalleryImage[];
+  const brand = product.brand;
+  const extraImages: GalleryImage[] = product.images ?? [];
 
   const galleryImages: GalleryImage[] = useMemo(() => {
     const imgs: GalleryImage[] = [];
