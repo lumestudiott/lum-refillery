@@ -14,10 +14,14 @@ import {
   Mail,
   TrendingUp,
   ArrowUpRight,
+  Boxes,
+  Tags,
+  AlertTriangle,
   type LucideIcon,
 } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import { MotionCard, Loading, cents, StatusBadge, useCountUp } from '../lib';
+import { ATTRIBUTE_LABELS } from '@/data/productCategories';
 
 type NavTarget = 'products' | 'users' | 'subscriptions' | 'orders';
 
@@ -93,6 +97,18 @@ export default function Overview({
   if (data === undefined) return <Loading />;
 
   const { counts, revenue, subStatusCounts, boxStatusCounts } = data;
+  // Defensive defaults so the dashboard renders even against an older
+  // backend deploy that predates these fields.
+  const inventory = data.inventory ?? {
+    inStock: 0,
+    lowStock: 0,
+    outOfStock: 0,
+    tracked: 0,
+    notTracked: 0,
+    onHandUnits: 0,
+    lowStockItems: [] as { name: string; sku: string; quantity: number; out: boolean }[],
+  };
+  const attributeCounts = data.attributeCounts ?? {};
 
   return (
     <div>
@@ -218,6 +234,135 @@ export default function Overview({
           <Breakdown counts={boxStatusCounts} />
         </MotionCard>
       </div>
+
+      {/* Inventory + attributes */}
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <MotionCard delay={0.5} className="p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+              <Boxes className="h-4 w-4 text-lume-accent" /> Inventory
+            </h2>
+            <button
+              onClick={() => onNavigate('products')}
+              className="flex items-center gap-1 text-[12px] font-medium text-lume-accent hover:underline"
+            >
+              Manage <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <InvPill label="In stock" value={inventory.inStock} tone="green" />
+            <InvPill label="Low" value={inventory.lowStock} tone="amber" />
+            <InvPill label="Out" value={inventory.outOfStock} tone="red" />
+            <InvPill label="Not tracked" value={inventory.notTracked} tone="muted" />
+          </div>
+          <div className="mb-4 text-[12px] text-text-secondary">
+            {inventory.onHandUnits.toLocaleString('en-US')} units on hand across{' '}
+            {inventory.tracked} tracked {inventory.tracked === 1 ? 'item' : 'items'}.
+          </div>
+          {inventory.lowStockItems.length === 0 ? (
+            <p className="rounded-xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">
+              Everything tracked is well stocked.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-600" /> Needs restock
+              </div>
+              {inventory.lowStockItems.map((item) => (
+                <button
+                  key={item.sku}
+                  onClick={() => onNavigate('products')}
+                  className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-black/[0.03]"
+                >
+                  <span className="truncate text-[13px] text-text-primary">{item.name}</span>
+                  <span
+                    className={`ml-3 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
+                      item.out
+                        ? 'bg-red-50 text-red-600 ring-red-600/20'
+                        : 'bg-amber-50 text-amber-700 ring-amber-600/20'
+                    }`}
+                  >
+                    {item.out ? 'Out' : `${item.quantity} left`}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </MotionCard>
+
+        <MotionCard delay={0.55} className="p-6">
+          <h2 className="mb-5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+            <Tags className="h-4 w-4 text-lume-accent" /> Product attributes
+          </h2>
+          <AttributeBreakdown counts={attributeCounts} total={counts.products} />
+        </MotionCard>
+      </div>
+    </div>
+  );
+}
+
+function InvPill({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: 'green' | 'amber' | 'red' | 'muted';
+}) {
+  const tones = {
+    green: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15',
+    amber: 'bg-amber-50 text-amber-700 ring-amber-600/15',
+    red: 'bg-red-50 text-red-600 ring-red-600/15',
+    muted: 'bg-black/[0.03] text-text-secondary ring-black/[0.06]',
+  }[tone];
+  return (
+    <div className={`rounded-2xl px-3 py-3 ring-1 ring-inset ${tones}`}>
+      <div className="font-display text-[24px] leading-none tracking-tight tabular-nums">
+        {value}
+      </div>
+      <div className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.06em] opacity-80">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function AttributeBreakdown({
+  counts,
+  total,
+}: {
+  counts: Record<string, number>;
+  total: number;
+}) {
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const denom = total || 1;
+  if (entries.length === 0)
+    return (
+      <p className="text-[13px] text-text-secondary">
+        No attributes set yet — add them from the Products page.
+      </p>
+    );
+  return (
+    <div className="space-y-3.5">
+      {entries.map(([key, n], i) => (
+        <div key={key} className="flex items-center gap-3">
+          <div className="w-28 shrink-0 truncate text-[12px] font-medium text-text-primary">
+            {ATTRIBUTE_LABELS[key] ?? key}
+          </div>
+          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-black/[0.05]">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${(n / denom) * 100}%` }}
+              transition={{ duration: 0.8, delay: 0.08 * i, ease: [0.22, 0.61, 0.36, 1] }}
+              className="h-full rounded-full bg-gradient-to-r from-lume-accent to-lume-green"
+            />
+          </div>
+          <div className="w-9 shrink-0 text-right font-display text-[15px] tabular-nums text-text-primary">
+            {n}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -15,10 +15,10 @@ import { X, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
    Formatting helpers
    ──────────────────────────────────────────────── */
 
-/** Format integer cents as USD, e.g. 123456 → "$1,234.56". */
+/** Format integer cents as TTD, e.g. 123456 → "TT$1,234.56". */
 export function cents(n?: number | null): string {
   const v = (n ?? 0) / 100;
-  return v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  return `TT$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function fmtDate(ms?: number | null): string {

@@ -17,12 +17,17 @@ export const dynamicParams = true;
 
 async function getProductBySku(sku: string) {
   const convex = new ConvexHttpClient(getServerConvexUrl());
-  return await convex.query(api.products.getBySku, { sku });
+  const product = await convex.query(api.products.getBySku, { sku });
+  if (!product) return { product: null, variants: [] };
+  const variants = (product.options?.length ?? 0) > 0
+    ? await convex.query(api.products.listVariants, { productId: product._id })
+    : [];
+  return { product, variants };
 }
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const product = await getProductBySku(resolvedParams.slug);
+  const { product } = await getProductBySku(resolvedParams.slug);
 
   if (!product) {
     return { title: 'Product Not Found | Lumë Refillery' };
@@ -41,7 +46,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const resolvedParams = await params;
-  const product = await getProductBySku(resolvedParams.slug);
+  const { product, variants } = await getProductBySku(resolvedParams.slug);
 
   if (!product) {
     notFound();
@@ -62,7 +67,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             "sku": product.sku,
             "offers": {
               "@type": "Offer",
-              "priceCurrency": "USD",
+              "priceCurrency": "TTD",
               "price": (product.basePriceCents / 100).toFixed(2),
               "availability": product.active ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
               "seller": {
@@ -73,7 +78,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           })
         }}
       />
-      <ProductDetailClient product={product} />
+      <ProductDetailClient product={product} variants={variants} />
     </>
   );
 }

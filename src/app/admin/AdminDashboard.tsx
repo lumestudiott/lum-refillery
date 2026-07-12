@@ -19,6 +19,8 @@ import {
   ShieldAlert,
   Menu,
   X,
+  BadgePercent,
+  Grid3X3,
 } from 'lucide-react';
 import { api } from '../../../convex/_generated/api';
 import { Spinner, ToastProvider } from './lib';
@@ -30,11 +32,15 @@ import Subscriptions from './sections/Subscriptions';
 import Orders from './sections/Orders';
 import Zones from './sections/Zones';
 import Marketing from './sections/Marketing';
+import Promotions from './sections/Promotions';
+import ShopCategoryManager from './sections/ShopCategoryManager';
 import SettingsSection from './sections/Settings';
 
 type SectionId =
   | 'overview'
   | 'products'
+  | 'shop-categories'
+  | 'promotions'
   | 'users'
   | 'subscriptions'
   | 'orders'
@@ -45,6 +51,8 @@ type SectionId =
 const NAV: { id: SectionId; label: string; Icon: typeof Package }[] = [
   { id: 'overview', label: 'Overview', Icon: LayoutDashboard },
   { id: 'products', label: 'Products', Icon: Package },
+  { id: 'shop-categories', label: 'Shop Categories', Icon: Grid3X3 },
+  { id: 'promotions', label: 'Sales & Promotions', Icon: BadgePercent },
   { id: 'users', label: 'Users', Icon: Users },
   { id: 'subscriptions', label: 'Subscriptions', Icon: Repeat },
   { id: 'orders', label: 'Orders', Icon: Truck },
@@ -118,6 +126,8 @@ export default function AdminDashboard() {
   const sections: Record<SectionId, React.ReactNode> = {
     overview: <Overview onNavigate={setSection} />,
     products: <Products />,
+    'shop-categories': <ShopCategoryManager />,
+    promotions: <Promotions />,
     users: <UsersSection />,
     subscriptions: <Subscriptions />,
     orders: <Orders />,

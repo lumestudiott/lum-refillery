@@ -164,29 +164,49 @@ export const setStock = mutation({
 });
 
 // ─── Admin write API ───────────────────────────────────────────────
+
+const optionsValidator = v.optional(
+  v.array(v.object({ name: v.string(), values: v.array(v.string()) }))
+);
+
+const imagesValidator = v.optional(
+  v.array(v.object({ url: v.string(), alt: v.optional(v.string()) }))
+);
+
+const upsertArgs = {
+  sku: v.optional(v.string()),
+  name: v.string(),
+  brand: v.optional(v.string()),
+  description: v.optional(v.string()),
+  category: v.string(),
+  shopCategorySlug: v.optional(v.string()),
+  shopSubcategorySlug: v.optional(v.string()),
+  unit: v.string(),
+  unitType: v.optional(v.string()),
+  weightGrams: v.optional(v.number()),
+  basePriceCents: v.number(),
+  discountTier: v.optional(v.string()),
+  customDiscountPercent: v.optional(v.number()),
+  stockQuantity: v.optional(v.number()),
+  trackInventory: v.optional(v.boolean()),
+  lowStockThreshold: v.optional(v.number()),
+  imageUrl: v.optional(v.string()),
+  images: imagesValidator,
+  videoUrl: v.optional(v.string()),
+  attributes: attributesValidator,
+  depositCents: v.optional(v.number()),
+  sourcingPartner: v.optional(v.string()),
+  sourcingOrigin: v.optional(v.string()),
+  tags: v.optional(v.array(v.string())),
+  defaultForTiers: v.optional(v.array(v.string())),
+  purchaseType: v.optional(v.string()),
+  subscriptionIntervals: v.optional(v.array(v.string())),
+  options: optionsValidator,
+  active: v.boolean(),
+};
+
 export const upsertProduct = mutation({
-  args: {
-    sku: v.optional(v.string()),
-    name: v.string(),
-    description: v.optional(v.string()),
-    category: v.string(),
-    unit: v.string(),
-    weightGrams: v.optional(v.number()),
-    basePriceCents: v.number(),
-    stockQuantity: v.optional(v.number()),
-    trackInventory: v.optional(v.boolean()),
-    lowStockThreshold: v.optional(v.number()),
-    imageUrl: v.optional(v.string()),
-    attributes: attributesValidator,
-    depositCents: v.optional(v.number()),
-    sourcingPartner: v.optional(v.string()),
-    sourcingOrigin: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    defaultForTiers: v.optional(v.array(v.string())),
-    purchaseType: v.optional(v.string()),
-    subscriptionIntervals: v.optional(v.array(v.string())),
-    active: v.boolean(),
-  },
+  args: upsertArgs,
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     return await upsertImpl(ctx, args);
@@ -197,28 +217,7 @@ export const upsertProduct = mutation({
  * INTERNAL — for seed scripts.
  */
 export const internalUpsertProduct = internalMutation({
-  args: {
-    sku: v.optional(v.string()),
-    name: v.string(),
-    description: v.optional(v.string()),
-    category: v.string(),
-    unit: v.string(),
-    weightGrams: v.optional(v.number()),
-    basePriceCents: v.number(),
-    stockQuantity: v.optional(v.number()),
-    trackInventory: v.optional(v.boolean()),
-    lowStockThreshold: v.optional(v.number()),
-    imageUrl: v.optional(v.string()),
-    attributes: attributesValidator,
-    depositCents: v.optional(v.number()),
-    sourcingPartner: v.optional(v.string()),
-    sourcingOrigin: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    defaultForTiers: v.optional(v.array(v.string())),
-    purchaseType: v.optional(v.string()),
-    subscriptionIntervals: v.optional(v.array(v.string())),
-    active: v.boolean(),
-  },
+  args: upsertArgs,
   handler: async (ctx, args) => await upsertImpl(ctx, args),
 });
 
@@ -227,15 +226,23 @@ async function upsertImpl(
   args: {
     sku?: string;
     name: string;
+    brand?: string;
     description?: string;
     category: string;
+    shopCategorySlug?: string;
+    shopSubcategorySlug?: string;
     unit: string;
+    unitType?: string;
     weightGrams?: number;
     basePriceCents: number;
+    discountTier?: string;
+    customDiscountPercent?: number;
     stockQuantity?: number;
     trackInventory?: boolean;
     lowStockThreshold?: number;
     imageUrl?: string;
+    images?: Array<{ url: string; alt?: string }>;
+    videoUrl?: string;
     attributes?: {
       organic?: boolean;
       local?: boolean;
@@ -256,6 +263,7 @@ async function upsertImpl(
     defaultForTiers?: string[];
     purchaseType?: string;
     subscriptionIntervals?: string[];
+    options?: Array<{ name: string; values: string[] }>;
     active: boolean;
   }
 ) {
@@ -325,5 +333,167 @@ export const getImageUrl = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     return await ctx.storage.getUrl(args.storageId);
+  },
+});
+
+// ─── Variant CRUD (Shopify-style options + purchasable combos) ─────
+
+/** Public: fetch all active variants for a product. */
+export const listVariants = query({
+  args: { productId: v.id("products") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("productVariants")
+      .withIndex("by_product_active", (q) =>
+        q.eq("productId", args.productId).eq("active", true)
+      )
+      .take(100);
+  },
+});
+
+/** Admin: fetch ALL variants for a product (including inactive). */
+export const listAllVariants = query({
+  args: { productId: v.id("products") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    return await ctx.db
+      .query("productVariants")
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
+      .take(200);
+  },
+});
+
+/** Admin: create or update a variant. Omit `id` to create. */
+export const upsertVariant = mutation({
+  args: {
+    id: v.optional(v.id("productVariants")),
+    productId: v.id("products"),
+    sku: v.string(),
+    optionValues: v.record(v.string(), v.string()),
+    priceCents: v.number(),
+    stockQuantity: v.optional(v.number()),
+    trackInventory: v.optional(v.boolean()),
+    lowStockThreshold: v.optional(v.number()),
+    active: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const product = await ctx.db.get(args.productId);
+    if (!product) throw new Error("Product not found");
+
+    if (args.id) {
+      await ctx.db.patch(args.id, {
+        sku: args.sku,
+        optionValues: args.optionValues,
+        priceCents: args.priceCents,
+        stockQuantity: args.stockQuantity,
+        trackInventory: args.trackInventory,
+        lowStockThreshold: args.lowStockThreshold,
+        active: args.active ?? true,
+      });
+      return args.id;
+    }
+
+    return await ctx.db.insert("productVariants", {
+      productId: args.productId,
+      sku: args.sku,
+      optionValues: args.optionValues,
+      priceCents: args.priceCents,
+      stockQuantity: args.stockQuantity,
+      trackInventory: args.trackInventory,
+      lowStockThreshold: args.lowStockThreshold,
+      imageUrl: undefined,
+      active: args.active ?? true,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+/** Admin: delete a variant. */
+export const deleteVariant = mutation({
+  args: { id: v.id("productVariants") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    await ctx.db.delete(args.id);
+    return args.id;
+  },
+});
+
+/** Admin: batch-save all variants for a product (replaces existing set). */
+export const saveVariants = mutation({
+  args: {
+    productId: v.id("products"),
+    variants: v.array(
+      v.object({
+        id: v.optional(v.id("productVariants")),
+        sku: v.string(),
+        optionValues: v.record(v.string(), v.string()),
+        priceCents: v.number(),
+        stockQuantity: v.optional(v.number()),
+        trackInventory: v.optional(v.boolean()),
+        lowStockThreshold: v.optional(v.number()),
+        active: v.optional(v.boolean()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const product = await ctx.db.get(args.productId);
+    if (!product) throw new Error("Product not found");
+
+    const existing = await ctx.db
+      .query("productVariants")
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
+      .take(200);
+
+    const incomingIds = new Set(
+      args.variants.filter((v) => v.id).map((v) => v.id!)
+    );
+
+    // Delete variants that are no longer in the incoming set
+    for (const old of existing) {
+      if (!incomingIds.has(old._id)) {
+        await ctx.db.delete(old._id);
+      }
+    }
+
+    // Upsert each variant
+    for (const variant of args.variants) {
+      if (variant.id) {
+        await ctx.db.patch(variant.id, {
+          sku: variant.sku,
+          optionValues: variant.optionValues,
+          priceCents: variant.priceCents,
+          stockQuantity: variant.stockQuantity,
+          trackInventory: variant.trackInventory,
+          lowStockThreshold: variant.lowStockThreshold,
+          active: variant.active ?? true,
+        });
+      } else {
+        await ctx.db.insert("productVariants", {
+          productId: args.productId,
+          sku: variant.sku,
+          optionValues: variant.optionValues,
+          priceCents: variant.priceCents,
+          stockQuantity: variant.stockQuantity,
+          trackInventory: variant.trackInventory,
+          lowStockThreshold: variant.lowStockThreshold,
+          imageUrl: undefined,
+          active: variant.active ?? true,
+          createdAt: Date.now(),
+        });
+      }
+    }
+  },
+});
+
+/** Public: get a single variant by its SKU. */
+export const getVariantBySku = query({
+  args: { sku: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("productVariants")
+      .withIndex("by_sku", (q) => q.eq("sku", args.sku))
+      .unique();
   },
 });

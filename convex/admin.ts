@@ -140,6 +140,47 @@ export const overview = query({
       0
     );
 
+    // ── Inventory summary (à-la-carte on-hand stock) ──
+    const DEFAULT_LOW_STOCK = 5;
+    let inStock = 0;
+    let lowStock = 0;
+    let outOfStock = 0;
+    let trackedCount = 0;
+    let onHandUnits = 0;
+    for (const p of products) {
+      if (!p.trackInventory) continue;
+      trackedCount += 1;
+      const qty = p.stockQuantity ?? 0;
+      const threshold = p.lowStockThreshold ?? DEFAULT_LOW_STOCK;
+      onHandUnits += qty;
+      if (qty <= 0) outOfStock += 1;
+      else if (qty <= threshold) lowStock += 1;
+      else inStock += 1;
+    }
+    const lowStockItems = products
+      .filter(
+        (p) =>
+          p.trackInventory &&
+          (p.stockQuantity ?? 0) <= (p.lowStockThreshold ?? DEFAULT_LOW_STOCK)
+      )
+      .sort((a, b) => (a.stockQuantity ?? 0) - (b.stockQuantity ?? 0))
+      .slice(0, 8)
+      .map((p) => ({
+        name: p.name,
+        sku: p.sku,
+        quantity: p.stockQuantity ?? 0,
+        out: (p.stockQuantity ?? 0) <= 0,
+      }));
+
+    // ── Attribute breakdown across the catalogue ──
+    const attributeCounts: Record<string, number> = {};
+    for (const p of products) {
+      if (!p.attributes) continue;
+      for (const [key, val] of Object.entries(p.attributes)) {
+        if (val) attributeCounts[key] = (attributeCounts[key] ?? 0) + 1;
+      }
+    }
+
     return {
       counts: {
         users: users.length,
@@ -164,6 +205,16 @@ export const overview = query({
       },
       subStatusCounts,
       boxStatusCounts,
+      inventory: {
+        inStock,
+        lowStock,
+        outOfStock,
+        tracked: trackedCount,
+        notTracked: products.length - trackedCount,
+        onHandUnits,
+        lowStockItems,
+      },
+      attributeCounts,
     };
   },
 });

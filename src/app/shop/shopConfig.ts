@@ -69,12 +69,13 @@ export const SHOP_SORT_OPTIONS = [
   { id: 'name-asc', label: 'Name: A to Z' },
 ] as const;
 
-export type ShopCategoryId = (typeof SHOP_CATEGORIES)[number]['id'];
+export type ShopCategoryId = (typeof SHOP_CATEGORIES)[number]['id'] | (string & {});
 export type ShopSortId = (typeof SHOP_SORT_OPTIONS)[number]['id'];
 
 export function normalizeCategory(value: string | undefined): ShopCategoryId {
+  if (!value) return 'all';
   const match = SHOP_CATEGORIES.find((category) => category.id === value);
-  return match?.id ?? 'all';
+  return match?.id ?? value;
 }
 
 export function normalizeSort(value: string | undefined): ShopSortId {

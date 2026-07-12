@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 
 export interface CartItem {
   productId: string;
+  variantId?: string;
+  variantLabel?: string;
   sku: string;
   name: string;
   priceCents: number;
@@ -12,12 +14,16 @@ export interface CartItem {
   quantity: number;
 }
 
+function cartLineKey(item: { productId: string; variantId?: string }): string {
+  return item.variantId ?? item.productId;
+}
+
 interface CartContextValue {
   items: CartItem[];
   isOpen: boolean;
   addItem: (item: Omit<CartItem, 'quantity'>, qty?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, qty: number) => void;
+  removeItem: (lineKey: string) => void;
+  updateQuantity: (lineKey: string, qty: number) => void;
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
@@ -60,14 +66,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items, hydrated]);
 
   const addItem = useCallback((item: Omit<CartItem, 'quantity'>, qty = 1) => {
+    const key = cartLineKey(item);
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === item.productId);
+      const existing = prev.find((i) => cartLineKey(i) === key);
       const nextQty = clampQuantity(qty);
-      
+
       let nextItems;
       if (existing) {
         nextItems = prev.map((i) =>
-          i.productId === item.productId
+          cartLineKey(i) === key
             ? { ...i, quantity: clampQuantity(i.quantity + nextQty) }
             : i
         );
@@ -90,18 +97,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(true);
   }, []);
 
-  const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  const removeItem = useCallback((lineKey: string) => {
+    setItems((prev) => prev.filter((i) => cartLineKey(i) !== lineKey));
   }, []);
 
-  const updateQuantity = useCallback((productId: string, qty: number) => {
+  const updateQuantity = useCallback((lineKey: string, qty: number) => {
     setItems((prev) => {
-      if (qty <= 0) return prev.filter((i) => i.productId !== productId);
-      
+      if (qty <= 0) return prev.filter((i) => cartLineKey(i) !== lineKey);
+
       const nextItems = prev.map((i) =>
-        i.productId === productId ? { ...i, quantity: clampQuantity(qty) } : i
+        cartLineKey(i) === lineKey ? { ...i, quantity: clampQuantity(qty) } : i
       );
-      
+
       const totalQty = nextItems.reduce((s, i) => s + i.quantity, 0);
       if (totalQty > MAX_CART_TOTAL_QUANTITY) {
         alert(`You can only have up to ${MAX_CART_TOTAL_QUANTITY} total items in your cart.`);

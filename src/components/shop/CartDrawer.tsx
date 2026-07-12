@@ -6,7 +6,11 @@ import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { useUser, SignInButton } from '@clerk/nextjs';
-import { MAX_CART_ITEM_QUANTITY, useCart } from '@/context/CartContext';
+import { MAX_CART_ITEM_QUANTITY, useCart, type CartItem } from '@/context/CartContext';
+
+function lineKey(item: CartItem): string {
+  return item.variantId ?? item.productId;
+}
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, updateQuantity, removeItem, subtotalCents, totalItems } = useCart();
@@ -26,6 +30,8 @@ export default function CartDrawer() {
         body: JSON.stringify({
           items: items.map((i) => ({
             productId: i.productId,
+            variantId: i.variantId,
+            variantLabel: i.variantLabel,
             sku: i.sku,
             name: i.name,
             priceCents: i.priceCents,
@@ -94,24 +100,29 @@ export default function CartDrawer() {
               ) : (
                 <ul className="flex flex-col">
                   {items.map((item) => (
-                    <li key={item.productId} className="flex gap-5 border-b border-lume-house/10 py-6 last:border-0">
+                    <li key={lineKey(item)} className="flex gap-5 border-b border-lume-house/10 py-6 last:border-0">
                       <div className="relative flex h-24 w-20 shrink-0 items-center justify-center overflow-hidden bg-black/5">
-                        <Image 
-                          src={item.imageUrl || "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=85"} 
-                          alt={item.name} 
-                          fill 
-                          sizes="80px" 
-                          className="object-cover" 
+                        <Image
+                          src={item.imageUrl || "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=85"}
+                          alt={item.name}
+                          fill
+                          sizes="80px"
+                          className="object-cover"
                         />
                       </div>
                       <div className="flex flex-1 flex-col">
                         <div className="flex items-start justify-between gap-4">
-                          <Link href={`/shop?q=${encodeURIComponent(item.name)}`} onClick={closeCart} className="text-[13px] font-medium leading-snug text-lume-house uppercase tracking-[0.05em] transition-colors hover:text-text-secondary">
-                            {item.name}
-                          </Link>
+                          <div>
+                            <Link href={`/shop?q=${encodeURIComponent(item.name)}`} onClick={closeCart} className="text-[13px] font-medium leading-snug text-lume-house uppercase tracking-[0.05em] transition-colors hover:text-text-secondary">
+                              {item.name}
+                            </Link>
+                            {item.variantLabel && (
+                              <p className="mt-0.5 text-[11px] text-text-secondary">{item.variantLabel}</p>
+                            )}
+                          </div>
                           <button
                             type="button"
-                            onClick={() => removeItem(item.productId)}
+                            onClick={() => removeItem(lineKey(item))}
                             className="p-1 text-text-secondary hover:text-lume-house"
                             aria-label={`Remove ${item.name} from cart`}
                           >
@@ -125,7 +136,7 @@ export default function CartDrawer() {
                           <div className="flex h-8 items-center border border-lume-house/20">
                             <button
                               type="button"
-                              onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                              onClick={() => updateQuantity(lineKey(item), item.quantity - 1)}
                               disabled={item.quantity <= 1}
                               className="flex h-full w-8 items-center justify-center text-text-secondary transition-colors hover:bg-lume-house/5 hover:text-lume-house disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text-secondary disabled:cursor-not-allowed"
                               aria-label={`Decrease ${item.name} quantity`}
@@ -137,7 +148,7 @@ export default function CartDrawer() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                              onClick={() => updateQuantity(lineKey(item), item.quantity + 1)}
                               className="flex h-full w-8 items-center justify-center text-text-secondary transition-colors hover:bg-lume-house/5 hover:text-lume-house"
                               disabled={item.quantity >= MAX_CART_ITEM_QUANTITY}
                               aria-label={`Increase ${item.name} quantity`}

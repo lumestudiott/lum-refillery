@@ -2,14 +2,21 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+
+const FALLBACK_ITEMS = [
+  "10% off your first refill with code LUMEFIRST",
+  "Free local delivery on orders over $50",
+];
 
 const AnnouncementBar = () => {
-  const items = [
-    "New Arrival: The Extended Family Haul is now live",
-    "10% off your first refill with code LUMEFIRST",
-    "Free local delivery on orders over $50",
-    "Try our new seasonal fruit tarts this week",
-  ];
+  const promos = useQuery(api.promotions.listActive, {});
+
+  const promoItems = (promos ?? [])
+    .filter((p) => p.bannerText)
+    .map((p) => p.bannerText!);
+  const items = promoItems.length > 0 ? promoItems : FALLBACK_ITEMS;
 
   // Duplicate to allow seamless infinite scroll
   const content = [...items, ...items];

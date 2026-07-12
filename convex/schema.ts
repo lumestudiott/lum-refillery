@@ -120,17 +120,33 @@ export default defineSchema({
   products: defineTable({
     sku: v.string(),
     name: v.string(),
+    brand: v.optional(v.string()),
     description: v.optional(v.string()),
     category: v.string(),              // "produce" | "pantry" | "dairy" | "protein" | …
+    // Shop navigation category (parent slug from shopCategories).
+    shopCategorySlug: v.optional(v.string()),
+    shopSubcategorySlug: v.optional(v.string()),
     unit: v.string(),                  // "ea", "lb", "oz", "pkg"
+    unitType: v.optional(v.string()),  // "weight" | "volume" | "count"
     weightGrams: v.optional(v.number()),
     basePriceCents: v.number(),
+    // Discount tier: "tier0" (none), "tier1" (5%), "tier2" (10%), "tier3" (12.5%)
+    discountTier: v.optional(v.string()),
+    customDiscountPercent: v.optional(v.number()),
     // Shopify-style on-hand stock for à-la-carte retail. Only enforced when
     // trackInventory is true; fresh/made-to-order items can leave it off.
     stockQuantity: v.optional(v.number()),
     trackInventory: v.optional(v.boolean()),
     lowStockThreshold: v.optional(v.number()), // alert level (default 5)
     imageUrl: v.optional(v.string()),
+    // Multi-image gallery (ordered). First image is the primary thumbnail.
+    images: v.optional(
+      v.array(v.object({
+        url: v.string(),
+        alt: v.optional(v.string()),
+      }))
+    ),
+    videoUrl: v.optional(v.string()),
     attributes: v.optional(
       v.object({
         // Food & pantry
@@ -152,10 +168,15 @@ export default defineSchema({
     depositCents: v.optional(v.number()),
     sourcingPartner: v.optional(v.string()),
     sourcingOrigin: v.optional(v.string()),
+    // Shopify-style option dimensions. When present, purchasable combos
+    // live in `productVariants`; basePriceCents becomes the "from" price.
+    options: v.optional(
+      v.array(v.object({ name: v.string(), values: v.array(v.string()) }))
+    ),
     tags: v.optional(v.array(v.string())), // e.g. ["Sale", "New", "Best Seller"]
     // which tiers default-include this product (used by box generator).
     defaultForTiers: v.optional(v.array(v.string())),
-    // "one-time" (default) | "subscription"
+    // "one-time" | "subscription" | "refill-swap"
     purchaseType: v.optional(v.string()),
     // e.g. ["1mo", "3mo", "6mo"] — only relevant when purchaseType = "subscription"
     subscriptionIntervals: v.optional(v.array(v.string())),
@@ -166,10 +187,92 @@ export default defineSchema({
     .index("by_category", ["category"])
     .index("by_active", ["active"])
     .index("by_active_and_category", ["active", "category"])
+    .index("by_brand", ["brand"])
+    .index("by_shop_category", ["shopCategorySlug"])
     .searchIndex("search_products", {
       searchField: "name",
       filterFields: ["active", "category"],
     }),
+
+  // ──────────────────────────────────────────────────────────────
+  // Product variants (Shopify-style options + purchasable combos)
+  //
+  // Optional per product. When a product has `options` defined,
+  // each purchasable combination is a row here with its own SKU,
+  // price, and stock. Products without variants use their own
+  // basePriceCents/stockQuantity directly (no migration needed).
+  // ──────────────────────────────────────────────────────────────
+  productVariants: defineTable({
+    productId: v.id("products"),
+    sku: v.string(),
+    optionValues: v.record(v.string(), v.string()),
+    priceCents: v.number(),
+    stockQuantity: v.optional(v.number()),
+    trackInventory: v.optional(v.boolean()),
+    lowStockThreshold: v.optional(v.number()),
+    imageUrl: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_product", ["productId"])
+    .index("by_sku", ["sku"])
+    .index("by_product_active", ["productId", "active"]),
+
+  // ──────────────────────────────────────────────────────────────
+  // Editable product category taxonomy (the SKU pillars). Seeded from
+  // the 6 defaults; admins can add/edit/remove their own.
+  // ──────────────────────────────────────────────────────────────
+  productCategories: defineTable({
+    code: v.string(),                  // SKU prefix, uppercase — unique
+    label: v.string(),
+    description: v.optional(v.string()),
+    attributeSet: v.string(),          // "food" | "home"
+    units: v.array(v.string()),        // units offered for this pillar
+    sortOrder: v.number(),
+    active: v.boolean(),
+  }).index("by_code", ["code"]),
+
+  // ──────────────────────────────────────────────────────────────
+  // Shop navigation categories (parent/sub). Drives the storefront
+  // tabs (e.g. ALL → HAULS → BEVERAGES → CARE). Parent rows have
+  // no parentId; sub-categories reference their parent.
+  // ──────────────────────────────────────────────────────────────
+  shopCategories: defineTable({
+    slug: v.string(),
+    label: v.string(),
+    parentId: v.optional(v.id("shopCategories")),
+    sortOrder: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_parent", ["parentId"])
+    .index("by_active", ["active"]),
+
+  // ──────────────────────────────────────────────────────────────
+  // Store-wide promotions & sales. Active promos feed the
+  // announcement banner and apply a discount to all products.
+  // ──────────────────────────────────────────────────────────────
+  promotions: defineTable({
+    name: v.string(),
+    description: v.string(),
+    discountPercent: v.number(),
+    bannerText: v.optional(v.string()),
+    active: v.boolean(),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_active", ["active"]),
+
+  // ──────────────────────────────────────────────────────────────
+  // Product tags — admin-managed vocabulary for discovery.
+  // ──────────────────────────────────────────────────────────────
+  tags: defineTable({
+    name: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_name", ["name"]),
 
   // ──────────────────────────────────────────────────────────────
   // Per-week inventory allocation
