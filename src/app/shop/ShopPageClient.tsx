@@ -25,18 +25,29 @@ const ProductQuickViewModal = dynamic(
   { ssr: false }
 );
 
+type SubcategoryRef = { label: string; slug: string };
+
 type DynamicCategory = {
   id: string;
   label: string;
-  subcategories: string[];
+  subcategories: SubcategoryRef[];
 };
 
 type ShopPageClientProps = {
   initialProducts: ShopProduct[];
   initialCategory: ShopCategoryId;
+  initialSubcategory?: string;
   initialQuery: string;
   initialSort: ShopSortId;
 };
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
 const PAGE_SIZE = 12;
 
@@ -57,6 +68,7 @@ function sortProducts(products: ShopProduct[], sort: ShopSortId) {
 export default function ShopPageClient({
   initialProducts,
   initialCategory,
+  initialSubcategory,
   initialQuery,
   initialSort,
 }: ShopPageClientProps) {
@@ -64,6 +76,9 @@ export default function ShopPageClient({
   const [, startTransition] = useTransition();
   const { totalItems, openCart } = useCart();
   const [activeCategory, setActiveCategory] = useState(initialCategory);
+  const [activeSubcategory, setActiveSubcategory] = useState<string | null>(
+    initialSubcategory ?? null
+  );
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [sortBy, setSortBy] = useState(initialSort);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
@@ -77,13 +92,15 @@ export default function ShopPageClient({
       return dbShopCats.map((cat) => ({
         id: cat.slug,
         label: cat.label,
-        subcategories: cat.subcategories.map((s: { label: string }) => s.label),
+        subcategories: cat.subcategories.map(
+          (s: { label: string; slug: string }) => ({ label: s.label, slug: s.slug })
+        ),
       }));
     }
     return SHOP_CATEGORIES.map((c) => ({
       id: c.id,
       label: c.label,
-      subcategories: [...c.subcategories],
+      subcategories: c.subcategories.map((label) => ({ label, slug: slugify(label) })),
     }));
   }, [dbShopCats]);
 
@@ -120,15 +137,19 @@ export default function ShopPageClient({
 
   const updateUrl = (next: {
     category?: string;
+    subcategory?: string | null;
     query?: string;
     sort?: ShopSortId;
   }) => {
     const category = next.category ?? activeCategory;
+    const subcategory =
+      next.subcategory === undefined ? activeSubcategory : next.subcategory;
     const query = next.query ?? searchQuery;
     const sort = normalizeSort(next.sort ?? sortBy);
     const params = new URLSearchParams();
 
     if (category !== 'all') params.set('category', category);
+    if (subcategory) params.set('sub', subcategory);
     if (query.trim()) params.set('q', query.trim());
     if (sort !== 'featured') params.set('sort', sort);
 
@@ -149,9 +170,20 @@ export default function ShopPageClient({
 
   const selectCategory = (categoryId: string) => {
     setActiveCategory(categoryId as ShopCategoryId);
+    setActiveSubcategory(null);
     setCurrentPage(1);
     setIsFilterOpen(false);
-    updateUrl({ category: categoryId });
+    updateUrl({ category: categoryId, subcategory: null });
+  };
+
+  const selectSubcategory = (categoryId: string, subSlug: string) => {
+    // Clicking the active subcategory again clears the filter.
+    const next = activeSubcategory === subSlug ? null : subSlug;
+    setActiveCategory(categoryId as ShopCategoryId);
+    setActiveSubcategory(next);
+    setCurrentPage(1);
+    setIsFilterOpen(false);
+    updateUrl({ category: categoryId, subcategory: next });
   };
 
   const selectSort = (sort: ShopSortId) => {
@@ -243,14 +275,18 @@ export default function ShopPageClient({
                       {hovered.subcategories.map((sub) => (
                         <button
                           type="button"
-                          key={sub}
+                          key={sub.slug}
                           onClick={() => {
-                            selectCategory(hoveredCategory);
+                            selectSubcategory(hoveredCategory, sub.slug);
                             setHoveredCategory(null);
                           }}
-                          className="rounded-lg px-4 py-2.5 text-left text-[14px] font-medium text-lume-house/80 transition-all hover:bg-lume-house/5 hover:text-lume-house"
+                          className={`rounded-lg px-4 py-2.5 text-left text-[14px] font-medium transition-all hover:bg-lume-house/5 hover:text-lume-house ${
+                            activeSubcategory === sub.slug
+                              ? 'bg-lume-house/5 text-lume-house'
+                              : 'text-lume-house/80'
+                          }`}
                         >
-                          {sub}
+                          {sub.label}
                         </button>
                       ))}
                     </div>
@@ -312,7 +348,11 @@ export default function ShopPageClient({
                     The Shop
                   </span>
                   <h1 id="shop-heading" className="font-display text-4xl font-normal leading-none tracking-tight text-lume-house md:text-5xl lg:text-[64px]">
-                    {currentCategory?.label ?? 'All'}
+                    {(activeSubcategory &&
+                      currentCategory?.subcategories.find((s) => s.slug === activeSubcategory)
+                        ?.label) ||
+                      currentCategory?.label ||
+                      'All'}
                   </h1>
                 </div>
 
@@ -386,7 +426,7 @@ export default function ShopPageClient({
                   <p className="mt-3 max-w-md text-[13px] font-light leading-relaxed text-text-secondary">
                     Try another category or clear your search to keep browsing.
                   </p>
-                  {(searchQuery || activeCategory !== 'all' || sortBy !== 'featured') && (
+                  {(searchQuery || activeCategory !== 'all' || activeSubcategory || sortBy !== 'featured') && (
                     <button
                       type="button"
                       onClick={() => {
@@ -490,7 +530,9 @@ export default function ShopPageClient({
             <CategorySidebar
               categories={categories}
               activeCategory={activeCategory}
+              activeSubcategory={activeSubcategory}
               onSelectCategory={selectCategory}
+              onSelectSubcategory={selectSubcategory}
             />
           </div>
         </div>
@@ -508,11 +550,15 @@ export default function ShopPageClient({
 function CategorySidebar({
   categories,
   activeCategory,
+  activeSubcategory,
   onSelectCategory,
+  onSelectSubcategory,
 }: {
   categories: DynamicCategory[];
   activeCategory: string;
+  activeSubcategory: string | null;
   onSelectCategory: (category: string) => void;
+  onSelectSubcategory: (category: string, subSlug: string) => void;
 }) {
   const currentCategory = categories.find((c) => c.id === activeCategory) ?? categories[0];
 
@@ -548,11 +594,14 @@ function CategorySidebar({
             {currentCategory.subcategories.map((sub) => (
               <button
                 type="button"
-                key={sub}
-                onClick={() => onSelectCategory(currentCategory.id)}
-                className="text-left transition-colors hover:text-lume-house"
+                key={sub.slug}
+                onClick={() => onSelectSubcategory(currentCategory.id, sub.slug)}
+                className={`text-left transition-colors hover:text-lume-house ${
+                  activeSubcategory === sub.slug ? 'font-medium text-lume-house' : ''
+                }`}
+                aria-current={activeSubcategory === sub.slug ? 'true' : undefined}
               >
-                {sub}
+                {sub.label}
               </button>
             ))}
           </div>
