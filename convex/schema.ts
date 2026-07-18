@@ -147,6 +147,28 @@ export default defineSchema({
       }))
     ),
     videoUrl: v.optional(v.string()),
+    // PDP info sections (Farm-to-People style tabs). Each can hold
+    // text, an image, or both.
+    producer: v.optional(
+      v.object({
+        name: v.optional(v.string()),
+        location: v.optional(v.string()),
+        text: v.optional(v.string()),
+        imageUrl: v.optional(v.string()),
+      })
+    ),
+    storageTips: v.optional(
+      v.object({
+        text: v.optional(v.string()),
+        imageUrl: v.optional(v.string()),
+      })
+    ),
+    ingredients: v.optional(
+      v.object({
+        text: v.optional(v.string()),
+        imageUrl: v.optional(v.string()),
+      })
+    ),
     attributes: v.optional(
       v.object({
         // Food & pantry

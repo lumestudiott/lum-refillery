@@ -20,6 +20,7 @@ import {
   GripVertical,
   Video,
   Copy as CopyIcon,
+  BookOpen,
 } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
@@ -89,13 +90,19 @@ function buildVariantMatrix(options: OptionDef[]): Record<string, string>[] {
 
 type ImageEntry = { url: string; alt?: string };
 
-type TabId = 'general' | 'pricing' | 'inventory' | 'media' | 'attributes' | 'variants';
+type TabId = 'general' | 'pricing' | 'inventory' | 'media' | 'details' | 'attributes' | 'variants';
 
 const TABS: { id: TabId; label: string; hint: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'General', hint: 'Product name, brand, SKU, category & tags.', icon: Info },
   { id: 'pricing', label: 'Pricing', hint: 'Price in TTD, discounts, units & purchase type.', icon: Tag },
   { id: 'inventory', label: 'Inventory', hint: 'Track stock and low-stock alerts.', icon: Boxes },
   { id: 'media', label: 'Media', hint: 'Images, image variations & video.', icon: ImageIcon },
+  {
+    id: 'details',
+    label: 'Details',
+    hint: 'Producer story, storage tips & ingredients - shown as tabs on the product page.',
+    icon: BookOpen,
+  },
   {
     id: 'attributes',
     label: 'Attributes',
@@ -130,6 +137,14 @@ type FormState = {
   imageUrl: string;
   images: ImageEntry[];
   videoUrl: string;
+  producerName: string;
+  producerLocation: string;
+  producerText: string;
+  producerImageUrl: string;
+  storageText: string;
+  storageImageUrl: string;
+  ingredientsText: string;
+  ingredientsImageUrl: string;
   tags: string[];
   purchaseType: string;
   active: boolean;
@@ -157,6 +172,14 @@ function emptyForm(): FormState {
     imageUrl: '',
     images: [],
     videoUrl: '',
+    producerName: '',
+    producerLocation: '',
+    producerText: '',
+    producerImageUrl: '',
+    storageText: '',
+    storageImageUrl: '',
+    ingredientsText: '',
+    ingredientsImageUrl: '',
     tags: [],
     purchaseType: 'one-time',
     active: true,
@@ -186,6 +209,14 @@ function fromProduct(p: Product): FormState {
     imageUrl: p.imageUrl ?? '',
     images: p.images ?? [],
     videoUrl: p.videoUrl ?? '',
+    producerName: p.producer?.name ?? '',
+    producerLocation: p.producer?.location ?? '',
+    producerText: p.producer?.text ?? '',
+    producerImageUrl: p.producer?.imageUrl ?? '',
+    storageText: p.storageTips?.text ?? '',
+    storageImageUrl: p.storageTips?.imageUrl ?? '',
+    ingredientsText: p.ingredients?.text ?? '',
+    ingredientsImageUrl: p.ingredients?.imageUrl ?? '',
     tags: p.tags ?? [],
     purchaseType: p.purchaseType ?? 'one-time',
     active: p.active,
@@ -368,11 +399,11 @@ export default function Products() {
     }
   }
 
-  async function uploadImage(file: File): Promise<string | null> {
+  async function uploadImage(file: File, removeBg = true): Promise<string | null> {
     try {
       let body: Blob = file;
       let contentType = file.type;
-      if (file.type.startsWith('image/')) {
+      if (removeBg && file.type.startsWith('image/')) {
         toast('Removing background…');
         body = await stripBackground(file);
         contentType = body.type || 'image/png';
@@ -433,6 +464,25 @@ export default function Products() {
 
   function removeImage(idx: number) {
     setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
+  }
+
+  /** Upload an image for a PDP detail section (producer / storage /
+   *  ingredients). These are scenic photos - keep their backgrounds. */
+  function onSectionImage(
+    field: 'producerImageUrl' | 'storageImageUrl' | 'ingredientsImageUrl'
+  ) {
+    return async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file) return;
+      setUploading(true);
+      const publicUrl = await uploadImage(file, false);
+      if (publicUrl) {
+        setForm((f) => ({ ...f, [field]: publicUrl }));
+        toast('Image uploaded');
+      }
+      setUploading(false);
+    };
   }
 
   // ── Unit type helper ──
@@ -507,6 +557,22 @@ export default function Products() {
         imageUrl: form.imageUrl.trim() || undefined,
         images: form.images.length > 0 ? form.images : undefined,
         videoUrl: form.videoUrl.trim() || undefined,
+        // Empty object (not undefined) so clearing the fields in the admin
+        // actually clears the section on the product.
+        producer: {
+          name: form.producerName.trim() || undefined,
+          location: form.producerLocation.trim() || undefined,
+          text: form.producerText.trim() || undefined,
+          imageUrl: form.producerImageUrl || undefined,
+        },
+        storageTips: {
+          text: form.storageText.trim() || undefined,
+          imageUrl: form.storageImageUrl || undefined,
+        },
+        ingredients: {
+          text: form.ingredientsText.trim() || undefined,
+          imageUrl: form.ingredientsImageUrl || undefined,
+        },
         attributes: Object.keys(attributes).length ? attributes : undefined,
         tags: form.tags.length > 0 ? form.tags : undefined,
         purchaseType: form.purchaseType,
@@ -1179,6 +1245,102 @@ export default function Products() {
         )}
 
         {/* ── Dynamic attributes ── */}
+        {tab === 'details' && (
+          <div className="grid gap-8">
+            {/* Producer */}
+            <div className="rounded-xl border border-black/[0.08] p-5">
+              <h3 className="mb-1 text-[13px] font-semibold text-text-primary">Producer</h3>
+              <p className="mb-4 text-[12px] text-text-secondary">
+                Who makes this product - shown under the &ldquo;Producer&rdquo; tab with an optional photo.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label="Producer name"
+                  value={form.producerName}
+                  onChange={(e) => setForm({ ...form, producerName: e.target.value })}
+                  placeholder="e.g. Charles Chocolates"
+                />
+                <TextField
+                  label="Location"
+                  value={form.producerLocation}
+                  onChange={(e) => setForm({ ...form, producerLocation: e.target.value })}
+                  placeholder="e.g. Port of Spain, Trinidad"
+                />
+                <div className="sm:col-span-2">
+                  <TextArea
+                    label="Producer story"
+                    value={form.producerText}
+                    onChange={(e) => setForm({ ...form, producerText: e.target.value })}
+                    placeholder="Tell the story behind this maker…"
+                    rows={4}
+                  />
+                </div>
+                <SectionImagePicker
+                  label="Producer photo"
+                  url={form.producerImageUrl}
+                  uploading={uploading}
+                  onPick={onSectionImage('producerImageUrl')}
+                  onClear={() => setForm({ ...form, producerImageUrl: '' })}
+                />
+              </div>
+            </div>
+
+            {/* Storage Tips */}
+            <div className="rounded-xl border border-black/[0.08] p-5">
+              <h3 className="mb-1 text-[13px] font-semibold text-text-primary">Storage Tips</h3>
+              <p className="mb-4 text-[12px] text-text-secondary">
+                How to keep it fresh - text, a photo, or both.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <TextArea
+                    label="Storage tips"
+                    value={form.storageText}
+                    onChange={(e) => setForm({ ...form, storageText: e.target.value })}
+                    placeholder="e.g. Store in a cool, dry place. Refrigerate after opening."
+                    rows={3}
+                  />
+                </div>
+                <SectionImagePicker
+                  label="Storage photo"
+                  url={form.storageImageUrl}
+                  uploading={uploading}
+                  onPick={onSectionImage('storageImageUrl')}
+                  onClear={() => setForm({ ...form, storageImageUrl: '' })}
+                />
+              </div>
+            </div>
+
+            {/* Ingredients & Nutrition */}
+            <div className="rounded-xl border border-black/[0.08] p-5">
+              <h3 className="mb-1 text-[13px] font-semibold text-text-primary">
+                Ingredients &amp; Nutrition
+              </h3>
+              <p className="mb-4 text-[12px] text-text-secondary">
+                Ingredient list and nutrition info - or upload a photo of the label.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <TextArea
+                    label="Ingredients & nutrition"
+                    value={form.ingredientsText}
+                    onChange={(e) => setForm({ ...form, ingredientsText: e.target.value })}
+                    placeholder="e.g. Raisins, milk chocolate (sugar, cocoa butter, milk solids)…"
+                    rows={4}
+                  />
+                </div>
+                <SectionImagePicker
+                  label="Label photo"
+                  url={form.ingredientsImageUrl}
+                  uploading={uploading}
+                  onPick={onSectionImage('ingredientsImageUrl')}
+                  onClear={() => setForm({ ...form, ingredientsImageUrl: '' })}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {tab === 'attributes' && (
           <div>
             <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.05em] text-text-secondary">
@@ -1320,6 +1482,50 @@ function StockCell({
       >
         {badge.label}
       </span>
+    </div>
+  );
+}
+
+/** Image upload field for a PDP detail section (photo kept as-is, no
+ *  background removal). */
+function SectionImagePicker({
+  label,
+  url,
+  uploading,
+  onPick,
+  onClear,
+}: {
+  label: string;
+  url: string;
+  uploading: boolean;
+  onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="sm:col-span-2">
+      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+        {label}
+      </label>
+      <div className="flex items-center gap-3">
+        {url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt=""
+            className="h-20 w-28 rounded-xl border border-black/10 object-cover"
+          />
+        )}
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+        <Btn onClick={() => inputRef.current?.click()} disabled={uploading}>
+          <Upload className="h-4 w-4" /> {url ? 'Replace image' : 'Upload image'}
+        </Btn>
+        {url && (
+          <Btn onClick={onClear}>
+            <X className="h-4 w-4" /> Remove
+          </Btn>
+        )}
+      </div>
     </div>
   );
 }

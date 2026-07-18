@@ -222,6 +222,26 @@ const upsertArgs = {
   imageUrl: v.optional(v.string()),
   images: imagesValidator,
   videoUrl: v.optional(v.string()),
+  producer: v.optional(
+    v.object({
+      name: v.optional(v.string()),
+      location: v.optional(v.string()),
+      text: v.optional(v.string()),
+      imageUrl: v.optional(v.string()),
+    })
+  ),
+  storageTips: v.optional(
+    v.object({
+      text: v.optional(v.string()),
+      imageUrl: v.optional(v.string()),
+    })
+  ),
+  ingredients: v.optional(
+    v.object({
+      text: v.optional(v.string()),
+      imageUrl: v.optional(v.string()),
+    })
+  ),
   attributes: attributesValidator,
   depositCents: v.optional(v.number()),
   sourcingPartner: v.optional(v.string()),
@@ -272,6 +292,9 @@ async function upsertImpl(
     imageUrl?: string;
     images?: Array<{ url: string; alt?: string }>;
     videoUrl?: string;
+    producer?: { name?: string; location?: string; text?: string; imageUrl?: string };
+    storageTips?: { text?: string; imageUrl?: string };
+    ingredients?: { text?: string; imageUrl?: string };
     attributes?: {
       organic?: boolean;
       local?: boolean;
