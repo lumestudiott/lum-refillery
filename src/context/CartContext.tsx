@@ -12,10 +12,18 @@ export interface CartItem {
   imageUrl?: string;
   unit: string;
   quantity: number;
+  purchaseMode?: 'one-time' | 'subscription';
+  /** Delivery cadence label for subscription lines, e.g. "Every 14 days". */
+  frequency?: string;
 }
 
-function cartLineKey(item: { productId: string; variantId?: string }): string {
-  return item.variantId ?? item.productId;
+export function cartLineKey(item: {
+  productId: string;
+  variantId?: string;
+  frequency?: string;
+}): string {
+  const base = item.variantId ?? item.productId;
+  return item.frequency ? `${base}::${item.frequency}` : base;
 }
 
 interface CartContextValue {

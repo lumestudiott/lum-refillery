@@ -19,6 +19,7 @@ import {
   X,
   GripVertical,
   Video,
+  Copy as CopyIcon,
 } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
@@ -306,6 +307,14 @@ export default function Products() {
   function openEdit(p: Product) {
     setForm(fromProduct(p));
     setEditing(p);
+    setTab('general');
+    setCreating(true);
+  }
+  /** Pre-fill the create form from an existing product (multi-flavour workflow).
+   *  SKU is cleared so saving creates a new product instead of updating. */
+  function openDuplicate(p: Product) {
+    setForm({ ...fromProduct(p), sku: '', name: `${p.name} (Copy)` });
+    setEditing(null);
     setTab('general');
     setCreating(true);
   }
@@ -660,6 +669,13 @@ export default function Products() {
                       title="Edit"
                     >
                       <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => openDuplicate(p)}
+                      className="rounded-lg p-2 text-text-secondary hover:bg-black/[0.05] hover:text-text-primary"
+                      title="Duplicate (copy this entry for a new flavour or size)"
+                    >
+                      <CopyIcon className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => confirmDelete(p)}

@@ -6,11 +6,11 @@ import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { useUser, SignInButton } from '@clerk/nextjs';
-import { MAX_CART_ITEM_QUANTITY, useCart, type CartItem } from '@/context/CartContext';
-
-function lineKey(item: CartItem): string {
-  return item.variantId ?? item.productId;
-}
+import {
+  MAX_CART_ITEM_QUANTITY,
+  cartLineKey as lineKey,
+  useCart,
+} from '@/context/CartContext';
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, updateQuantity, removeItem, subtotalCents, totalItems } = useCart();
@@ -118,6 +118,11 @@ export default function CartDrawer() {
                             </Link>
                             {item.variantLabel && (
                               <p className="mt-0.5 text-[11px] text-text-secondary">{item.variantLabel}</p>
+                            )}
+                            {item.purchaseMode === 'subscription' && item.frequency && (
+                              <p className="mt-0.5 text-[11px] font-medium text-lume-accent">
+                                Subscription · {item.frequency}
+                              </p>
                             )}
                           </div>
                           <button
