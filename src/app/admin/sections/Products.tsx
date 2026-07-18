@@ -356,13 +356,32 @@ export default function Products() {
   }, [dbTags, tagSearch, form.tags]);
 
   // ── Image upload ──
+  /** Strip the background from product photos so they sit on the site's
+   *  canvas. Falls back to the original file if removal fails. */
+  async function stripBackground(file: File): Promise<Blob> {
+    try {
+      const { removeBackground } = await import('@imgly/background-removal');
+      return await removeBackground(file, { output: { format: 'image/png' } });
+    } catch {
+      toast('Background removal failed — uploading original', 'error');
+      return file;
+    }
+  }
+
   async function uploadImage(file: File): Promise<string | null> {
     try {
+      let body: Blob = file;
+      let contentType = file.type;
+      if (file.type.startsWith('image/')) {
+        toast('Removing background…');
+        body = await stripBackground(file);
+        contentType = body.type || 'image/png';
+      }
       const url = await genUploadUrl();
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': file.type },
-        body: file,
+        headers: { 'Content-Type': contentType },
+        body,
       });
       const { storageId } = (await res.json()) as { storageId: string };
       return await getImageUrl({ storageId: storageId as Id<'_storage'> });

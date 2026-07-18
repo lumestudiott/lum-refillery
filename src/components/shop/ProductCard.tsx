@@ -11,11 +11,13 @@ export interface ShopProduct {
   _id: string;
   sku: string;
   name: string;
+  brand?: string;
   description?: string;
   category: string;
   unit: string;
   basePriceCents: number;
   imageUrl?: string;
+  images?: Array<{ url: string; alt?: string }>;
   sourcingOrigin?: string;
   // "one-time" (default) | "subscription"
   purchaseType?: string;
