@@ -19,10 +19,13 @@ type ProductDetailClientProps = {
 
 type GalleryImage = { url: string; alt?: string };
 
+const SUBSCRIPTION_SCHEDULES = ['Every 7 days', 'Every 14 days', 'Every 30 days'];
+
 export default function ProductDetailClient({ product, variants = [] }: ProductDetailClientProps) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
-  const [deliveryFrequency, setDeliveryFrequency] = useState('One-time Purchase');
+  const [purchaseMode, setPurchaseMode] = useState<'one-time' | 'subscription'>('one-time');
+  const [schedule, setSchedule] = useState(SUBSCRIPTION_SCHEDULES[0]);
 
   const brand = product.brand;
   const extraImages: GalleryImage[] = product.images ?? [];
@@ -73,7 +76,7 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
     ? options.map((o) => selectedOptions[o.name]).join(' / ')
     : undefined;
 
-  const handleSubscribe = () => {
+  const handleAddToCart = () => {
     addItem({
       productId: product._id,
       variantId: selectedVariant?._id,
@@ -83,6 +86,8 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
       priceCents: displayPrice,
       imageUrl: product.imageUrl,
       unit: product.unit,
+      purchaseMode,
+      frequency: purchaseMode === 'subscription' ? schedule : undefined,
     });
     setAdded(true);
     setTimeout(() => {
@@ -159,9 +164,23 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
               <h1 className="mb-4 font-display text-4xl md:text-5xl lg:text-[56px] leading-tight tracking-tight text-lume-house">
                 {product.name}
               </h1>
-              <p className="text-[14px] font-light leading-relaxed text-text-secondary mb-8">
+              <p className="text-[14px] font-light leading-relaxed text-text-secondary mb-6">
                 {product.description || 'A beautiful, sustainably sourced product for your home.'}
               </p>
+
+              {/* Tag pills */}
+              {product.tags && product.tags.length > 0 && (
+                <div className="mb-8 flex flex-wrap gap-2">
+                  {product.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-lume-house/15 px-3 py-1 text-[11px] font-medium text-lume-house/80"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <div className="mb-10 pb-10 border-b border-lume-house/10">
                 <p className="text-[20px] font-medium text-lume-house mb-6">
@@ -202,43 +221,77 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
                   </p>
                 )}
 
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="relative flex-1">
-                    <select
-                      value={deliveryFrequency}
-                      onChange={(e) => setDeliveryFrequency(e.target.value)}
-                      className="w-full appearance-none rounded-none border border-lume-house/20 bg-transparent px-4 py-4 text-[11px] font-medium uppercase tracking-[0.15em] text-lume-house outline-none focus:border-lume-house cursor-pointer"
-                    >
-                      <option>One-time Purchase</option>
-                      <option>Weekly Delivery</option>
-                      <option>Bi-weekly</option>
-                      <option>Monthly</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-lume-house/50">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-                      </svg>
+                {/* Purchase mode: One-time vs Subscribe */}
+                <div className="mb-4 grid grid-cols-2 gap-3">
+                  {([
+                    { mode: 'one-time' as const, label: 'One-time' },
+                    { mode: 'subscription' as const, label: 'Subscribe' },
+                  ]).map(({ mode, label }) => {
+                    const selected = purchaseMode === mode;
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setPurchaseMode(mode)}
+                        aria-pressed={selected}
+                        className={`border py-3.5 text-[11px] font-medium uppercase tracking-[0.15em] transition-all ${
+                          selected
+                            ? 'border-lume-house bg-lume-house text-white'
+                            : 'border-lume-house/20 text-lume-house hover:border-lume-house/50'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Subscription schedule layer */}
+                {purchaseMode === 'subscription' && (
+                  <div className="mb-5">
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.15em] text-text-secondary">
+                      Delivery schedule
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {SUBSCRIPTION_SCHEDULES.map((s) => {
+                        const selected = schedule === s;
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setSchedule(s)}
+                            aria-pressed={selected}
+                            className={`border px-4 py-2.5 text-[12px] font-medium transition-all ${
+                              selected
+                                ? 'border-lume-house bg-lume-house text-white'
+                                : 'border-lume-house/20 text-lume-house hover:border-lume-house/50'
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
+                )}
 
-                  <button
-                    onClick={handleSubscribe}
-                    disabled={unavailable}
-                    className={`flex flex-1 items-center justify-center gap-2 border py-4 text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-500 ${
-                      unavailable
-                        ? 'bg-gray-200 text-gray-500 border-gray-200 cursor-not-allowed'
-                        : added
-                          ? 'bg-lume-house text-white border-lume-house'
-                          : 'bg-lume-house text-white border-lume-house hover:bg-transparent hover:text-lume-house'
-                    }`}
-                  >
-                    {unavailable ? 'Out of Stock' : added ? (
-                      <><Check className="h-4 w-4" /> Added</>
-                    ) : (
-                      <><Plus className="h-4 w-4" /> {deliveryFrequency === 'One-time Purchase' ? 'Add to Cart' : 'Subscribe'}</>
-                    )}
-                  </button>
-                </div>
+                <button
+                  onClick={handleAddToCart}
+                  disabled={unavailable}
+                  className={`flex w-full items-center justify-center gap-2 border py-4 text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-500 ${
+                    unavailable
+                      ? 'bg-gray-200 text-gray-500 border-gray-200 cursor-not-allowed'
+                      : added
+                        ? 'bg-lume-house text-white border-lume-house'
+                        : 'bg-lume-house text-white border-lume-house hover:bg-transparent hover:text-lume-house'
+                  }`}
+                >
+                  {unavailable ? 'Out of Stock' : added ? (
+                    <><Check className="h-4 w-4" /> Added</>
+                  ) : (
+                    <><Plus className="h-4 w-4" /> Add to Cart</>
+                  )}
+                </button>
               </div>
 
               {/* Accordions */}
