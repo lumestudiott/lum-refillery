@@ -29,6 +29,8 @@ type PromoForm = {
   name: string;
   description: string;
   discountPercent: string;
+  promoCode: string;
+  maxUsesPerUser: string;
   bannerText: string;
   active: boolean;
   startDate: string;
@@ -40,6 +42,8 @@ function emptyForm(): PromoForm {
     name: '',
     description: '',
     discountPercent: '',
+    promoCode: '',
+    maxUsesPerUser: '1',
     bannerText: '',
     active: true,
     startDate: '',
@@ -52,6 +56,8 @@ function fromPromo(p: Promo): PromoForm {
     name: p.name,
     description: p.description,
     discountPercent: String(p.discountPercent),
+    promoCode: p.promoCode ?? '',
+    maxUsesPerUser: p.maxUsesPerUser ? String(p.maxUsesPerUser) : '1',
     bannerText: p.bannerText ?? '',
     active: p.active,
     startDate: p.startDate ? new Date(p.startDate).toISOString().slice(0, 10) : '',
@@ -99,6 +105,8 @@ export default function Promotions() {
         name: form.name.trim(),
         description: form.description.trim(),
         discountPercent: pct,
+        promoCode: form.promoCode.trim() || undefined,
+        maxUsesPerUser: form.maxUsesPerUser ? parseInt(form.maxUsesPerUser, 10) : undefined,
         bannerText: form.bannerText.trim() || undefined,
         active: form.active,
         startDate: form.startDate ? new Date(form.startDate).getTime() : undefined,
@@ -148,7 +156,7 @@ export default function Promotions() {
         {promos === undefined ? (
           <Loading />
         ) : promos.length === 0 ? (
-          <EmptyState message="No promotions yet — create your first one." />
+          <EmptyState message="No promotions yet - create your first one." />
         ) : (
           <Table
             head={
@@ -179,12 +187,12 @@ export default function Promotions() {
                 </Td>
                 <Td>
                   <span className="text-[12px] text-text-secondary line-clamp-1">
-                    {p.bannerText || '—'}
+                    {p.bannerText || '-'}
                   </span>
                 </Td>
                 <Td>
                   <span className="text-[12px] text-text-secondary">
-                    {p.startDate ? fmtDate(p.startDate) : '—'} →{' '}
+                    {p.startDate ? fmtDate(p.startDate) : '-'} →{' '}
                     {p.endDate ? fmtDate(p.endDate) : 'Ongoing'}
                   </span>
                 </Td>
@@ -247,6 +255,20 @@ export default function Promotions() {
             onChange={(e) => setForm({ ...form, discountPercent: e.target.value })}
             placeholder="e.g. 10"
           />
+          <TextField
+            label="Promo Code"
+            value={form.promoCode}
+            onChange={(e) => setForm({ ...form, promoCode: e.target.value.toUpperCase() })}
+            placeholder="e.g. LUMEFIRST"
+          />
+          <TextField
+            label="Max uses per customer"
+            type="number"
+            min="1"
+            value={form.maxUsesPerUser}
+            onChange={(e) => setForm({ ...form, maxUsesPerUser: e.target.value })}
+            placeholder="e.g. 1"
+          />
           <div className="sm:col-span-2">
             <TextArea
               label="Description"
@@ -260,7 +282,7 @@ export default function Promotions() {
               label="Banner Text (shown in the scrolling bar)"
               value={form.bannerText}
               onChange={(e) => setForm({ ...form, bannerText: e.target.value })}
-              placeholder="e.g. Valentine's Day Sale — 10% off everything!"
+              placeholder="e.g. Valentine's Day Sale - 10% off everything!"
             />
             <p className="mt-1.5 text-[12px] text-text-secondary">
               This text scrolls in the green announcement bar at the top of the site.

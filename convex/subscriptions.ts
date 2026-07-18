@@ -20,7 +20,7 @@ async function loadOwnedSubscription(
   const subscription = await ctx.db.get(subscriptionId);
   if (!subscription) throw new Error("Subscription not found");
   if (subscription.userId !== user._id) {
-    throw new Error("Unauthorized — not your subscription");
+    throw new Error("Unauthorized - not your subscription");
   }
   return { user, subscription };
 }
@@ -30,7 +30,7 @@ async function loadOwnedSubscription(
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * INTERNAL — upsert the Convex subscription record from a Stripe
+ * INTERNAL - upsert the Convex subscription record from a Stripe
  * `customer.subscription.{created,updated}` payload. Idempotent on
  * `stripeSubscriptionId`.
  */
@@ -102,7 +102,7 @@ export const upsertFromStripe = internalMutation({
 });
 
 /**
- * INTERNAL — Stripe `customer.subscription.deleted`. Marks the
+ * INTERNAL - Stripe `customer.subscription.deleted`. Marks the
  * subscription cancelled. Does not delete the row (audit trail).
  */
 export const markCancelledFromStripe = internalMutation({
@@ -126,7 +126,7 @@ export const markCancelledFromStripe = internalMutation({
 });
 
 /**
- * LEGACY internal — old one-off-checkout fulfillment.
+ * LEGACY internal - old one-off-checkout fulfillment.
  * Retained so existing webhook flows keep working through the cutover.
  * New subscriptions are seeded via `upsertFromStripe` instead.
  */
@@ -174,7 +174,7 @@ export const fulfillSubscription = internalMutation({
 });
 
 /**
- * INTERNAL — used by convex/http.ts (`invoice.created`) to map a
+ * INTERNAL - used by convex/http.ts (`invoice.created`) to map a
  * Stripe subscription id back to its Convex record.
  */
 export const findByStripeSubscriptionId = internalQuery({

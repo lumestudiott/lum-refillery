@@ -7,7 +7,7 @@ interface SectionProps {
   eyebrow?: string;
   title?: string;
   description?: string;
-  /** Background color/style — `canvas` (default) or `white` for elevated rows. */
+  /** Background color/style - `canvas` (default) or `white` for elevated rows. */
   surface?: 'canvas' | 'white' | 'house';
   /** Whether to center the header block (default: true). */
   centered?: boolean;
@@ -30,7 +30,7 @@ const SPACING: Record<NonNullable<SectionProps['spacing']>, string> = {
 };
 
 /**
- * Editorial content section — header (eyebrow / title / description) + body.
+ * Editorial content section - header (eyebrow / title / description) + body.
  * Pair with `FeatureGrid`, `StatGrid`, or any custom children for layout.
  */
 const Section: React.FC<SectionProps> = ({

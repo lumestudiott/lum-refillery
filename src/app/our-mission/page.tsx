@@ -46,7 +46,7 @@ export default function OurMissionPage() {
         <PageHero
           eyebrow="Our Mission"
           title="Fresh, fair groceries for every Trinidadian table."
-          subtitle="Connecting households directly with local farms — cutting out middlemen, reducing waste, and ensuring everyone gets a fair deal."
+          subtitle="Connecting households directly with local farms - cutting out middlemen, reducing waste, and ensuring everyone gets a fair deal."
         />
 
         {/* Why we started */}
@@ -81,7 +81,7 @@ export default function OurMissionPage() {
                   and ensure everyone gets a fair deal.
                 </p>
                 <p>
-                  Our name <em>Lumë</em> means light in Albanian — representing our commitment to
+                  Our name <em>Lumë</em> means light in Albanian - representing our commitment to
                   bringing transparency and clarity to the food supply chain.
                 </p>
               </div>

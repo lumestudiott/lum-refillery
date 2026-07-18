@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { SignInButton, UserButton, useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, LayoutDashboard, Cake } from 'lucide-react';
+import { Menu, X, LayoutDashboard } from 'lucide-react';
 import AnnouncementBar from './AnnouncementBar';
 
 const navItems = [
@@ -13,6 +13,7 @@ const navItems = [
   { label: 'Our Story', href: '/#about' },
   { label: 'How It Works', href: '/#how-it-works' },
   { label: 'Sourcing', href: '/#sourcing' },
+  { label: 'Birthday Club', href: '/birthday-club' },
 ];
 
 const Header: React.FC = () => {
@@ -70,15 +71,6 @@ const Header: React.FC = () => {
 
         {/* Desktop actions */}
         <div className="hidden items-center gap-4 lg:flex">
-          {/* Birthday Club Button */}
-          <Link href="/birthday-club">
-            <button className="group relative flex cursor-pointer items-center gap-1.5 overflow-hidden rounded-full border border-lume-accent/20 bg-lume-accent/5 px-5 py-2 text-[13px] font-medium tracking-tight text-lume-accent transition-all duration-300 hover:border-lume-accent/40 hover:bg-lume-accent/10 active:scale-[0.98]">
-              <Cake className="h-3.5 w-3.5 animate-pulse" />
-              <span className="relative z-10 font-semibold">Birthday Club</span>
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-lume-accent/10 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
-            </button>
-          </Link>
-
           {isSignedIn ? (
             <>
               <UserButton afterSignOutUrl="/">
@@ -136,15 +128,6 @@ const Header: React.FC = () => {
               ))}
 
               <div className="my-2.5 h-px bg-black/5" />
-
-              {/* Mobile Birthday Club Button */}
-              <Link href="/birthday-club" onClick={() => setMobileMenuOpen(false)} className="block mb-3">
-                <button className="group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-full border border-lume-accent/20 bg-lume-accent/5 py-3 text-[14px] font-semibold text-lume-accent transition-all duration-300 hover:border-lume-accent/40 hover:bg-lume-accent/10 active:scale-[0.98]">
-                  <Cake className="h-4 w-4 animate-pulse" />
-                  <span className="relative z-10">Birthday Club</span>
-                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-lume-accent/10 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
-                </button>
-              </Link>
 
               {isSignedIn ? (
                 <Link

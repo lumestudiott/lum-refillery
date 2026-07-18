@@ -2,7 +2,7 @@ import { loadStripe, Stripe } from '@stripe/stripe-js';
 
 /**
  * Client-side Stripe.js loader (singleton).
- * Safe to import in client components — uses the publishable key only.
+ * Safe to import in client components - uses the publishable key only.
  */
 let stripePromise: Promise<Stripe | null>;
 

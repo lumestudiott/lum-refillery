@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, Eye } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { stockStatus } from '@/lib/stock';
 
@@ -53,10 +53,10 @@ export default function ProductCard({
     addItem({
       productId: product._id,
       sku: product.sku,
-      name: product.name,
+      name: displayName,
       priceCents: product.basePriceCents,
       imageUrl: product.imageUrl,
-      unit: product.unit,
+      unit: displayUnit,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -65,10 +65,13 @@ export default function ProductCard({
   const isSubscription = product.purchaseType === 'subscription';
   const stock = stockStatus(product);
 
+  const displayName = product.name.replace(/\[/g, '').replace(/\]/g, '');
+  const displayUnit = product.unit.toLowerCase().includes('bdl') ? 'Bundle' : product.unit;
+
   return (
     <article className="group relative flex flex-col bg-transparent">
       {/* Editorial Image Container */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#F0EFEB] rounded-[4px]">
+      <Link href={`/shop/${product.sku}`} className="relative aspect-square w-full overflow-hidden bg-transparent rounded-[4px] block">
 
         {/* Sold-out overlay */}
         {stock.soldOut && (
@@ -79,54 +82,23 @@ export default function ProductCard({
           </div>
         )}
 
-        {/* Badges / Tags */}
-        {product.tags && product.tags.length > 0 && (
-          <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
-            {product.tags.map((tag) => {
-              const isSale = tag.toLowerCase() === 'sale';
-              return (
-                <span
-                  key={tag}
-                  className={`inline-flex items-center justify-center px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white shadow-sm backdrop-blur-md rounded-sm ${
-                    isSale ? 'bg-[#D9381E]' : 'bg-lume-house/90'
-                  }`}
-                >
-                  {tag}
-                </span>
-              );
-            })}
-          </div>
-        )}
+        {/* Badges / Tags removed per user request */}
 
         <Image
           src={product.imageUrl || FALLBACK_IMAGE}
           alt={product.name}
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
+          className="p-6 object-contain transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105 mix-blend-multiply"
         />
         
-        {/* Glassmorphic Quick View Overlay (appears on hover) */}
-        <div className="absolute inset-0 bg-black/5 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-        <button 
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onQuickView?.();
-          }}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 translate-y-4 rounded-full bg-white/85 px-6 py-2.5 text-[11px] font-medium uppercase tracking-[0.2em] text-lume-house opacity-0 shadow-[0_4px_24px_rgba(0,0,0,0.1)] backdrop-blur-md transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] hover:bg-white focus-visible:translate-y-0 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-lume-house/30 group-hover:translate-y-0 group-hover:opacity-100"
-          aria-label={`Quick view ${product.name}`}
-        >
-          Quick View
-        </button>
-      </div>
+      </Link>
 
       <div className="flex flex-col pt-5 pb-2">
         {/* Subtle Brand & Unit Label */}
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] font-medium tracking-[0.15em] text-text-secondary uppercase">
-            Lumë · {product.unit}
+            {product.brand || (product as any).sourcingPartner || 'Lumë'} · {displayUnit}
           </span>
           {/* Subtle Price on right */}
           <span className="text-[12px] font-medium tracking-wider text-lume-house">
@@ -137,14 +109,11 @@ export default function ProductCard({
         {/* Main Title - Serif Editorial */}
         <Link href={`/shop/${product.sku}`}>
           <h3 className="font-display text-[22px] leading-snug tracking-tight text-lume-house transition-colors group-hover:text-black hover:underline cursor-pointer">
-            {product.name}
+            {displayName}
           </h3>
         </Link>
         
-        {/* Description */}
-        <span className="mt-1.5 text-[13px] text-text-secondary max-w-[85%] leading-relaxed font-light">
-          {product.description || 'Curated seasonal selection for your everyday rituals.'}
-        </span>
+
 
         {/* Low-stock nudge */}
         {stock.low && (
@@ -169,7 +138,7 @@ export default function ProductCard({
             type="button"
             onClick={handleAdd}
             aria-live="polite"
-            aria-label={added ? `${product.name} added to cart` : `Add ${product.name} to cart`}
+            aria-label={added ? `${displayName} added to cart` : `Add ${displayName} to cart`}
             className={`mt-6 flex h-[42px] items-center justify-center gap-2 border border-lume-house/20 text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-500 ${
               added
                 ? 'bg-lume-house text-white border-lume-house'
@@ -207,13 +176,16 @@ function SubscriptionSelector({ product }: { product: ShopProduct }) {
   }, [open]);
 
   const handleSubscribe = () => {
+    const displayName = product.name.replace(/\[/g, '').replace(/\]/g, '');
+    const displayUnit = product.unit.toLowerCase().includes('bdl') ? 'Bundle' : product.unit;
+
     addItem({
       productId: product._id,
       sku: product.sku,
-      name: `${product.name} (${INTERVAL_LABELS[selected] ?? selected})`,
+      name: `${displayName} (${INTERVAL_LABELS[selected] ?? selected})`,
       priceCents: product.basePriceCents,
       imageUrl: product.imageUrl,
-      unit: product.unit,
+      unit: displayUnit,
     });
     setSubscribed(true);
     setOpen(false);

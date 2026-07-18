@@ -28,7 +28,7 @@ export function requireEnv(name: string): string {
 /**
  * Resolves the Convex deployment URL for server-side `ConvexHttpClient`.
  * Accepts either `CONVEX_URL` (server-only secret) or
- * `NEXT_PUBLIC_CONVEX_URL` (the URL the browser already uses — the value
+ * `NEXT_PUBLIC_CONVEX_URL` (the URL the browser already uses - the value
  * is identical and is not sensitive).
  */
 export function getServerConvexUrl(): string {

@@ -9,13 +9,13 @@ interface PageHeroProps {
   title: string;
   subtitle?: string;
   imageUrl?: string;
-  /** Dark overlay variant — sets the hero on a dark image background with white text. */
+  /** Dark overlay variant - sets the hero on a dark image background with white text. */
   variant?: 'light' | 'dark';
   children?: React.ReactNode;
 }
 
 /**
- * Editorial page hero — eyebrow + display H1 + subtitle. Optionally backed by
+ * Editorial page hero - eyebrow + display H1 + subtitle. Optionally backed by
  * a full-bleed image with a dark overlay for the `dark` variant.
  *
  * Use this on every non-home page as the first section after the Header.

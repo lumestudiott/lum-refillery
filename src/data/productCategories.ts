@@ -64,10 +64,10 @@ export const UNIT_LABELS: Record<string, string> = {
  */
 export const CATEGORY_UNITS: Record<string, string[]> = {
   FP: ['g', 'kg', 'ml', 'L', 'ea', 'pk'], // dry goods, oils, sauces
-  GP: ['lb', 'kg', 'g', 'ea', 'pk'],      // roots, tubers, produce — by weight
+  GP: ['lb', 'kg', 'g', 'ea', 'pk'],      // roots, tubers, produce - by weight
   SN: ['g', 'ml', 'L', 'ea', 'pk'],       // snacks, teas, juices
   FR: ['lb', 'kg', 'g', 'ea', 'pk'],      // meat, seafood, dairy, eggs
-  BK: ['ea', 'pk', 'pc'],                 // loaves & pastries — by count
+  BK: ['ea', 'pk', 'pc'],                 // loaves & pastries - by count
   HK: ['ea', 'pc', 'pk', 'ml', 'L'],      // cookware, tools, liquid refills
 };
 
@@ -80,17 +80,17 @@ export const PURCHASE_TYPES = [
   {
     value: 'one-time',
     label: 'One-time',
-    description: 'Bought once, no recurring schedule — the default for cookware & hardware.',
+    description: 'Bought once, no recurring schedule - the default for cookware & hardware.',
   },
   {
     value: 'subscription',
     label: 'Subscription',
-    description: 'Recurring delivery on a schedule — pantry top-ups, dairy, fresh produce.',
+    description: 'Recurring delivery on a schedule - pantry top-ups, dairy, fresh produce.',
   },
   {
     value: 'refill-swap',
     label: 'Refill Swap',
-    description: 'Container swap or pouch exchange — bring the old one back, get a fresh refill.',
+    description: 'Container swap or pouch exchange - bring the old one back, get a fresh refill.',
   },
   {
     value: 'deposit',
@@ -113,7 +113,7 @@ export const UNIT_TYPES = [
 ];
 
 /**
- * Universal discovery tags — the shared vocabulary used to build shop
+ * Universal discovery tags - the shared vocabulary used to build shop
  * collections and filters. Offered as one-click chips; admins can still
  * add custom tags freely.
  */

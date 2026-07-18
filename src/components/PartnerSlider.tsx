@@ -45,7 +45,7 @@ const PartnerSlider: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Slider Track — Row 1 (left to right) */}
+      {/* Slider Track - Row 1 (left to right) */}
       <div className="relative mb-5">
         {/* Fade edges */}
         <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-32 bg-gradient-to-r from-canvas to-transparent" />
@@ -69,7 +69,7 @@ const PartnerSlider: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Slider Track — Row 2 (right to left) */}
+      {/* Slider Track - Row 2 (right to left) */}
       <div className="relative">
         <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-32 bg-gradient-to-r from-canvas to-transparent" />
         <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-32 bg-gradient-to-l from-canvas to-transparent" />
@@ -102,7 +102,7 @@ const PartnerCard: React.FC<{ partner: Partner }> = ({ partner }) => {
   return (
     <div className="group relative flex-shrink-0">
       <div className="flex items-center gap-4 rounded-full border border-stone-200 bg-white px-6 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 hover:border-emerald-200 hover:shadow-[0_4px_20px_rgba(16,185,129,0.08)]">
-        {/* Logo placeholder — styled monogram */}
+        {/* Logo placeholder - styled monogram */}
         <div
           className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[14px] font-bold text-white transition-transform duration-500 group-hover:scale-110"
           style={{

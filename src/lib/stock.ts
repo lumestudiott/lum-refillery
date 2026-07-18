@@ -16,7 +16,7 @@ export interface StockStatus {
   tracked: boolean;
   /** On-hand quantity (0 when unset). */
   quantity: number;
-  /** Tracked and nothing left — cannot be purchased. */
+  /** Tracked and nothing left - cannot be purchased. */
   soldOut: boolean;
   /** Tracked, in stock, but at or below the low-stock threshold. */
   low: boolean;

@@ -163,7 +163,7 @@ export default function CategoryManager({
         cats === undefined ? (
           <Loading />
         ) : cats.length === 0 ? (
-          <EmptyState message="No categories yet — add your first one." />
+          <EmptyState message="No categories yet - add your first one." />
         ) : (
           <div className="space-y-2">
             <p className="mb-3 text-[12px] text-text-secondary">

@@ -64,7 +64,7 @@ export default function RescuedRefillsPage() {
             <div className="flex flex-col justify-center space-y-6">
               <h3 className="font-display text-[32px] text-lume-house">Quality remains</h3>
               <p className="text-[16px] leading-[1.8] text-text-secondary">
-                The modern grocery industry operates on strict aesthetic standards. If a jar has a scuffed label or a box is slightly crushed during transit, it's often thrown away—even if the food inside is completely untouched.
+                The modern grocery industry operates on strict aesthetic standards. If a jar has a scuffed label or a box is slightly crushed during transit, it's often thrown away-even if the food inside is completely untouched.
               </p>
               <p className="text-[16px] leading-[1.8] text-text-secondary">
                 We've built relationships with distributors and producers to take these "imperfect" items off their hands. The result is less waste for the planet, and exceptional pantry staples for your kitchen at a fraction of the cost.

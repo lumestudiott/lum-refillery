@@ -38,7 +38,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 function formatDate(ms?: number) {
-  if (!ms) return '—';
+  if (!ms) return '-';
   return new Date(ms).toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',

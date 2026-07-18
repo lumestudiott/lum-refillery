@@ -214,7 +214,7 @@ body {
     scroll-behavior: auto !important;
   }
 
-  /* Preserve opacity transitions — structural hint remains */
+  /* Preserve opacity transitions - structural hint remains */
   .fade-in { opacity: 1 !important; }
   
   /* Restore scale(1) on all button press states */

@@ -86,7 +86,7 @@ export default function ImpactReportPage() {
         <Section
           eyebrow="Key metrics"
           title="The year at a glance"
-          description="Six numbers that capture what we built — and where we have to go."
+          description="Six numbers that capture what we built - and where we have to go."
         >
           <StatGrid stats={METRICS} columns={3} variant="bare" />
         </Section>

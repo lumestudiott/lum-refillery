@@ -10,7 +10,7 @@ import { requireAdmin } from "./lib/auth";
 
 /**
  * Admin: hand a `locked` (or `paid`) box off to fulfillment / carrier.
- * Stub for now — real impl would create a shipping label via EasyPost /
+ * Stub for now - real impl would create a shipping label via EasyPost /
  * Shippo / Stripe Shipping and persist the tracking URL.
  */
 export const shipBox = mutation({
@@ -27,7 +27,7 @@ export const shipBox = mutation({
 });
 
 /**
- * INTERNAL — same operation invokable from automation (e.g. a future
+ * INTERNAL - same operation invokable from automation (e.g. a future
  * cron that auto-ships paid boxes once they're packed).
  */
 export const internalShipBox = internalMutation({
@@ -76,7 +76,7 @@ async function shipImpl(
 }
 
 /**
- * INTERNAL — invoked after a ship event. Looks up the recipient's
+ * INTERNAL - invoked after a ship event. Looks up the recipient's
  * `referredByUserId` chain and converts any pending referral row.
  */
 export const maybeConvertReferral = internalMutation({

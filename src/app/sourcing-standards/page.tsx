@@ -37,7 +37,7 @@ const STANDARDS = [
   {
     icon: Leaf,
     title: 'Environmental standards',
-    description: 'Every choice — from packaging to logistics — is judged on its footprint.',
+    description: 'Every choice - from packaging to logistics - is judged on its footprint.',
     points: [
       'Minimal packaging requirements',
       'Local sourcing prioritized',
@@ -84,7 +84,7 @@ export default function SourcingStandardsPage() {
         <PageHero
           eyebrow="Sourcing"
           title="The bar we hold ourselves to."
-          subtitle="From small island farms to your kitchen, every product has a story — and a standard. Here's how we ensure quality from farm to table."
+          subtitle="From small island farms to your kitchen, every product has a story - and a standard. Here's how we ensure quality from farm to table."
         />
 
         <Section
@@ -133,7 +133,7 @@ export default function SourcingStandardsPage() {
         <CtaBanner
           eyebrow="Eat with confidence"
           title="Know what's on your plate"
-          description="Every haul comes with sourcing details — origins, farmers, certifications. Total transparency."
+          description="Every haul comes with sourcing details - origins, farmers, certifications. Total transparency."
           primaryHref="/shop"
           primaryLabel="Browse"
           secondaryHref="/sustainability"

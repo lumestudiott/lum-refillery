@@ -190,6 +190,17 @@ async function handleCheckoutCompleted(
       totalCents,
       items,
     });
+    
+    // Record promo code redemption if one was applied
+    if (metadata.promo_code && metadata.promo_id) {
+      await ctx.runMutation(internal.promotions.recordRedemptionInternal, {
+        clerkId,
+        promotionId: metadata.promo_id as any,
+        promoCode: metadata.promo_code,
+        stripeSessionId: session.id,
+      });
+    }
+    
     return;
   }
 

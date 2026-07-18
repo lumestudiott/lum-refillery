@@ -9,7 +9,7 @@ import { internalAction } from "./_generated/server";
  * console.log below with a fetch to the provider's REST API.
  *
  * Lives in an `action` (not a mutation) because emails are an external
- * side-effect — actions can `fetch()` and retry without holding a DB
+ * side-effect - actions can `fetch()` and retry without holding a DB
  * transaction open.
  */
 export const sendTransactional = internalAction({

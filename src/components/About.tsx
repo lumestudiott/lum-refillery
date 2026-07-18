@@ -176,11 +176,11 @@ const ParallaxImage: React.FC<{ src: string; alt: string; className?: string }> 
           </Reveal>
         </div>
 
-        {/* Bento Grid — 6 cards */}
+        {/* Bento Grid - 6 cards */}
         <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-16 pt-12">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
 
-            {/* ── Card 1: Curated Grocery Hauls (7/12) — image card ── */}
+            {/* ── Card 1: Curated Grocery Hauls (7/12) - image card ── */}
             <Reveal duration={800} delay={50} direction="up" className="md:col-span-7 flex">
               <div className="bg-lume-house rounded-3xl border border-white/[0.05] overflow-hidden flex flex-col w-full group hover:shadow-soft-float hover:-translate-y-1 transition-all duration-500">
                 <div className="relative aspect-[2/1] w-full overflow-hidden shrink-0">
@@ -206,7 +206,7 @@ const ParallaxImage: React.FC<{ src: string; alt: string; className?: string }> 
               </div>
             </Reveal>
 
-            {/* ── Card 2: Built for Caribbean Life (5/12) — image card ── */}
+            {/* ── Card 2: Built for Caribbean Life (5/12) - image card ── */}
             <Reveal duration={800} delay={150} direction="up" className="md:col-span-5 flex">
               <div className="bg-[#DAB257] rounded-3xl border border-black/[0.04] overflow-hidden flex flex-col w-full group hover:shadow-soft-float hover:-translate-y-1 transition-all duration-500">
                 <div className="relative aspect-video md:aspect-[4/3] w-full overflow-hidden shrink-0">
@@ -232,7 +232,7 @@ const ParallaxImage: React.FC<{ src: string; alt: string; className?: string }> 
               </div>
             </Reveal>
 
-            {/* ── Card 3: Honouring Food Rituals (4/12) — text-only dark card ── */}
+            {/* ── Card 3: Honouring Food Rituals (4/12) - text-only dark card ── */}
             <Reveal duration={800} delay={100} direction="up" className="md:col-span-4 flex">
               <div className="bg-[#B05A32] rounded-3xl border border-white/[0.05] overflow-hidden flex flex-col w-full p-6 md:p-8 group hover:shadow-soft-float hover:-translate-y-1 transition-all duration-500">
                 <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/15 border border-white/10 text-[11px] font-bold tracking-widest text-white mb-4">03</span>
@@ -249,7 +249,7 @@ const ParallaxImage: React.FC<{ src: string; alt: string; className?: string }> 
               </div>
             </Reveal>
 
-            {/* ── Card 4: Beverages for Every Moment (4/12) — image card ── */}
+            {/* ── Card 4: Beverages for Every Moment (4/12) - image card ── */}
             <Reveal duration={800} delay={200} direction="up" className="md:col-span-4 flex">
               <div className="bg-[#7C9046] rounded-3xl border border-black/[0.04] overflow-hidden flex flex-col w-full group hover:shadow-soft-float hover:-translate-y-1 transition-all duration-500">
                 <div className="relative aspect-video w-full overflow-hidden shrink-0">
@@ -275,7 +275,7 @@ const ParallaxImage: React.FC<{ src: string; alt: string; className?: string }> 
               </div>
             </Reveal>
 
-            {/* ── Card 5: Exactly What You Need (4/12) — accent statement card ── */}
+            {/* ── Card 5: Exactly What You Need (4/12) - accent statement card ── */}
             <Reveal duration={800} delay={300} direction="up" className="md:col-span-4 flex">
               <div className="bg-[#3A4C22] rounded-3xl border border-white/10 overflow-hidden flex flex-col w-full p-6 md:p-8 group hover:shadow-soft-float hover:-translate-y-1 transition-all duration-500 justify-center items-center text-center">
                 <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 border border-white/5 text-[11px] font-bold tracking-widest text-white mb-4">05</span>
@@ -294,7 +294,7 @@ const ParallaxImage: React.FC<{ src: string; alt: string; className?: string }> 
               </div>
             </Reveal>
 
-            {/* ── Card 6: Low-Waste Approach (12/12) — wide dark card with image ── */}
+            {/* ── Card 6: Low-Waste Approach (12/12) - wide dark card with image ── */}
             <Reveal duration={800} delay={250} direction="up" className="md:col-span-12 flex">
               <div className="bg-[#466723] rounded-3xl border border-white/[0.05] overflow-hidden w-full grid grid-cols-1 md:grid-cols-12 group hover:shadow-soft-float hover:-translate-y-1 transition-all duration-500">
                 <div className="md:col-span-7 p-6 md:p-8 flex flex-col justify-center text-white order-2 md:order-1">

@@ -32,7 +32,7 @@ const PROCESS = [
     icon: Truck,
     title: 'Deliver to your door',
     description:
-      'Fresh groceries arrive at your doorstep on your scheduled day — no fridge runs needed.',
+      'Fresh groceries arrive at your doorstep on your scheduled day - no fridge runs needed.',
   },
 ];
 
@@ -79,7 +79,7 @@ export default function SustainabilityPage() {
         <Section
           eyebrow="The process"
           title="How we work sustainably"
-          description="Four steps from farm to your table — each chosen to minimize impact and maximize freshness."
+          description="Four steps from farm to your table - each chosen to minimize impact and maximize freshness."
         >
           <FeatureGrid features={PROCESS} variant="inline" columns={2} />
         </Section>
@@ -87,7 +87,7 @@ export default function SustainabilityPage() {
         <Section
           eyebrow="Our commitments"
           title="What we promise"
-          description="Concrete commitments — not vague intentions — that shape every operational decision."
+          description="Concrete commitments - not vague intentions - that shape every operational decision."
         >
           <FeatureGrid features={COMMITMENTS} variant="inline" columns={2} />
         </Section>

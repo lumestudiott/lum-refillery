@@ -105,7 +105,7 @@ const TABS: { id: TabId; label: string; hint: string; icon: React.ElementType }[
   {
     id: 'variants',
     label: 'Variants',
-    hint: 'Options like Size, Flavour — each combo gets its own price & stock.',
+    hint: 'Options like Size, Flavour - each combo gets its own price & stock.',
     icon: Layers,
   },
 ];
@@ -363,7 +363,7 @@ export default function Products() {
       const { removeBackground } = await import('@imgly/background-removal');
       return await removeBackground(file, { output: { format: 'image/png' } });
     } catch {
-      toast('Background removal failed — uploading original', 'error');
+      toast('Background removal failed - uploading original', 'error');
       return file;
     }
   }
@@ -584,7 +584,7 @@ export default function Products() {
     <div>
       <SectionHeader
         title="Products"
-        subtitle="Your full catalogue — enter a SKU for each product."
+        subtitle="Your full catalogue - enter a SKU for each product."
         actions={
           <>
             <Btn onClick={() => setManagingCats(true)}>
@@ -951,7 +951,7 @@ export default function Products() {
               {filteredUnits.map((u) => (
                 <option key={u} value={u}>
                   {u}
-                  {UNIT_LABELS[u] ? ` — ${UNIT_LABELS[u]}` : ''}
+                  {UNIT_LABELS[u] ? ` - ${UNIT_LABELS[u]}` : ''}
                 </option>
               ))}
             </SelectField>
@@ -1188,7 +1188,7 @@ export default function Products() {
               {form.category
                 ? isHome
                   ? 'Eco & material labels for Home & Kitchen items.'
-                  : 'Dietary labels — shown as shop filters.'
+                  : 'Dietary labels - shown as shop filters.'
                 : 'Pick a category first; the label set changes for Home & Kitchen.'}
             </p>
             <div className="grid gap-1.5 sm:grid-cols-2">

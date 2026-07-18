@@ -11,7 +11,7 @@ import { requireAdmin } from "./lib/auth";
 
 const ATTRIBUTE_SETS = ["food", "home"];
 
-/** Seed data — mirrors the historical hardcoded pillars. */
+/** Seed data - mirrors the historical hardcoded pillars. */
 const DEFAULT_CATEGORIES = [
   {
     code: "FP",
@@ -67,7 +67,7 @@ async function seedIfEmpty(ctx: MutationCtx) {
   }
 }
 
-/** Idempotent — ensures the default pillars exist. Called on admin load. */
+/** Idempotent - ensures the default pillars exist. Called on admin load. */
 export const ensureSeeded = mutation({
   args: {},
   handler: async (ctx) => {
@@ -154,7 +154,7 @@ export const upsertCategory = mutation({
   },
 });
 
-/** Delete a category — blocked while any product still uses its code. */
+/** Delete a category - blocked while any product still uses its code. */
 export const deleteCategory = mutation({
   args: { id: v.id("productCategories") },
   handler: async (ctx, args) => {
@@ -167,7 +167,7 @@ export const deleteCategory = mutation({
       .first();
     if (inUse) {
       throw new Error(
-        `Can't delete "${cat.label}" — products still use it. Move them first.`
+        `Can't delete "${cat.label}" - products still use it. Move them first.`
       );
     }
     await ctx.db.delete(args.id);

@@ -14,7 +14,7 @@ const PROVIDER_KEY = "paymentProvider";
 const PROVIDERS = ["stripe", "wipay"] as const;
 type Provider = (typeof PROVIDERS)[number];
 
-/** Public — which gateway the storefront should use right now. */
+/** Public - which gateway the storefront should use right now. */
 export const getActiveProvider = query({
   args: {},
   handler: async (ctx): Promise<Provider> => {
@@ -27,7 +27,7 @@ export const getActiveProvider = query({
   },
 });
 
-/** Admin — flip the active gateway. */
+/** Admin - flip the active gateway. */
 export const setActiveProvider = mutation({
   args: { provider: v.string() },
   handler: async (ctx, args) => {

@@ -35,7 +35,7 @@ export default function SpecialtyProducePage() {
         <PageHero
           eyebrow="Sourcing / Fresh"
           title="Specialty Produce"
-          subtitle="Seasonal produce and rare varieties with real flavor. We believe vegetables should taste like they used to — grown for flavor, not for logistics."
+          subtitle="Seasonal produce and rare varieties with real flavor. We believe vegetables should taste like they used to - grown for flavor, not for logistics."
         />
 
         <Section

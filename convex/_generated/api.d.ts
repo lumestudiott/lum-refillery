@@ -37,6 +37,7 @@ import type * as shopCategories from "../shopCategories.js";
 import type * as shopOrders from "../shopOrders.js";
 import type * as stripeWebhooks from "../stripeWebhooks.js";
 import type * as subscriptions from "../subscriptions.js";
+import type * as support from "../support.js";
 import type * as tags from "../tags.js";
 import type * as users from "../users.js";
 import type * as webhookEvents from "../webhookEvents.js";
@@ -78,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   shopOrders: typeof shopOrders;
   stripeWebhooks: typeof stripeWebhooks;
   subscriptions: typeof subscriptions;
+  support: typeof support;
   tags: typeof tags;
   users: typeof users;
   webhookEvents: typeof webhookEvents;

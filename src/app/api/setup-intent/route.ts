@@ -67,7 +67,7 @@ export async function POST() {
       });
     }
 
-    // ── SetupIntent — saves a card, charges nothing ─────────────
+    // ── SetupIntent - saves a card, charges nothing ─────────────
     const setupIntent = await stripe.setupIntents.create({
       customer: stripeCustomerId,
       usage: 'off_session',

@@ -29,7 +29,7 @@ export default defineSchema({
     subscriptionStatus: v.optional(v.string()),
     // Store credit balance in cents (positive = credit the user has).
     creditsCents: v.optional(v.number()),
-    // Referral tracking — short referral code shared with friends.
+    // Referral tracking - short referral code shared with friends.
     referralCode: v.optional(v.string()),
     referredByUserId: v.optional(v.id("users")),
     // Marketing prefs.
@@ -164,7 +164,7 @@ export default defineSchema({
         upcycled: v.optional(v.boolean()),
       })
     ),
-    // Refundable container deposit (cents) — only for purchaseType "deposit".
+    // Refundable container deposit (cents) - only for purchaseType "deposit".
     depositCents: v.optional(v.number()),
     sourcingPartner: v.optional(v.string()),
     sourcingOrigin: v.optional(v.string()),
@@ -178,7 +178,7 @@ export default defineSchema({
     defaultForTiers: v.optional(v.array(v.string())),
     // "one-time" | "subscription" | "refill-swap"
     purchaseType: v.optional(v.string()),
-    // e.g. ["1mo", "3mo", "6mo"] — only relevant when purchaseType = "subscription"
+    // e.g. ["1mo", "3mo", "6mo"] - only relevant when purchaseType = "subscription"
     subscriptionIntervals: v.optional(v.array(v.string())),
     active: v.boolean(),
     createdAt: v.number(),
@@ -223,7 +223,7 @@ export default defineSchema({
   // the 6 defaults; admins can add/edit/remove their own.
   // ──────────────────────────────────────────────────────────────
   productCategories: defineTable({
-    code: v.string(),                  // SKU prefix, uppercase — unique
+    code: v.string(),                  // SKU prefix, uppercase - unique
     label: v.string(),
     description: v.optional(v.string()),
     attributeSet: v.string(),          // "food" | "home"
@@ -257,6 +257,9 @@ export default defineSchema({
     name: v.string(),
     description: v.string(),
     discountPercent: v.number(),
+    promoCode: v.optional(v.string()),
+    /** Max times a single user can redeem this code. undefined = 1. */
+    maxUsesPerUser: v.optional(v.number()),
     bannerText: v.optional(v.string()),
     active: v.boolean(),
     startDate: v.optional(v.number()),
@@ -265,8 +268,19 @@ export default defineSchema({
   })
     .index("by_active", ["active"]),
 
+  // Track promo code usage per user to prevent abuse.
+  promoRedemptions: defineTable({
+    userId: v.id("users"),
+    promotionId: v.id("promotions"),
+    promoCode: v.string(),
+    stripeSessionId: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_user_promo", ["userId", "promotionId"])
+    .index("by_promotion", ["promotionId"]),
+
   // ──────────────────────────────────────────────────────────────
-  // Product tags — admin-managed vocabulary for discovery.
+  // Product tags - admin-managed vocabulary for discovery.
   // ──────────────────────────────────────────────────────────────
   tags: defineTable({
     name: v.string(),
@@ -338,7 +352,7 @@ export default defineSchema({
     .index("by_status_delivery", ["status", "deliveryDate"])
     .index("by_stripe_invoice", ["stripeInvoiceId"]),
 
-  // Line items for boxes — separate table avoids the 1 MB doc cap.
+  // Line items for boxes - separate table avoids the 1 MB doc cap.
   boxItems: defineTable({
     boxId: v.id("boxes"),
     productId: v.id("products"),
@@ -428,7 +442,7 @@ export default defineSchema({
     .index("by_status_retry", ["status", "nextRetryAt"]),
 
   // ──────────────────────────────────────────────────────────────
-  // App settings — simple key/value store for admin-controlled flags
+  // App settings - simple key/value store for admin-controlled flags
   // (e.g. the active payment provider: "stripe" | "wipay").
   // ──────────────────────────────────────────────────────────────
   appSettings: defineTable({
@@ -436,6 +450,22 @@ export default defineSchema({
     value: v.string(),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
+
+  // ──────────────────────────────────────────────────────────────
+  // Support: complaints & contact queries from the public site
+  // ──────────────────────────────────────────────────────────────
+  supportTickets: defineTable({
+    type: v.string(), // "complaint" | "query"
+    name: v.string(),
+    email: v.string(),
+    orderRef: v.optional(v.string()),
+    subject: v.string(),
+    message: v.string(),
+    status: v.string(), // "open" | "resolved"
+    createdAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_type", ["type"]),
 
   // ──────────────────────────────────────────────────────────────
   // Newsletter & gifts (unchanged)
@@ -472,7 +502,7 @@ export default defineSchema({
     .index("by_stripe_session", ["stripeSessionId"]),
 
   // ──────────────────────────────────────────────────────────────
-  // Legacy `orders` table — superseded by `boxes` + `boxItems`.
+  // Legacy `orders` table - superseded by `boxes` + `boxItems`.
   // Kept (with all fields optional) so existing dev data validates.
   // Do NOT write new rows here.
   // ──────────────────────────────────────────────────────────────

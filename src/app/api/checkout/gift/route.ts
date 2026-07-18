@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
     // ── Create Stripe Checkout Session ──────────────────────────────
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
+      allow_promotion_codes: true,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
       customer_email: giverEmail || undefined,
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
             currency: 'usd',
             product_data: {
               name: `Gift: ${tier.name}`,
-              description: `Gift subscription for ${recipientName} — ${tier.name} (${billingCycle})`,
+              description: `Gift subscription for ${recipientName} - ${tier.name} (${billingCycle})`,
               metadata: {
                 tier_id: tier.id,
                 billing_cycle: billingCycle,

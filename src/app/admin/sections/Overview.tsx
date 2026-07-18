@@ -340,7 +340,7 @@ function AttributeBreakdown({
   if (entries.length === 0)
     return (
       <p className="text-[13px] text-text-secondary">
-        No attributes set yet — add them from the Products page.
+        No attributes set yet - add them from the Products page.
       </p>
     );
   return (

@@ -15,10 +15,10 @@ interface FeatureGridProps {
   features: Feature[];
   /**
    * Visual variant:
-   *  - `bare`     — centered icon + text on the section surface (no card chrome). Default.
-   *  - `divided`  — same as bare, with hairline dividers between columns.
-   *  - `inline`   — icon-left, text-right rows (no chrome).
-   *  - `cards`    — boxed white cards with shadow (use sparingly).
+   *  - `bare`     - centered icon + text on the section surface (no card chrome). Default.
+   *  - `divided`  - same as bare, with hairline dividers between columns.
+   *  - `inline`   - icon-left, text-right rows (no chrome).
+   *  - `cards`    - boxed white cards with shadow (use sparingly).
    */
   variant?: 'bare' | 'divided' | 'inline' | 'cards';
   columns?: 2 | 3 | 4;

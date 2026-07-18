@@ -96,7 +96,7 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F5] text-lume-house selection:bg-lume-house selection:text-canvas">
+    <div className="min-h-screen bg-canvas text-lume-house selection:bg-lume-house selection:text-canvas">
       <Header />
 
       <main className="pt-[116px] pb-24">
@@ -108,13 +108,13 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
             {/* Image Gallery Column */}
             <div className="space-y-4">
-              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[8px] bg-[#F0EFEB]">
+              <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-[8px] bg-canvas cursor-zoom-in">
                 {activeImage ? (
                   <Image
                     src={activeImage.url}
                     alt={activeImage.alt ?? product.name}
                     fill
-                    className="object-cover"
+                    className="object-contain p-8 mix-blend-multiply transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-110"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     priority
                   />
@@ -132,17 +132,17 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
                       key={i}
                       type="button"
                       onClick={() => setActiveImageIndex(i)}
-                      className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-md transition-all ${
+                      className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-canvas transition-all duration-300 border ${
                         activeImageIndex === i
-                          ? 'ring-2 ring-lume-house ring-offset-2 ring-offset-[#FAF9F5]'
-                          : 'opacity-60 hover:opacity-100'
+                          ? 'opacity-100 border-lume-house/30'
+                          : 'opacity-60 hover:opacity-100 border-transparent'
                       }`}
                     >
                       <Image
                         src={img.url}
                         alt={img.alt ?? `${product.name} ${i + 1}`}
                         fill
-                        className="object-cover"
+                        className="object-contain p-1.5 mix-blend-multiply"
                         sizes="80px"
                       />
                     </button>

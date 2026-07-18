@@ -70,7 +70,7 @@ export default function CareersPage() {
         <Section
           eyebrow="Why Lumë"
           title="Reasons to come work with us"
-          description="It's hard, honest work — but it matters."
+          description="It's hard, honest work - but it matters."
         >
           <FeatureGrid features={BENEFITS} variant="divided" columns={4} />
         </Section>

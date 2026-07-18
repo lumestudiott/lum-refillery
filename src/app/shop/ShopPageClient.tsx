@@ -8,6 +8,7 @@ import { Check, ChevronDown, Search, ShoppingBasket, SlidersHorizontal, X } from
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard, { ShopProduct } from '@/components/shop/ProductCard';
+import { stockStatus } from '@/lib/stock';
 import { useCart } from '@/context/CartContext';
 import { api } from '../../../convex/_generated/api';
 import {
@@ -58,8 +59,6 @@ function sortProducts(products: ShopProduct[], sort: ShopSortId) {
       return rows.sort((a, b) => a.basePriceCents - b.basePriceCents);
     case 'price-desc':
       return rows.sort((a, b) => b.basePriceCents - a.basePriceCents);
-    case 'name-asc':
-      return rows.sort((a, b) => a.name.localeCompare(b.name));
     default:
       return rows;
   }
@@ -195,20 +194,28 @@ export default function ShopPageClient({
 
   const filteredProducts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const filtered = query
-      ? initialProducts.filter((product) => {
-          const haystack = [
-            product.name,
-            product.description,
-            product.category,
-            product.sourcingOrigin,
-          ]
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase();
-          return haystack.includes(query);
-        })
-      : initialProducts;
+    const filtered = initialProducts.filter((product) => {
+      // Check stock if 'in-stock' sort is active
+      if (sortBy === 'in-stock' && stockStatus(product).soldOut) {
+        return false;
+      }
+      
+      // Check search query if active
+      if (query) {
+        const haystack = [
+          product.name,
+          product.description,
+          product.category,
+          product.sourcingOrigin,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      
+      return true;
+    });
 
     return sortProducts(filtered, sortBy);
   }, [initialProducts, searchQuery, sortBy]);
@@ -373,17 +380,16 @@ export default function ShopPageClient({
                     />
                   </label>
 
-                  <div className="flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
-                    <span>{filteredProducts.length} items</span>
+                  <div className="flex flex-col gap-2 items-start sm:items-end text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
                     <div className="relative">
                       <button
                         type="button"
                         onClick={() => setIsSortOpen((open) => !open)}
-                        className="flex items-center gap-2 border-b border-lume-house/20 bg-transparent pb-1 font-bold tracking-wide text-lume-house outline-none transition-colors hover:border-lume-house focus-visible:ring-2 focus-visible:ring-lume-house/30"
+                        className="flex items-center gap-2 bg-transparent font-bold tracking-wide text-lume-house outline-none transition-colors focus-visible:ring-2 focus-visible:ring-lume-house/30"
                         aria-haspopup="listbox"
                         aria-expanded={isSortOpen}
                       >
-                        {currentSort.label}
+                        Sort by: {currentSort.label}
                         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
                       </button>
 

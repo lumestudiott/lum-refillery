@@ -33,7 +33,7 @@ export default function Settings() {
         </h2>
         <p className="mt-1 text-[13px] leading-[1.6] text-text-secondary">
           Which gateway the storefront uses for checkout and onboarding. Flip this once
-          WiPay is registered — customers switch instantly.
+          WiPay is registered - customers switch instantly.
         </p>
 
         {provider === undefined ? (
@@ -55,7 +55,7 @@ export default function Settings() {
               Icon={Landmark}
               name="WiPay"
               desc="Caribbean gateway (TTD), hosted redirect."
-              tag="Scaffolded — needs credentials"
+              tag="Scaffolded - needs credentials"
             />
           </div>
         )}

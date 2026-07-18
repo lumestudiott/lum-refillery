@@ -84,7 +84,7 @@ function Stepper({ step }: { step: Step }) {
 }
 
 /* ────────────────────────────────────────────────
-   Sidebar — "What you'll get" / "How it'll work"
+   Sidebar - "What you'll get" / "How it'll work"
    ──────────────────────────────────────────────── */
 
 function Sidebar() {
@@ -101,7 +101,7 @@ function Sidebar() {
               A curated first haul
             </div>
             <p className="mt-0.5 pl-6 text-text-secondary">
-              Caribbean essentials, thoughtfully sourced — add or remove anything you like.
+              Caribbean essentials, thoughtfully sourced - add or remove anything you like.
             </p>
           </li>
           <li>
@@ -136,7 +136,7 @@ function Sidebar() {
             </div>
             <div className="text-[13px] leading-[1.5]">
               <span className="font-semibold text-text-primary">Customize</span> during
-              your shopping window — until{' '}
+              your shopping window - until{' '}
               <span className="font-semibold text-text-primary">Tuesday midnight</span>.
             </div>
           </div>
@@ -146,7 +146,7 @@ function Sidebar() {
             </div>
             <div className="text-[13px] leading-[1.5]">
               Your haul arrives on the{' '}
-              <span className="font-semibold text-text-primary">following Saturday</span> —
+              <span className="font-semibold text-text-primary">following Saturday</span> -
               fresh, in low-waste packaging.
             </div>
           </div>
@@ -390,10 +390,10 @@ function DeliveryStep({ onDone }: { onDone: () => void }) {
 }
 
 /* ────────────────────────────────────────────────
-   Payment step (UI shell — see note in chat)
+   Payment step (UI shell - see note in chat)
    ──────────────────────────────────────────────── */
 
-/** WiPay (hosted redirect) — used when the active provider is "wipay". */
+/** WiPay (hosted redirect) - used when the active provider is "wipay". */
 function WiPayPanel({ onPaid }: { onPaid: () => void }) {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -457,7 +457,7 @@ function PaymentStep({ onBack }: { onBack: () => void }) {
           Payment
         </h1>
         <p className="mt-2 text-[14px] leading-[1.6] text-text-secondary">
-          Signing up is free — you&apos;re not locked into placing an order, and you can
+          Signing up is free - you&apos;re not locked into placing an order, and you can
           skip or cancel anytime during your shopping window.
         </p>
       </div>
@@ -474,7 +474,7 @@ function PaymentStep({ onBack }: { onBack: () => void }) {
               Pay with WiPay
             </div>
             <p className="mb-4 text-[13px] leading-[1.6] text-text-secondary">
-              Pay securely with your local card through WiPay — Trinidad &amp; Tobago&apos;s
+              Pay securely with your local card through WiPay - Trinidad &amp; Tobago&apos;s
               payment gateway.
             </p>
             <WiPayPanel onPaid={onDone} />
@@ -487,7 +487,7 @@ function PaymentStep({ onBack }: { onBack: () => void }) {
             </div>
             <p className="mb-4 text-[13px] leading-[1.6] text-text-secondary">
               We save your card so checkout is one tap later. Your first weekly payment is
-              only authorized when an order ships — nothing is charged today.
+              only authorized when an order ships - nothing is charged today.
             </p>
             <PaymentCardForm onSaved={onDone} />
           </>

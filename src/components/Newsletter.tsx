@@ -65,7 +65,7 @@ const Newsletter: React.FC = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="mx-auto mt-5 max-w-lg text-[16px] leading-[1.8] text-white/45"
         >
-          Seasonal drops, local maker features, and subscriber-only offers — straight to your inbox.
+          Seasonal drops, local maker features, and subscriber-only offers - straight to your inbox.
         </motion.p>
 
         {status === 'success' ? (

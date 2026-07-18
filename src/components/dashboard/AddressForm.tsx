@@ -58,7 +58,7 @@ export default function AddressForm({ onSuccess, onCancel, requirePrimary = fals
         </div>
       )}
 
-      {/* Country lock — deliveries are Trinidad & Tobago only */}
+      {/* Country lock - deliveries are Trinidad & Tobago only */}
       <div className="flex items-center gap-2 rounded-md border border-lume-accent/20 bg-lume-accent/[0.06] px-3 py-2.5 text-[13px] text-text-secondary">
         <span aria-hidden="true">🇹🇹</span>
         <span>

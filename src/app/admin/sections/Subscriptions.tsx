@@ -106,10 +106,10 @@ export default function Subscriptions() {
               <tr key={s._id} className="hover:bg-black/[0.015]">
                 <Td>
                   <div className="font-semibold text-text-primary">
-                    {s.userName || '—'}
+                    {s.userName || '-'}
                   </div>
                   <div className="text-[12px] text-text-secondary">
-                    {s.userEmail || '—'}
+                    {s.userEmail || '-'}
                   </div>
                 </Td>
                 <Td className="capitalize">{s.tier}</Td>

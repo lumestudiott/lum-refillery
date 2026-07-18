@@ -106,7 +106,7 @@ export async function requireAdmin(
 ): Promise<Doc<"users"> | null> {
   const ok = await isAdmin(ctx);
   if (!ok) {
-    throw new Error("Unauthorized — admin access required");
+    throw new Error("Unauthorized - admin access required");
   }
   return await getAuthedUserOrNull(ctx);
 }

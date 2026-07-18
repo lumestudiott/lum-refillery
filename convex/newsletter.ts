@@ -87,7 +87,7 @@ export const unsubscribe = mutation({
 });
 
 /**
- * Get subscriber count — uses index-scoped query count instead of
+ * Get subscriber count - uses index-scoped query count instead of
  * loading all records into memory.
  *
  * For Convex, the most efficient approach without a dedicated counter

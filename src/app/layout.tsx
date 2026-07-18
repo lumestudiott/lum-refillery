@@ -5,11 +5,11 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL('https://lumerefillery.com'),
   title: {
-    default: 'Lumë Refillery — Sustainable Grocery Subscriptions',
+    default: 'Lumë Refillery - Sustainable Grocery Subscriptions',
     template: '%s | Lumë Refillery',
   },
   description:
-    'Reliable grocery subscriptions, thoughtfully built for everyday tables. Curated hauls delivered on your schedule — zero waste, premium quality.',
+    'Reliable grocery subscriptions, thoughtfully built for everyday tables. Curated hauls delivered on your schedule - zero waste, premium quality.',
   keywords: [
     'refillery',
     'sustainable groceries',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://lumerefillery.com',
     siteName: 'Lumë Refillery',
-    title: 'Lumë Refillery — Sustainable Grocery Subscriptions',
+    title: 'Lumë Refillery - Sustainable Grocery Subscriptions',
     description:
       'Reliable grocery subscriptions, thoughtfully built for everyday tables. Curated hauls delivered on your schedule.',
     images: [
@@ -35,13 +35,13 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Lumë Refillery — Sustainable Grocery Subscriptions',
+        alt: 'Lumë Refillery - Sustainable Grocery Subscriptions',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Lumë Refillery — Sustainable Grocery Subscriptions',
+    title: 'Lumë Refillery - Sustainable Grocery Subscriptions',
     description:
       'Reliable grocery subscriptions, thoughtfully built for everyday tables. Curated hauls delivered on your schedule.',
     images: ['/og-image.png'],
@@ -70,7 +70,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       {/* suppressHydrationWarning on <html> only: browser extensions (e.g. Scribe)
-          inject attributes here before React hydrates — this is outside our control */}
+          inject attributes here before React hydrates - this is outside our control */}
       <head>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

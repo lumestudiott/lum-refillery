@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const items = (body?.items ?? []) as ShopLineItem[];
+    const promoCode = typeof body?.promoCode === 'string' ? body.promoCode.trim().toUpperCase() : '';
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
         );
       }
       // Enforce on-hand stock for tracked products so zeroing stock in the
-      // admin actually stops sales — no developer/code change needed.
+      // admin actually stops sales - no developer/code change needed.
       const stock = stockStatus(product);
       if (stock.soldOut) {
         return NextResponse.json(
@@ -100,13 +101,13 @@ export async function POST(request: NextRequest) {
       }
       const unitAmount = item.variantId ? item.priceCents : product.basePriceCents;
       const displayName = item.variantLabel
-        ? `${product.name} — ${item.variantLabel}`
+        ? `${product.name} - ${item.variantLabel}`
         : product.name;
 
       lineItems.push({
         quantity: item.quantity,
         price_data: {
-          // Storefront prices are TTD cents — bill in TTD so the Stripe
+          // Storefront prices are TTD cents - bill in TTD so the Stripe
           // charge matches the displayed TT$ amount exactly.
           currency: 'ttd',
           unit_amount: unitAmount,
@@ -144,6 +145,35 @@ export async function POST(request: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    // ── Promo code → Stripe coupon ─────────────────────────────────
+    let discounts: { coupon: string }[] | undefined;
+    let appliedPromoId: string | undefined;
+    if (promoCode) {
+      const promo = await convex.query(api.promotions.validatePromoCode, { code: promoCode });
+      if (promo && promo.discountPercent > 0) {
+        if (me) {
+          const redemptions = await convex.query(api.promotions.countRedemptions, {
+            userId: me._id,
+            promotionId: promo.id,
+          });
+          if (redemptions >= (promo.maxUsesPerUser ?? 1)) {
+            return NextResponse.json({ error: 'Promo code usage limit reached' }, { status: 400 });
+          }
+        }
+        
+        // Create a one-off Stripe coupon matching the Convex promotion
+        const coupon = await stripe.coupons.create({
+          percent_off: promo.discountPercent,
+          duration: 'once',
+          name: `${promo.name} (${promoCode})`,
+          metadata: { convex_promo_id: promo.id, code: promoCode },
+        });
+        discounts = [{ coupon: coupon.id }];
+        appliedPromoId = promo.id;
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer: stripeCustomerId,
@@ -156,7 +186,10 @@ export async function POST(request: NextRequest) {
       metadata: {
         clerk_user_id: userId,
         type: 'shop_order',
+        ...(promoCode ? { promo_code: promoCode } : {}),
+        ...(appliedPromoId ? { promo_id: appliedPromoId } : {}),
       },
+      ...(discounts ? { discounts } : {}),
       success_url: `${appUrl}/shop/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/shop`,
     }, {

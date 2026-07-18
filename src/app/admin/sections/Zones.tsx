@@ -116,7 +116,7 @@ export default function Zones() {
     <div>
       <SectionHeader
         title="Delivery zones"
-        subtitle="Coverage by zip prefix — cutoff windows, delivery days, and fees."
+        subtitle="Coverage by zip prefix - cutoff windows, delivery days, and fees."
         actions={
           <Btn variant="primary" onClick={openCreate}>
             <Plus className="h-4 w-4" /> New zone
@@ -157,7 +157,7 @@ export default function Zones() {
                 <Td className="text-right tabular-nums">
                   {cents(z.shippingFeeCents)}
                 </Td>
-                <Td className="text-text-secondary">{z.carrier || '—'}</Td>
+                <Td className="text-text-secondary">{z.carrier || '-'}</Td>
                 <Td>
                   <button onClick={() => toggle(z)} title="Toggle active">
                     <StatusBadge status={z.active ? 'active' : 'draft'} />

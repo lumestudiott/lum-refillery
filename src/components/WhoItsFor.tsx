@@ -2,7 +2,7 @@ import React from 'react';
 import Reveal from './Reveal';
 
 const promises = [
-  { title: 'Your Box, Your Rules', text: 'Shop what you want or skip — full control, always.' },
+  { title: 'Your Box, Your Rules', text: 'Shop what you want or skip - full control, always.' },
   { title: 'Doorstep Delivery', text: 'No lines, no parking, no extra stops.' },
   { title: 'Money-Back Guarantee', text: "If it's not right, we make it right." },
 ];
@@ -45,7 +45,7 @@ const WhoItsFor: React.FC = () => {
   return (
     <section className="overflow-hidden">
 
-      {/* ── Quality Guarantee — cinematic split ── */}
+      {/* ── Quality Guarantee - cinematic split ── */}
       <div className="grid lg:grid-cols-2">
         <div className="relative h-[50vh] min-h-[420px] lg:h-auto">
           <ParallaxImage
@@ -68,7 +68,7 @@ const WhoItsFor: React.FC = () => {
               can taste.
             </h2>
             <p className="mt-6 text-[16px] leading-[1.8] text-text-secondary">
-              {"We're confident in the freshness of every haul. If anything doesn't live up to your standards, we'll make it right — fast."}
+              {"We're confident in the freshness of every haul. If anything doesn't live up to your standards, we'll make it right - fast."}
             </p>
 
             <div className="mt-12 space-y-0">
@@ -119,7 +119,7 @@ const WhoItsFor: React.FC = () => {
 };
 
 /**
- * Full-bleed scroll-driven panel — image zooms and text fades in as the
+ * Full-bleed scroll-driven panel - image zooms and text fades in as the
  * section scrolls through the viewport. All JS-free via CSS scroll
  * timelines + IntersectionObserver for the content reveal.
  */

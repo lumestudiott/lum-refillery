@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
+import { X, Minus, Plus, ShoppingBag, Tag, Check } from 'lucide-react';
 import { useUser, SignInButton } from '@clerk/nextjs';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import {
   MAX_CART_ITEM_QUANTITY,
   cartLineKey as lineKey,
@@ -18,6 +20,41 @@ export default function CartDrawer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState('');
+  const [appliedCode, setAppliedCode] = useState('');
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  // Validate applied code reactively via Convex
+  const promoResult = useQuery(
+    api.promotions.validatePromoCode,
+    appliedCode ? { code: appliedCode } : 'skip'
+  );
+
+  const discountPercent = promoResult?.discountPercent ?? 0;
+  const discountCents = Math.round(subtotalCents * (discountPercent / 100));
+  const totalAfterDiscount = subtotalCents - discountCents;
+
+  const handleApplyPromo = () => {
+    const code = promoCode.trim().toUpperCase();
+    if (!code) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    // Set the code so the reactive query fires
+    setAppliedCode(code);
+    // Give Convex a moment to respond, then check
+    setTimeout(() => {
+      setPromoLoading(false);
+    }, 600);
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedCode('');
+    setPromoCode('');
+    setPromoError(null);
+  };
+
+  // Show error if code was applied but query returned null (after loading)
+  const showInvalidError = appliedCode && !promoLoading && promoResult === null;
 
   const handleCheckout = async () => {
     if (items.length === 0 || loading) return;
@@ -37,6 +74,7 @@ export default function CartDrawer() {
             priceCents: i.priceCents,
             quantity: i.quantity,
           })),
+          promoCode: appliedCode && promoResult ? appliedCode : undefined,
         }),
       });
       const data = await res.json();
@@ -99,7 +137,11 @@ export default function CartDrawer() {
                 </div>
               ) : (
                 <ul className="flex flex-col">
-                  {items.map((item) => (
+                  {items.map((item) => {
+                    const displayName = item.name.replace(/\[/g, '').replace(/\]/g, '');
+                    const displayUnit = item.unit.toLowerCase().includes('bdl') ? 'Bundle' : item.unit;
+                    
+                    return (
                     <li key={lineKey(item)} className="flex gap-5 border-b border-lume-house/10 py-6 last:border-0">
                       <div className="relative flex h-24 w-20 shrink-0 items-center justify-center overflow-hidden bg-black/5">
                         <Image
@@ -107,14 +149,14 @@ export default function CartDrawer() {
                           alt={item.name}
                           fill
                           sizes="80px"
-                          className="object-cover"
+                          className="object-cover mix-blend-multiply"
                         />
                       </div>
                       <div className="flex flex-1 flex-col">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <Link href={`/shop?q=${encodeURIComponent(item.name)}`} onClick={closeCart} className="text-[13px] font-medium leading-snug text-lume-house uppercase tracking-[0.05em] transition-colors hover:text-text-secondary">
-                              {item.name}
+                            <Link href={`/shop?q=${encodeURIComponent(displayName)}`} onClick={closeCart} className="text-[13px] font-medium leading-snug text-lume-house uppercase tracking-[0.05em] transition-colors hover:text-text-secondary">
+                              {displayName}
                             </Link>
                             {item.variantLabel && (
                               <p className="mt-0.5 text-[11px] text-text-secondary">{item.variantLabel}</p>
@@ -129,13 +171,13 @@ export default function CartDrawer() {
                             type="button"
                             onClick={() => removeItem(lineKey(item))}
                             className="p-1 text-text-secondary hover:text-lume-house"
-                            aria-label={`Remove ${item.name} from cart`}
+                            aria-label={`Remove ${displayName} from cart`}
                           >
                             <X className="h-4 w-4" strokeWidth={1.5} />
                           </button>
                         </div>
                         <p className="mt-1 text-[13px] text-text-secondary">
-                          TT${(item.priceCents / 100).toFixed(2)} / {item.unit}
+                          TT${(item.priceCents / 100).toFixed(2)} / {displayUnit}
                         </p>
                         <div className="mt-auto flex items-end justify-between pt-4">
                           <div className="flex h-8 items-center border border-lume-house/20">
@@ -167,7 +209,8 @@ export default function CartDrawer() {
                         </div>
                       </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </div>
@@ -176,34 +219,85 @@ export default function CartDrawer() {
             {items.length > 0 && (
               <div className="border-t border-lume-house/10 px-6 py-8">
                 {/* Promo Code Box */}
-                <div className="mb-6 flex gap-2">
-                  <input
-                    type="text"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    placeholder="PROMO CODE"
-                    className="flex-1 border border-lume-house/20 bg-transparent px-3 py-2 text-[12px] font-medium tracking-wider outline-none placeholder:text-text-secondary focus:border-lume-house/50"
-                  />
-                  <button
-                    type="button"
-                    disabled={!promoCode.trim()}
-                    className="border border-lume-house/20 px-4 py-2 text-[12px] font-medium tracking-wider text-lume-house transition-colors hover:bg-lume-house/5 disabled:opacity-50"
-                  >
-                    APPLY
-                  </button>
-                </div>
+                {appliedCode && promoResult ? (
+                  <div className="mb-6 flex items-center justify-between border border-lume-accent/30 bg-lume-accent/5 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-3.5 w-3.5 text-lume-accent" />
+                      <span className="text-[12px] font-semibold tracking-wider text-lume-accent">{appliedCode}</span>
+                      <span className="text-[11px] text-text-secondary">- {promoResult.discountPercent}% off</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemovePromo}
+                      className="text-text-secondary hover:text-lume-house"
+                      aria-label="Remove promo code"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mb-6">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={promoCode}
+                        onChange={(e) => {
+                          setPromoCode(e.target.value.toUpperCase());
+                          if (showInvalidError) {
+                            setAppliedCode('');
+                            setPromoError(null);
+                          }
+                        }}
+                        onKeyDown={(e) => e.key === 'Enter' && handleApplyPromo()}
+                        placeholder="PROMO CODE"
+                        className="flex-1 border border-lume-house/20 bg-transparent px-3 py-2 text-[12px] font-medium tracking-wider outline-none placeholder:text-text-secondary focus:border-lume-house/50"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyPromo}
+                        disabled={!promoCode.trim() || promoLoading}
+                        className="border border-lume-house/20 px-4 py-2 text-[12px] font-medium tracking-wider text-lume-house transition-colors hover:bg-lume-house/5 disabled:opacity-50"
+                      >
+                        {promoLoading ? '...' : 'APPLY'}
+                      </button>
+                    </div>
+                    {showInvalidError && (
+                      <p className="mt-2 text-[11px] font-medium text-red-600">
+                        Invalid or expired promo code
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {error && (
                   <p className="mb-4 bg-red-50 p-3 text-[12px] font-medium text-red-700">
                     {error}
                   </p>
                 )}
-                <div className="mb-6 flex items-end justify-between">
+                <div className="mb-2 flex items-end justify-between">
                   <span className="text-[12px] font-medium uppercase tracking-[0.1em] text-text-secondary">Subtotal</span>
-                  <span className="font-display text-[32px] leading-none text-lume-house">
+                  <span className={`font-display text-lume-house ${discountPercent > 0 ? 'text-[20px] line-through opacity-50' : 'text-[32px] leading-none'}`}>
                     TT${(subtotalCents / 100).toFixed(2)}
                   </span>
                 </div>
+                {discountPercent > 0 && (
+                  <>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[12px] font-medium text-lume-accent flex items-center gap-1">
+                        <Check className="h-3 w-3" /> {discountPercent}% discount
+                      </span>
+                      <span className="text-[13px] font-medium text-lume-accent">
+                        −TT${(discountCents / 100).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="mb-2 flex items-end justify-between">
+                      <span className="text-[12px] font-semibold uppercase tracking-[0.1em] text-text-primary">Total</span>
+                      <span className="font-display text-[32px] leading-none text-lume-house">
+                        TT${(totalAfterDiscount / 100).toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
                 <p className="mb-8 text-[12px] text-text-secondary">Shipping and taxes calculated at checkout.</p>
 
                 {isSignedIn ? (
