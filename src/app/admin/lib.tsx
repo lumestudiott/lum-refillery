@@ -22,7 +22,7 @@ export function cents(n?: number | null): string {
 }
 
 export function fmtDate(ms?: number | null): string {
-  if (!ms) return '—';
+  if (!ms) return '-';
   return new Date(ms).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -31,7 +31,7 @@ export function fmtDate(ms?: number | null): string {
 }
 
 export function fmtDateTime(ms?: number | null): string {
-  if (!ms) return '—';
+  if (!ms) return '-';
   return new Date(ms).toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -90,7 +90,7 @@ const BADGE: Record<string, string> = {
 };
 
 export function StatusBadge({ status }: { status?: string | null }) {
-  const s = status ?? '—';
+  const s = status ?? '-';
   return (
     <span
       className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] ring-1 ring-inset ${
@@ -112,7 +112,7 @@ export function Spinner({ className = '' }: { className?: string }) {
   );
 }
 
-/** Glassmorphism surface — matches the member dashboard cards. */
+/** Glassmorphism surface - matches the member dashboard cards. */
 export function Card({
   children,
   className = '',
@@ -129,7 +129,7 @@ export function Card({
   );
 }
 
-/** Animated card — staggered entrance + gentle hover lift. */
+/** Animated card - staggered entrance + gentle hover lift. */
 export function MotionCard({
   children,
   className = '',

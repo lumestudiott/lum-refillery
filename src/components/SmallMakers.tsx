@@ -4,7 +4,7 @@ import React from 'react';
 import Reveal from './Reveal';
 
 /**
- * CSS-only parallax image — reuses the `.parallax-viewport` /
+ * CSS-only parallax image - reuses the `.parallax-viewport` /
  * `.parallax-img-y-sm` classes defined in `globals.css`.
  */
 const ParallaxImage: React.FC<{ src: string; alt: string }> = ({ src, alt }) => (
@@ -46,7 +46,7 @@ const SmallMakers: React.FC = () => {
         </Reveal>
       </div>
 
-      {/* ── Block A: Cultural Context — text left / image right ── */}
+      {/* ── Block A: Cultural Context - text left / image right ── */}
       <div className="grid lg:grid-cols-2">
         <Reveal
           direction="up"
@@ -61,7 +61,7 @@ const SmallMakers: React.FC = () => {
               who have always been the quiet backbone of Trinidad and Tobago&apos;s food
               culture. From the toolum and chow sold at the corner parlour to
               small-batch pepper sauces, preserved fruits, and handcrafted juices made
-              from produce that never makes it to an export shelf — they are the
+              from produce that never makes it to an export shelf - they are the
               custodians of our recipes, our ingredients, and our food identity.
             </p>
 
@@ -75,7 +75,7 @@ const SmallMakers: React.FC = () => {
                   85–95%
                 </span>
                 <p className="mt-3 max-w-sm text-[14px] leading-[1.6] text-text-secondary">
-                  of registered businesses in T&amp;T are MSMEs &amp; Agri-SMEs* — driving
+                  of registered businesses in T&amp;T are MSMEs &amp; Agri-SMEs* - driving
                   jobs, income, and innovation across communities.
                 </p>
               </Reveal>
@@ -105,7 +105,7 @@ const SmallMakers: React.FC = () => {
         </Reveal>
       </div>
 
-      {/* ── Block B: Lumë Definition — full-width pull-quote band ── */}
+      {/* ── Block B: Lumë Definition - full-width pull-quote band ── */}
       <div className="bg-ceramic">
         <Reveal
           direction="none"
@@ -116,7 +116,7 @@ const SmallMakers: React.FC = () => {
           <div>
             <p className="font-display text-[clamp(1.15rem,2vw,1.5rem)] font-normal leading-[1.6] tracking-tight text-text-primary">
               &ldquo;At Lumë Refillery, we define small makers as those who operate at a
-              human scale — prioritising craft, transparency, and local impact over
+              human scale - prioritising craft, transparency, and local impact over
               volume and price. They source with care, make in small batches, and put
               intention into every ingredient.&rdquo;
             </p>
@@ -135,7 +135,7 @@ const SmallMakers: React.FC = () => {
         </Reveal>
       </div>
 
-      {/* ── Block C: Fair Exchange — image left / text right ── */}
+      {/* ── Block C: Fair Exchange - image left / text right ── */}
       <div className="grid lg:grid-cols-2">
         {/* Image */}
         <Reveal
@@ -162,7 +162,7 @@ const SmallMakers: React.FC = () => {
             <p className="text-[16px] leading-[1.8] text-text-secondary">
               Their products are seasonal, often preservative-free, and deeply rooted
               in accountability to you and their community. When you see a price tag,
-              know it reflects real labour, real sourcing, and real quality — a fair
+              know it reflects real labour, real sourcing, and real quality - a fair
               exchange for something you simply cannot find anywhere else.
             </p>
 

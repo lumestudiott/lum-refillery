@@ -18,7 +18,7 @@ import { internal } from "./_generated/api";
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * INTERNAL — create a draft box for the next delivery period when
+ * INTERNAL - create a draft box for the next delivery period when
  * Stripe issues `invoice.created` for a subscription. Idempotent on
  * (subscriptionId, weekKey): re-firing returns the existing box.
  */
@@ -95,7 +95,7 @@ export const generateForPeriod = internalMutation({
       .take(500);
     for (const product of defaults) {
       if (!product.defaultForTiers?.includes(subscription.tier)) continue;
-      // Reserve 1 unit; if inventory is insufficient, skip silently —
+      // Reserve 1 unit; if inventory is insufficient, skip silently -
       // the box can still be customized.
       try {
         await reserveImpl(ctx, {
@@ -122,7 +122,7 @@ export const generateForPeriod = internalMutation({
 });
 
 /**
- * INTERNAL — Stripe `invoice.paid`: mark the matching box paid and
+ * INTERNAL - Stripe `invoice.paid`: mark the matching box paid and
  * record totals from the invoice payload.
  */
 export const markPaid = internalMutation({
@@ -152,7 +152,7 @@ export const markPaid = internalMutation({
 });
 
 /**
- * INTERNAL — Stripe `invoice.payment_failed`.
+ * INTERNAL - Stripe `invoice.payment_failed`.
  */
 export const markPastDue = internalMutation({
   args: { stripeInvoiceId: v.string() },
@@ -170,7 +170,7 @@ export const markPastDue = internalMutation({
 });
 
 /**
- * INTERNAL — cron-fired sweep. Promotes any `draft` box whose cutoff
+ * INTERNAL - cron-fired sweep. Promotes any `draft` box whose cutoff
  * has passed to `locked`. Bounded per invocation to stay under the
  * transaction limit; re-run is cheap.
  */
@@ -199,7 +199,7 @@ export const lockExpired = internalMutation({
 });
 
 /**
- * INTERNAL — cron-fired sweep. Marks `shipped` boxes as `delivered`
+ * INTERNAL - cron-fired sweep. Marks `shipped` boxes as `delivered`
  * once `deliveryDate` has passed.
  */
 export const markDeliveredSweep = internalMutation({
@@ -240,7 +240,7 @@ async function loadOwnedDraftBox(
   const user = await getAuthedUser(ctx);
   const box = await ctx.db.get(boxId);
   if (!box) throw new Error("Box not found");
-  if (box.userId !== user._id) throw new Error("Unauthorized — not your box");
+  if (box.userId !== user._id) throw new Error("Unauthorized - not your box");
   if (box.status !== "draft") {
     throw new Error(
       `Box is ${box.status}; customization is closed (was open until cutoff)`
@@ -402,7 +402,7 @@ export const swapItem = mutation({
       throw new Error("Replacement product not found or inactive");
     }
 
-    // Release old, reserve new — same qty.
+    // Release old, reserve new - same qty.
     await reserveImpl(ctx, {
       productId: args.toProductId,
       weekKey: box.weekKey,

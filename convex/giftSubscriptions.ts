@@ -40,7 +40,7 @@ async function requireAdmin(ctx: MutationCtx) {
 
   const admin = await isAdmin(ctx);
   if (!admin) {
-    throw new Error("Unauthorized — admin access required");
+    throw new Error("Unauthorized - admin access required");
   }
 
   return identity;
@@ -71,7 +71,7 @@ export const createGiftSubscription = mutation({
     // ── Auth gate: require authenticated user ────────────────────
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Not authenticated — sign in to send a gift subscription");
+      throw new Error("Not authenticated - sign in to send a gift subscription");
     }
 
     // ── Input validation ─────────────────────────────────────────
@@ -127,7 +127,7 @@ export const createGiftSubscription = mutation({
 });
 
 /**
- * INTERNAL — payment-webhook only. Marks a gift as paid/delivered by
+ * INTERNAL - payment-webhook only. Marks a gift as paid/delivered by
  * looking it up via `paymentId`. No auth here because this is unreachable
  * from the public API.
  */
@@ -181,7 +181,7 @@ export const attachStripeSessionToGift = mutation({
     }
 
     if (giftSubscription.giverEmail.toLowerCase() !== identity.email.toLowerCase()) {
-      throw new Error("Unauthorized — you can only attach sessions to your own gifts");
+      throw new Error("Unauthorized - you can only attach sessions to your own gifts");
     }
 
     if (
@@ -213,7 +213,7 @@ export const cancelPendingGiftSubscription = mutation({
     }
 
     if (giftSubscription.giverEmail !== identity.email) {
-      throw new Error("Unauthorized — you can only cancel your own pending gifts");
+      throw new Error("Unauthorized - you can only cancel your own pending gifts");
     }
 
     if (giftSubscription.status !== "pending") {
@@ -226,7 +226,7 @@ export const cancelPendingGiftSubscription = mutation({
 });
 
 /**
- * INTERNAL — payment-webhook only. Updates a gift by Stripe session ID.
+ * INTERNAL - payment-webhook only. Updates a gift by Stripe session ID.
  * No auth here because internal mutations are unreachable from public API.
  */
 export const updateGiftSubscriptionByStripeSession = internalMutation({
@@ -272,7 +272,7 @@ export const updateGiftSubscriptionByStripeSession = internalMutation({
 
 /**
  * Get gift subscriptions sent by the authenticated user.
- * Scoped to the user's own email — no cross-user data leakage.
+ * Scoped to the user's own email - no cross-user data leakage.
  */
 export const getGiftSubscriptionsByGiver = query({
   args: { giverEmail: v.string() },
@@ -307,7 +307,7 @@ export const getGiftSubscriptionsByRecipient = query({
 });
 
 /**
- * Get all gift subscriptions — ADMIN ONLY.
+ * Get all gift subscriptions - ADMIN ONLY.
  * Requires the user to have an admin role set in Clerk publicMetadata.
  */
 export const getAllGiftSubscriptions = query({
@@ -321,7 +321,7 @@ export const getAllGiftSubscriptions = query({
 
     const admin = await isAdmin(ctx);
     if (!admin) {
-      throw new Error("Unauthorized — admin access required");
+      throw new Error("Unauthorized - admin access required");
     }
 
     return await ctx.db
@@ -354,7 +354,7 @@ export const getGiftSubscriptionById = query({
     const isRecipient = gift.recipientEmail === userEmail;
 
     if (!admin && !isGiver && !isRecipient) {
-      throw new Error("Unauthorized — you can only view your own gift subscriptions");
+      throw new Error("Unauthorized - you can only view your own gift subscriptions");
     }
 
     return gift;
@@ -362,7 +362,7 @@ export const getGiftSubscriptionById = query({
 });
 
 /**
- * Delete gift subscription — ADMIN ONLY.
+ * Delete gift subscription - ADMIN ONLY.
  * Regular users cannot delete gift records.
  */
 export const deleteGiftSubscription = mutation({

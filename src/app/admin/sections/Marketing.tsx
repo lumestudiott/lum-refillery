@@ -185,7 +185,7 @@ function Referrals() {
           {referrals.map((r) => (
             <tr key={r._id} className="hover:bg-black/[0.015]">
               <Td className="text-[12px] text-text-secondary">
-                {r.referrerEmail || '—'}
+                {r.referrerEmail || '-'}
               </Td>
               <Td>{r.refereeEmail}</Td>
               <Td className="text-right tabular-nums">{cents(r.bonusCents)}</Td>

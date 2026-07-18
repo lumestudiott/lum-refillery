@@ -46,7 +46,7 @@ const OFFSETS: Record<Direction, string> = {
  * Renders a wrapping `<Tag>` that starts hidden + offset and transitions to
  * visible + at-rest when it enters the viewport. Uses a single shared
  * `IntersectionObserver` per element, so the memory cost per reveal is a
- * few hundred bytes — framer-motion ships ~55 KB gzipped.
+ * few hundred bytes - framer-motion ships ~55 KB gzipped.
  *
  * Respects `prefers-reduced-motion`: those users see content immediately
  * with no transition.
@@ -70,7 +70,7 @@ const Reveal: React.FC<Props> = ({
     const node = ref.current;
     if (!node) return;
 
-    // Respect user motion prefs — skip the animation entirely.
+    // Respect user motion prefs - skip the animation entirely.
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) {
       setInView(true);

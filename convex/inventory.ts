@@ -9,7 +9,7 @@ import type { Id } from "./_generated/dataModel";
 import { requireAdmin } from "./lib/auth";
 
 /**
- * INTERNAL helper — reserve `qty` units of a product for a given week,
+ * INTERNAL helper - reserve `qty` units of a product for a given week,
  * scoped optionally to a delivery zone. Throws if not enough remaining.
  *
  * Callers must be inside a mutation transaction so the reserve count is
@@ -42,7 +42,7 @@ export async function reserveImpl(
 }
 
 /**
- * INTERNAL helper — release a previously-reserved quantity (e.g. when a
+ * INTERNAL helper - release a previously-reserved quantity (e.g. when a
  * user removes an item from a draft box, or a box is cancelled before
  * shipment).
  */

@@ -95,7 +95,7 @@ export const sendInvite = mutation({
 });
 
 /**
- * INTERNAL — link a referral when the referee signs up (called from
+ * INTERNAL - link a referral when the referee signs up (called from
  * `users.createUser`). Best-effort, never throws.
  */
 export const linkOnSignup = internalMutation({
@@ -124,7 +124,7 @@ export const linkOnSignup = internalMutation({
 });
 
 /**
- * INTERNAL — called when a referred user's first box ships. Awards the
+ * INTERNAL - called when a referred user's first box ships. Awards the
  * referrer credit and marks the referral converted.
  */
 export const markConverted = internalMutation({

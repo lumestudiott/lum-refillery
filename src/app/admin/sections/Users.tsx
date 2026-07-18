@@ -91,7 +91,7 @@ export default function UsersSection() {
     <div>
       <SectionHeader
         title="Users"
-        subtitle="Customer accounts — adjust store credit, grant admin, inspect activity."
+        subtitle="Customer accounts - adjust store credit, grant admin, inspect activity."
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -131,7 +131,7 @@ export default function UsersSection() {
               <tr key={u._id} className="hover:bg-black/[0.015]">
                 <Td>
                   <div className="font-semibold text-text-primary">
-                    {u.name || '—'}
+                    {u.name || '-'}
                   </div>
                   <div className="text-[12px] text-text-secondary">{u.email}</div>
                 </Td>
@@ -201,7 +201,7 @@ export default function UsersSection() {
       <Modal
         open={!!creditFor}
         onClose={() => setCreditFor(null)}
-        title={`Adjust credit — ${creditFor?.email ?? ''}`}
+        title={`Adjust credit - ${creditFor?.email ?? ''}`}
         footer={
           <>
             <Btn onClick={() => setCreditFor(null)}>Cancel</Btn>
@@ -309,7 +309,7 @@ function UserDetailModal({
                 <Row key={c._id}>
                   <span className="text-text-secondary">
                     {c.reason}
-                    {c.note ? ` — ${c.note}` : ''}
+                    {c.note ? ` - ${c.note}` : ''}
                   </span>
                   <span
                     className={`font-semibold tabular-nums ${

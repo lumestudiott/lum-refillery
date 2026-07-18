@@ -68,7 +68,7 @@ export const createUser = mutation({
 /**
  * Persist the caller's Stripe customer id on their user record.
  *
- * Public mutation gated by `ctx.auth.getUserIdentity()` — the clerkId is
+ * Public mutation gated by `ctx.auth.getUserIdentity()` - the clerkId is
  * derived from the JWT (NEVER trusted from args), so this is safe even
  * though it's reachable from the public API. The Next.js checkout route
  * forwards the Clerk JWT to ConvexHttpClient via `setAuth(...)` so this
@@ -105,7 +105,7 @@ export const setMyStripeCustomerId = mutation({
 });
 
 /**
- * INTERNAL read — find a user by Clerk id (for the checkout route).
+ * INTERNAL read - find a user by Clerk id (for the checkout route).
  */
 export const findByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
@@ -117,7 +117,7 @@ export const findByClerkIdInternal = internalQuery({
 });
 
 /**
- * Public lookup — returns the user record for a given Clerk ID.
+ * Public lookup - returns the user record for a given Clerk ID.
  * Reads only; no write surface, safe to leave public.
  */
 export const getUserByClerkId = query({
@@ -131,7 +131,7 @@ export const getUserByClerkId = query({
 });
 
 /**
- * INTERNAL — invoked from Convex code (e.g. the Stripe webhook HTTP action)
+ * INTERNAL - invoked from Convex code (e.g. the Stripe webhook HTTP action)
  * to patch a user's tier/status. Not reachable from public API.
  */
 export const updateUserSubscription = internalMutation({
@@ -160,7 +160,7 @@ export const updateUserSubscription = internalMutation({
 });
 
 /**
- * Save the caller's contact info (phone + marketing opt-in) — used by the
+ * Save the caller's contact info (phone + marketing opt-in) - used by the
  * onboarding Delivery step. Identity derived from the JWT, never trusted
  * from args.
  */

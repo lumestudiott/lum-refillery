@@ -151,7 +151,7 @@ export const seedDev = internalMutation({
         "dairy",
         "g",
         699,
-        "Thick, creamy Greek yogurt — high protein, no additives.",
+        "Thick, creamy Greek yogurt - high protein, no additives.",
         "https://images.unsplash.com/photo-1571212515416-fef01fc43637?auto=format&fit=crop&w=800&q=85"
       ),
       chilledSku(
@@ -196,7 +196,7 @@ export const seedDev = internalMutation({
         "protein",
         "g",
         1499,
-        "Hormone-free, free-range chicken breast — locally raised.",
+        "Hormone-free, free-range chicken breast - locally raised.",
         "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=800&q=85"
       ),
       chilledSku(
@@ -214,7 +214,7 @@ export const seedDev = internalMutation({
         "produce",
         "ea",
         399,
-        "Locally grown lacinato kale — washed and ready.",
+        "Locally grown lacinato kale - washed and ready.",
         "https://images.unsplash.com/photo-1515543237350-b3eea1ec8082?auto=format&fit=crop&w=800&q=85"
       ),
       chilledSku(
@@ -232,7 +232,7 @@ export const seedDev = internalMutation({
         "produce",
         "g",
         899,
-        "Strawberries, blueberries, and blackberries — fresh-picked.",
+        "Strawberries, blueberries, and blackberries - fresh-picked.",
         "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=85"
       ),
       chilledSku(
@@ -261,7 +261,7 @@ export const seedDev = internalMutation({
         "hauls",
         "ea",
         7999,
-        "Feeds a family of four — proteins, produce, dairy & pantry basics.",
+        "Feeds a family of four - proteins, produce, dairy & pantry basics.",
         "https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=800&q=85",
         "subscription", ["1mo", "3mo", "6mo"]
       ),
@@ -281,7 +281,7 @@ export const seedDev = internalMutation({
         "hauls",
         "ea",
         3499,
-        "All organic produce — leafy greens, herbs, and seasonal vegetables.",
+        "All organic produce - leafy greens, herbs, and seasonal vegetables.",
         "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=85",
         "subscription", ["1mo", "3mo", "6mo"]
       ),

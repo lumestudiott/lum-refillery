@@ -15,8 +15,8 @@ interface StatGridProps {
   columns?: 2 | 3 | 4;
   /**
    * Visual variant:
-   *  - `bare`    — big display number on the section surface, hairlines between cells. Default.
-   *  - `cards`   — white boxed cards with shadow (use sparingly).
+   *  - `bare`    - big display number on the section surface, hairlines between cells. Default.
+   *  - `cards`   - white boxed cards with shadow (use sparingly).
    */
   variant?: 'bare' | 'cards';
   /** Hint for legibility when the parent surface is dark. */

@@ -6,7 +6,7 @@ import {
 } from 'next/server';
 
 /**
- * Maintenance-mode domains — requests to these hosts are rewritten
+ * Maintenance-mode domains - requests to these hosts are rewritten
  * to /maintenance at the edge, before any HTML is served.
  *
  * Empty = site is LIVE. To put the site back into maintenance, re-add the
@@ -15,7 +15,7 @@ import {
 const MAINTENANCE_DOMAINS: string[] = [
   'lumerefillery.com',
   'www.lumerefillery.com',
-  // Vercel's auto production alias — gate it too so it can't leak the real
+  // Vercel's auto production alias - gate it too so it can't leak the real
   // site while in maintenance. (Preview/staging *.vercel.app URLs are NOT
   // listed here, so the test site still shows the real site on dev backend.)
   'lum-refillery-ten.vercel.app',
@@ -67,7 +67,7 @@ export default function middleware(req: NextRequest, event: NextFetchEvent) {
 
   const isMaintenanceDomain = MAINTENANCE_DOMAINS.includes(hostname);
 
-  // Rewrite to /maintenance immediately — no Clerk, no auth, no flash
+  // Rewrite to /maintenance immediately - no Clerk, no auth, no flash
   if (
     isMaintenanceDomain &&
     !MAINTENANCE_BYPASS.some((p) => pathname.startsWith(p))

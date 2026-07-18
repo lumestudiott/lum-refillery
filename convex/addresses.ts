@@ -97,7 +97,7 @@ export const setPrimary = mutation({
     const target = await ctx.db.get(args.addressId);
     if (!target) throw new Error("Address not found");
     if (target.userId !== user._id) {
-      throw new Error("Unauthorized — not your address");
+      throw new Error("Unauthorized - not your address");
     }
 
     const others = await ctx.db
@@ -121,7 +121,7 @@ export const remove = mutation({
     const target = await ctx.db.get(args.addressId);
     if (!target) return null;
     if (target.userId !== user._id) {
-      throw new Error("Unauthorized — not your address");
+      throw new Error("Unauthorized - not your address");
     }
     await ctx.db.delete(target._id);
     return target._id;
@@ -129,7 +129,7 @@ export const remove = mutation({
 });
 
 /**
- * Public read of a primary address by user id — used by box generator.
+ * Public read of a primary address by user id - used by box generator.
  * Defaults to null if the user has no addresses.
  */
 export const getPrimaryForCurrentUser = query({

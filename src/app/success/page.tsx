@@ -38,7 +38,7 @@ function SuccessVerifier() {
         } else if (data.paymentStatus === 'paid') {
           setState('syncing');
           setMessage(
-            'Payment verified. Your subscription is still syncing from Stripe — refresh the dashboard in a moment.'
+            'Payment verified. Your subscription is still syncing from Stripe - refresh the dashboard in a moment.'
           );
         } else {
           setState('unpaid');

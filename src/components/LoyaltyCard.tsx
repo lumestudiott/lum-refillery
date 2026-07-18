@@ -200,7 +200,7 @@ export default function LoyaltyCard({
         {!nextTier && (
           <p className="text-[12px] text-text-secondary flex items-center gap-1.5">
             <Crown className="h-3.5 w-3.5 text-gold" />
-            You've reached the highest tier — thank you for your loyalty!
+            You've reached the highest tier - thank you for your loyalty!
           </p>
         )}
       </div>

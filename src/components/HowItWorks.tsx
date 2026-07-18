@@ -194,7 +194,7 @@ const HowItWorks: React.FC = () => {
                   How your delivery works
                 </h3>
                 <p className="mt-2.5 max-w-[44ch] text-[14px] leading-relaxed text-stone-900/55">
-                  Harvested to order, delivered fresh — here&rsquo;s the rhythm from cutoff to doorstep.
+                  Harvested to order, delivered fresh - here&rsquo;s the rhythm from cutoff to doorstep.
                 </p>
               </div>
 

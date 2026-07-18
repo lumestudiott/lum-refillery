@@ -9,7 +9,7 @@ import type { Id } from "./_generated/dataModel";
 import { getAuthedUser, getAuthedUserOrNull, requireAdmin } from "./lib/auth";
 
 /**
- * Internal helper — append a credit transaction AND patch the
+ * Internal helper - append a credit transaction AND patch the
  * denormalized `users.creditsCents` balance. Always call together.
  */
 async function applyCreditChange(
@@ -45,7 +45,7 @@ async function applyCreditChange(
 }
 
 /**
- * INTERNAL — grant credits (referral bonus, promo, refund, admin adjust).
+ * INTERNAL - grant credits (referral bonus, promo, refund, admin adjust).
  */
 export const grant = internalMutation({
   args: {
@@ -63,7 +63,7 @@ export const grant = internalMutation({
 });
 
 /**
- * INTERNAL — apply credits against a box (called during box finalization).
+ * INTERNAL - apply credits against a box (called during box finalization).
  */
 export const applyToBox = internalMutation({
   args: {

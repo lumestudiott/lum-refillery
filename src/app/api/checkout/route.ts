@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
+      allow_promotion_codes: true,
       customer: stripeCustomerId,
       payment_method_types: ['card'],
       line_items: [
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
             recurring,
             product_data: {
               name: tier.name,
-              description: `${tier.name} — ${billingCycle} subscription`,
+              description: `${tier.name} - ${billingCycle} subscription`,
             },
           },
         },

@@ -152,7 +152,7 @@ export default function ShopCategoryManager() {
       {cats === undefined ? (
         <Loading />
       ) : cats.length === 0 ? (
-        <EmptyState message="No shop categories yet — add your first one." />
+        <EmptyState message="No shop categories yet - add your first one." />
       ) : (
         <div className="space-y-4">
           {cats.map((parent) => (

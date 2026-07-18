@@ -95,9 +95,9 @@ const QUESTIONS: Question[] = [
     id: 'storage',
     question: 'How much pantry space do you have?',
     options: [
-      { label: 'Limited — small kitchen', value: 'small' },
-      { label: 'Average — standard pantry', value: 'medium' },
-      { label: 'Plenty — large pantry or extra storage', value: 'large' },
+      { label: 'Limited - small kitchen', value: 'small' },
+      { label: 'Average - standard pantry', value: 'medium' },
+      { label: 'Plenty - large pantry or extra storage', value: 'large' },
     ],
   },
   {

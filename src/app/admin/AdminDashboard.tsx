@@ -21,6 +21,7 @@ import {
   X,
   BadgePercent,
   Grid3X3,
+  LifeBuoy,
 } from 'lucide-react';
 import { api } from '../../../convex/_generated/api';
 import { Spinner, ToastProvider } from './lib';
@@ -32,6 +33,7 @@ import Subscriptions from './sections/Subscriptions';
 import Orders from './sections/Orders';
 import Zones from './sections/Zones';
 import Marketing from './sections/Marketing';
+import Support from './sections/Support';
 import Promotions from './sections/Promotions';
 import ShopCategoryManager from './sections/ShopCategoryManager';
 import SettingsSection from './sections/Settings';
@@ -46,6 +48,7 @@ type SectionId =
   | 'orders'
   | 'zones'
   | 'marketing'
+  | 'support'
   | 'settings';
 
 const NAV: { id: SectionId; label: string; Icon: typeof Package }[] = [
@@ -58,10 +61,11 @@ const NAV: { id: SectionId; label: string; Icon: typeof Package }[] = [
   { id: 'orders', label: 'Orders', Icon: Truck },
   { id: 'zones', label: 'Delivery Zones', Icon: MapPin },
   { id: 'marketing', label: 'Marketing', Icon: Megaphone },
+  { id: 'support', label: 'Support', Icon: LifeBuoy },
   { id: 'settings', label: 'Settings', Icon: SettingsIcon },
 ];
 
-/** Soft brand glows behind the canvas — mirrors the marketing site. */
+/** Soft brand glows behind the canvas - mirrors the marketing site. */
 function CanvasGlow() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
@@ -133,6 +137,7 @@ export default function AdminDashboard() {
     orders: <Orders />,
     zones: <Zones />,
     marketing: <Marketing />,
+    support: <Support />,
     settings: <SettingsSection />,
   };
 

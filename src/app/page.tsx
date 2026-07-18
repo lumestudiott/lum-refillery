@@ -20,7 +20,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-canvas text-text-primary">
       {/* React 19 hoists this <link> into <head>. The browser begins
           fetching the hero MP4 as a critical resource in parallel with
-          HTML/CSS — so by the time <Hero> hydrates and calls .play(),
+          HTML/CSS - so by the time <Hero> hydrates and calls .play(),
           the video is already buffered enough to start. Replaces the
           need for preload="auto" on the <video> element itself, which
           would otherwise compete for bandwidth with the JS bundle. */}

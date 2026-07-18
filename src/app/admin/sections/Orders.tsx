@@ -181,14 +181,14 @@ function BoxesTab() {
               <tr key={b._id} className="hover:bg-black/[0.015]">
                 <Td>
                   <div className="text-[12px] text-text-secondary">
-                    {(b as { userEmail?: string | null }).userEmail || '—'}
+                    {(b as { userEmail?: string | null }).userEmail || '-'}
                   </div>
                 </Td>
                 <Td className="font-mono text-[12px]">{b.weekKey}</Td>
                 <Td className="text-text-secondary">{fmtDate(b.deliveryDate)}</Td>
                 <Td className="text-right tabular-nums">{cents(b.totalCents)}</Td>
                 <Td className="text-[12px] text-text-secondary">
-                  {b.trackingNumber || '—'}
+                  {b.trackingNumber || '-'}
                 </Td>
                 <Td>
                   <select
@@ -310,7 +310,7 @@ function ShopTab() {
             {filtered.map((o) => (
               <tr key={o._id} className="hover:bg-black/[0.015]">
                 <Td className="text-[12px] text-text-secondary">
-                  {o.userEmail || '—'}
+                  {o.userEmail || '-'}
                 </Td>
                 <Td className="text-text-secondary">{fmtDate(o.createdAt)}</Td>
                 <Td className="text-right tabular-nums">{cents(o.totalCents)}</Td>

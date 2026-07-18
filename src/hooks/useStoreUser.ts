@@ -28,7 +28,7 @@ export const useStoreUser = () => {
           // Mark this user as synced so we don't fire again
           storedUserRef.current = user.id;
         } catch (error) {
-          // Log but don't crash — user creation is idempotent on the server
+          // Log but don't crash - user creation is idempotent on the server
           console.error("Failed to sync user to Convex:", error);
         }
       };

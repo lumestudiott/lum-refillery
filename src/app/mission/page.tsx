@@ -51,7 +51,7 @@ export default function MissionPage() {
             transition={{ duration: 0.8, delay: 0.1 }}
             className="font-display text-[clamp(2rem,4vw,3.2rem)] font-normal leading-[1.2] tracking-tight text-text-primary mb-10 max-w-3xl"
           >
-            To offer the best experience in food and beverage retail—one that meets you where you are.
+            To offer the best experience in food and beverage retail-one that meets you where you are.
           </motion.h1>
           
           <motion.p 

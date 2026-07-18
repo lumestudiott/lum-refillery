@@ -12,7 +12,7 @@ export const list = query({
   },
 });
 
-/** Admin: create a tag (idempotent — returns existing if name matches). */
+/** Admin: create a tag (idempotent - returns existing if name matches). */
 export const create = mutation({
   args: { name: v.string() },
   handler: async (ctx, args) => {

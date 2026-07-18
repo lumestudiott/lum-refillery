@@ -120,7 +120,7 @@ export default function GiftSubscriptionPage() {
         <PageHero
           eyebrow="Send a gift"
           title="Share fresh groceries with someone you love."
-          subtitle="A Lumë gift subscription delivers chilled, locally-sourced provisions to their door — and a personal note from you."
+          subtitle="A Lumë gift subscription delivers chilled, locally-sourced provisions to their door - and a personal note from you."
         />
 
         <section className="bg-white py-16 lg:py-20">

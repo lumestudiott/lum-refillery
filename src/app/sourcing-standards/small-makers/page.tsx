@@ -367,7 +367,7 @@ export default function SmallMakersFlipbookPage() {
                       <p className="text-white/90 text-[13px] lg:text-[15px] leading-[1.5] italic font-display">
                         "We coax out the natural sweetness in every bean without over-roasting."
                       </p>
-                      <p className="text-white/40 text-[9px] uppercase tracking-widest mt-3 font-medium">— Marcus Chen, Founder</p>
+                      <p className="text-white/40 text-[9px] uppercase tracking-widest mt-3 font-medium">- Marcus Chen, Founder</p>
                     </div>
                   </div>
                 </div>
@@ -418,7 +418,7 @@ export default function SmallMakersFlipbookPage() {
                   </div>
                   <div className="absolute bottom-10 lg:bottom-14 right-2 lg:right-4 z-20 bg-text-primary text-white p-4 lg:p-6 max-w-[180px] lg:max-w-[220px] shadow-xl">
                     <p className="text-[11px] lg:text-[14px] font-display italic leading-[1.4]">"The hive works as one. We just listen."</p>
-                    <p className="text-[9px] uppercase tracking-widest text-white/40 mt-2 font-medium">— Sarah Mills</p>
+                    <p className="text-[9px] uppercase tracking-widest text-white/40 mt-2 font-medium">- Sarah Mills</p>
                   </div>
                 </div>
               </div>

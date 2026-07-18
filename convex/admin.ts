@@ -9,11 +9,11 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { isAdmin, requireAdmin } from "./lib/auth";
 
 /**
- * Admin API — read + write surface for the back-office dashboard at /admin.
+ * Admin API - read + write surface for the back-office dashboard at /admin.
  *
  * Every function in this module is gated by `requireAdmin` (or `isAdmin` for
  * the soft `amIAdmin` check used by the UI guard). Admin is granted by either
- * `users.isAdmin === true` or a Clerk JWT role claim — see `lib/auth.ts`.
+ * `users.isAdmin === true` or a Clerk JWT role claim - see `lib/auth.ts`.
  *
  * List queries are intentionally bounded with `.take(...)` and ordered newest
  * first. This keeps the back-office cheap for the MVP dataset; if a table
@@ -74,7 +74,7 @@ async function syncUserSubscriptionSummary(
 // ──────────────────────────────────────────────────────────────
 
 /**
- * Soft admin check for the UI guard — returns a boolean instead of throwing,
+ * Soft admin check for the UI guard - returns a boolean instead of throwing,
  * so the dashboard can render an "access denied" state gracefully.
  */
 export const amIAdmin = query({
@@ -265,7 +265,7 @@ export const getUserDetail = query({
 
 /**
  * Toggle the Convex `isAdmin` flag on a user. (This does not touch Clerk
- * `publicMetadata` — the auth gate accepts either source.)
+ * `publicMetadata` - the auth gate accepts either source.)
  */
 export const setUserAdmin = mutation({
   args: { userId: v.id("users"), isAdmin: v.boolean() },
@@ -480,7 +480,7 @@ export const setDeliveryZoneActive = mutation({
 });
 
 // ──────────────────────────────────────────────────────────────
-// Marketing — newsletter, referrals, gifts
+// Marketing - newsletter, referrals, gifts
 // ──────────────────────────────────────────────────────────────
 
 export const listNewsletter = query({

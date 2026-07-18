@@ -26,7 +26,7 @@ const attributesValidator = v.optional(
 );
 
 /**
- * Public catalog listing — active products only, optionally filtered by
+ * Public catalog listing - active products only, optionally filtered by
  * category. Uses built-in Convex pagination to smoothly load catalog pages.
  */
 export const listActive = query({
@@ -243,7 +243,7 @@ export const upsertProduct = mutation({
 });
 
 /**
- * INTERNAL — for seed scripts.
+ * INTERNAL - for seed scripts.
  */
 export const internalUpsertProduct = internalMutation({
   args: upsertArgs,

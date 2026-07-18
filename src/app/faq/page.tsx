@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import Reveal from '@/components/Reveal';
 
 /* ────────────────────────────────────────────────
-   FAQ Data — organised by section
+   FAQ Data - organised by section
    ──────────────────────────────────────────────── */
 
 interface FAQNote {
@@ -36,13 +36,13 @@ const faqSections: FAQSection[] = [
       {
         question: 'Why shop at Lumë Refillery?',
         answer:
-          'Lumë Refillery is an innovative grocery ecosystem designed to change how we provision our homes. We curate everyday essentials based on strict standards of quality, nutrition, and environmental stewardship. By partnering with local farmers, large distributors and emerging ethical producers, we are designing a more transparent and less wasteful regional food system.\n\nFrom nutrient-dense staples to home goods and personal care items, our service delivers everything you need in a seamless, circular subscription and light bulk model. And because modern living is noisy, we seek to eliminate that decision fatigue and supply-chain uncertainty.\n\nShopping with Lumë isn\'t just about buying groceries; when you shop with us, you are reclaiming your time, supporting the local agri-food economy, and investing in a structured foundation that is built to nourish you—not just feed you.',
+          'Lumë Refillery is an innovative grocery ecosystem designed to change how we provision our homes. We curate everyday essentials based on strict standards of quality, nutrition, and environmental stewardship. By partnering with local farmers, large distributors and emerging ethical producers, we are designing a more transparent and less wasteful regional food system.\n\nFrom nutrient-dense staples to home goods and personal care items, our service delivers everything you need in a seamless, circular subscription and light bulk model. And because modern living is noisy, we seek to eliminate that decision fatigue and supply-chain uncertainty.\n\nShopping with Lumë isn\'t just about buying groceries; when you shop with us, you are reclaiming your time, supporting the local agri-food economy, and investing in a structured foundation that is built to nourish you-not just feed you.',
       },
       {
         question:
           'How is it different from a traditional/standard brick and mortar grocery store?',
         answer:
-          'A traditional grocery store is designed to provide variety and a physical destination for those moments when you need to get out of the house. We don\'t aim to compete with that experience; we are here to provide stability where it matters most—fueling your body.\n\nLumë is just different. We are a curated system, not a marketplace. Just like you, the creators of Lumë have experienced the decision fatigue that hits when it\'s time to shop: the unpredictable budgets and the draining 2–3 hour grocery runs. Sometimes, we all want someone else to do that heavy lifting for us.\n\nInstead of navigating multiple aisles, procuring transport, or managing the chaos of a public errand, our service gives you the benefit of a precision-based routine that arrives on your schedule. We replace the reactive, time-consuming trip to the store with a proactive, automated restock of high-quality, small-batch goods. We don\'t just sell you food; we steward your inventory, ensuring that the foundations of your daily ritual are always in place without you ever missing a beat.',
+          'A traditional grocery store is designed to provide variety and a physical destination for those moments when you need to get out of the house. We don\'t aim to compete with that experience; we are here to provide stability where it matters most-fueling your body.\n\nLumë is just different. We are a curated system, not a marketplace. Just like you, the creators of Lumë have experienced the decision fatigue that hits when it\'s time to shop: the unpredictable budgets and the draining 2–3 hour grocery runs. Sometimes, we all want someone else to do that heavy lifting for us.\n\nInstead of navigating multiple aisles, procuring transport, or managing the chaos of a public errand, our service gives you the benefit of a precision-based routine that arrives on your schedule. We replace the reactive, time-consuming trip to the store with a proactive, automated restock of high-quality, small-batch goods. We don\'t just sell you food; we steward your inventory, ensuring that the foundations of your daily ritual are always in place without you ever missing a beat.',
       },
     ],
   },
@@ -57,7 +57,7 @@ const faqSections: FAQSection[] = [
       {
         question: 'What are the benefits of your light bulk and grocery subscription model?',
         answer:
-          'The primary benefit is the restoration of your time and mental clarity. By automating your basic restocks and offering weekly budget friendly light-bulk options, we remove the "decision fatigue" of the weekly grocery run. You gain a predictable, precision-based routine that ensures your essentials are always in your fridge exactly when you need them. It is stability, delivered.\n\nIn other words — we act as stewards of a delivery system that saves you money, hours of time, and energy every month.',
+          'The primary benefit is the restoration of your time and mental clarity. By automating your basic restocks and offering weekly budget friendly light-bulk options, we remove the "decision fatigue" of the weekly grocery run. You gain a predictable, precision-based routine that ensures your essentials are always in your fridge exactly when you need them. It is stability, delivered.\n\nIn other words - we act as stewards of a delivery system that saves you money, hours of time, and energy every month.',
       },
       {
         question: 'Can I shop without a subscription?',
