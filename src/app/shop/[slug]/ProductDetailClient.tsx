@@ -66,6 +66,27 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const activeImage = galleryImages[activeImageIndex] ?? null;
 
+  // PDP info tabs (Producer / Storage Tips / Ingredients) - only sections
+  // with admin-entered content appear.
+  const infoSections = useMemo(() => {
+    const sections: { id: string; label: string }[] = [];
+    const prod = product.producer;
+    if (prod && (prod.name || prod.text || prod.imageUrl)) {
+      sections.push({ id: 'producer', label: 'Producer' });
+    }
+    const store = product.storageTips;
+    if (store && (store.text || store.imageUrl)) {
+      sections.push({ id: 'storage', label: 'Storage Tips' });
+    }
+    const ingr = product.ingredients;
+    if (ingr && (ingr.text || ingr.imageUrl)) {
+      sections.push({ id: 'ingredients', label: 'Ingredients & Nutrition' });
+    }
+    return sections;
+  }, [product.producer, product.storageTips, product.ingredients]);
+  const [activeInfoTab, setActiveInfoTab] = useState<string | null>(null);
+  const currentInfoTab = activeInfoTab ?? infoSections[0]?.id ?? null;
+
   const hasVariants = (product.options?.length ?? 0) > 0 && variants.length > 0;
   const options = product.options ?? [];
 
@@ -365,6 +386,108 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
               </div>
             )}
           </div>
+
+          {/* Info tabs: Producer / Storage Tips / Ingredients & Nutrition */}
+          {infoSections.length > 0 && (
+            <div className="mt-16">
+              <div className="flex gap-8 border-b border-lume-house/10">
+                {infoSections.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setActiveInfoTab(s.id)}
+                    className={`relative pb-3 text-[13px] font-medium transition-colors ${
+                      currentInfoTab === s.id
+                        ? 'text-lume-house'
+                        : 'text-text-secondary hover:text-lume-house'
+                    }`}
+                  >
+                    {s.label}
+                    {currentInfoTab === s.id && (
+                      <span className="absolute -bottom-px left-0 right-0 h-[2px] bg-lume-house" />
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-8 rounded-2xl border border-lume-house/10 bg-white/50 p-7 md:p-9">
+                {currentInfoTab === 'producer' && product.producer && (
+                  <div className="flex flex-col gap-7 md:flex-row">
+                    {product.producer.imageUrl && (
+                      <div className="relative h-44 w-full shrink-0 overflow-hidden rounded-xl md:h-40 md:w-56">
+                        <Image
+                          src={product.producer.imageUrl}
+                          alt={product.producer.name ?? 'Producer'}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 224px"
+                        />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      {product.producer.name && (
+                        <h3 className="font-display text-[24px] leading-tight tracking-tight text-lume-house">
+                          {product.producer.name}
+                        </h3>
+                      )}
+                      {product.producer.location && (
+                        <p className="mt-0.5 text-[12px] font-medium uppercase tracking-[0.1em] text-lume-accent">
+                          {product.producer.location}
+                        </p>
+                      )}
+                      {product.producer.text && (
+                        <p className="mt-4 whitespace-pre-wrap text-[14px] font-light leading-relaxed text-text-secondary">
+                          {product.producer.text}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {currentInfoTab === 'storage' && product.storageTips && (
+                  <div className="flex flex-col gap-7 md:flex-row">
+                    {product.storageTips.imageUrl && (
+                      <div className="relative h-44 w-full shrink-0 overflow-hidden rounded-xl md:h-40 md:w-56">
+                        <Image
+                          src={product.storageTips.imageUrl}
+                          alt="Storage"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 224px"
+                        />
+                      </div>
+                    )}
+                    {product.storageTips.text && (
+                      <p className="whitespace-pre-wrap text-[14px] font-light leading-relaxed text-text-secondary">
+                        {product.storageTips.text}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {currentInfoTab === 'ingredients' && product.ingredients && (
+                  <div className="flex flex-col gap-7 md:flex-row">
+                    {product.ingredients.imageUrl && (
+                      <div className="relative h-44 w-full shrink-0 overflow-hidden rounded-xl md:h-40 md:w-56">
+                        <Image
+                          src={product.ingredients.imageUrl}
+                          alt="Ingredients & nutrition"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 224px"
+                        />
+                      </div>
+                    )}
+                    {product.ingredients.text && (
+                      <p className="whitespace-pre-wrap text-[14px] font-light leading-relaxed text-text-secondary">
+                        {product.ingredients.text}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Accordions */}
           <div className="mt-12 max-w-4xl flex flex-col border-b border-lume-house/10">
