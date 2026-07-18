@@ -55,25 +55,50 @@ export const listActive = query({
  * Bounded public catalog snapshot for server-rendered shop pages. This avoids
  * turning every anonymous catalog visit into a live reactive subscription.
  */
+/** Public: distinct brands across active products (for the homepage scroller). */
+export const listBrands = query({
+  args: {},
+  handler: async (ctx) => {
+    const active = await ctx.db
+      .query("products")
+      .withIndex("by_active", (q) => q.eq("active", true))
+      .take(500);
+    const brands = new Set<string>();
+    for (const p of active) {
+      if (p.brand?.trim()) brands.add(p.brand.trim());
+    }
+    return [...brands].sort();
+  },
+});
+
 export const listActiveSnapshot = query({
   args: {
     category: v.optional(v.string()),
+    subcategory: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 36, 60);
-    if (args.category) {
-      return await ctx.db
-        .query("products")
-        .withIndex("by_active_and_category", (q) =>
-          q.eq("active", true).eq("category", args.category!)
-        )
-        .take(limit);
-    }
-    return await ctx.db
+    const active = await ctx.db
       .query("products")
       .withIndex("by_active", (q) => q.eq("active", true))
-      .take(limit);
+      .take(500);
+    // Nav tabs pass shopCategorySlug; older products may only have the
+    // legacy category code, so match either.
+    const matches = active.filter((p) => {
+      if (
+        args.category &&
+        p.shopCategorySlug !== args.category &&
+        p.category !== args.category
+      ) {
+        return false;
+      }
+      if (args.subcategory && p.shopSubcategorySlug !== args.subcategory) {
+        return false;
+      }
+      return true;
+    });
+    return matches.slice(0, limit);
   },
 });
 
@@ -84,29 +109,33 @@ export const searchActive = query({
   args: {
     query: v.string(),
     category: v.optional(v.string()),
+    subcategory: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 20, 50);
-    
-    if (args.category) {
-      return await ctx.db
-        .query("products")
-        .withSearchIndex("search_products", (q) =>
-          q.search("name", args.query)
-           .eq("active", true)
-           .eq("category", args.category!)
-        )
-        .take(limit);
-    }
-    
-    return await ctx.db
+    const hits = await ctx.db
       .query("products")
       .withSearchIndex("search_products", (q) =>
-        q.search("name", args.query)
-         .eq("active", true)
+        q.search("name", args.query).eq("active", true)
       )
-      .take(limit);
+      .take(100);
+    // Post-filter so category matches either shopCategorySlug or the
+    // legacy category code (see listActiveSnapshot).
+    const matches = hits.filter((p) => {
+      if (
+        args.category &&
+        p.shopCategorySlug !== args.category &&
+        p.category !== args.category
+      ) {
+        return false;
+      }
+      if (args.subcategory && p.shopSubcategorySlug !== args.subcategory) {
+        return false;
+      }
+      return true;
+    });
+    return matches.slice(0, limit);
   },
 });
 

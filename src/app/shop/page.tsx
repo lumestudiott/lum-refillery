@@ -17,10 +17,11 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 const getCatalogSnapshot = unstable_cache(
-  async (category: ShopCategoryId) => {
+  async (category: ShopCategoryId, subcategory: string | undefined) => {
     const convex = new ConvexHttpClient(getServerConvexUrl());
     return await convex.query(api.products.listActiveSnapshot, {
       category: category === 'all' ? undefined : category,
+      subcategory,
       limit: 60,
     });
   },
@@ -28,11 +29,16 @@ const getCatalogSnapshot = unstable_cache(
   { revalidate: 60 }
 );
 
-async function searchCatalog(query: string, category: ShopCategoryId) {
+async function searchCatalog(
+  query: string,
+  category: ShopCategoryId,
+  subcategory: string | undefined
+) {
   const convex = new ConvexHttpClient(getServerConvexUrl());
   return await convex.query(api.products.searchActive, {
     query,
     category: category === 'all' ? undefined : category,
+    subcategory,
     limit: 60,
   });
 }
@@ -40,18 +46,20 @@ async function searchCatalog(query: string, category: ShopCategoryId) {
 export default async function ShopPage({ searchParams }: ShopPageProps) {
   const params = (await searchParams) ?? {};
   const initialCategory = normalizeCategory(firstParam(params.category));
+  const initialSubcategory = firstParam(params.sub)?.slice(0, 80) || undefined;
   const initialQuery = firstParam(params.q)?.slice(0, 80) ?? '';
   const initialSort = normalizeSort(firstParam(params.sort));
-  
-  const products = initialQuery 
-    ? await searchCatalog(initialQuery, initialCategory)
-    : await getCatalogSnapshot(initialCategory);
+
+  const products = initialQuery
+    ? await searchCatalog(initialQuery, initialCategory, initialSubcategory)
+    : await getCatalogSnapshot(initialCategory, initialSubcategory);
 
   return (
     <ShopPageClient
-      key={`${initialCategory}:${initialSort}`}
+      key={`${initialCategory}:${initialSubcategory ?? ''}:${initialSort}`}
       initialProducts={products as ShopProduct[]}
       initialCategory={initialCategory}
+      initialSubcategory={initialSubcategory}
       initialQuery={initialQuery}
       initialSort={initialSort}
     />

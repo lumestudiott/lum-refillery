@@ -2,8 +2,10 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
-const brands = [
+const FALLBACK_BRANDS = [
   { name: 'S.M. Jaleel' },
   { name: 'Solo Beverages' },
   { name: 'Blue Waters' },
@@ -16,6 +18,12 @@ const brands = [
 ];
 
 const BrandScroller: React.FC = () => {
+  // Real brands from the catalog once enough exist to fill the scroller.
+  const dbBrands = useQuery(api.products.listBrands, {});
+  const brands =
+    dbBrands && dbBrands.length >= 6
+      ? dbBrands.map((name) => ({ name }))
+      : FALLBACK_BRANDS;
   return (
     <div className="relative py-6">
       <div className="relative overflow-hidden">
