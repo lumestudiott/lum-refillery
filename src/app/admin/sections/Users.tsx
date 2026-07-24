@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
-import { Search, ShieldCheck, Shield, DollarSign, Eye } from 'lucide-react';
+import { Search, ShieldCheck, Shield, DollarSign, Eye, Trash2 } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
 import {
@@ -27,6 +27,7 @@ type User = Doc<'users'>;
 export default function UsersSection() {
   const users = useQuery(api.admin.listUsers);
   const setAdmin = useMutation(api.admin.setUserAdmin);
+  const deleteUser = useMutation(api.admin.deleteUser);
   const adjust = useMutation(api.credits.adminAdjust);
   const toast = useToast();
 
@@ -60,6 +61,21 @@ export default function UsersSection() {
     try {
       await setAdmin({ userId: u._id, isAdmin: next });
       toast(next ? 'Admin granted' : 'Admin revoked');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed', 'error');
+    }
+  }
+
+  async function handleDeleteUser(u: User) {
+    if (
+      !confirm(
+        `Are you sure you want to delete the user ${u.email}? This action cannot be undone and will permanently erase their data.`
+      )
+    )
+      return;
+    try {
+      await deleteUser({ userId: u._id });
+      toast('User deleted successfully');
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed', 'error');
     }
@@ -188,6 +204,13 @@ export default function UsersSection() {
                       ) : (
                         <ShieldCheck className="h-4 w-4" />
                       )}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUser(u)}
+                      className="rounded-lg p-2 text-red-500/70 hover:bg-red-50 hover:text-red-600"
+                      title="Delete user"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </Td>
