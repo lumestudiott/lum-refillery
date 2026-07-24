@@ -218,9 +218,6 @@ export default defineSchema({
         // still validate; new products set per-fraction quantities below.
         caseSize: v.optional(v.number()),
         itemLabel: v.optional(v.string()),
-        enableSingle: v.optional(v.boolean()),
-        singleQty: v.optional(v.number()),
-        singlePriceCents: v.optional(v.number()),
         enableQuarter: v.optional(v.boolean()),
         quarterQty: v.optional(v.number()),
         quarterPriceCents: v.optional(v.number()),
@@ -276,9 +273,6 @@ export default defineSchema({
     casePricing: v.optional(
       v.object({
         itemLabel: v.optional(v.string()),
-        enableSingle: v.optional(v.boolean()),
-        singleQty: v.optional(v.number()),
-        singlePriceCents: v.optional(v.number()),
         enableQuarter: v.optional(v.boolean()),
         quarterQty: v.optional(v.number()),
         quarterPriceCents: v.optional(v.number()),

@@ -27,8 +27,8 @@ type User = Doc<'users'>;
 export default function UsersSection() {
   const users = useQuery(api.admin.listUsers);
   const setAdmin = useMutation(api.admin.setUserAdmin);
-  const deleteUser = useMutation(api.admin.deleteUser);
   const adjust = useMutation(api.credits.adminAdjust);
+  const delUser = useMutation(api.admin.deleteUser);
   const toast = useToast();
 
   const [search, setSearch] = useState('');
@@ -66,18 +66,18 @@ export default function UsersSection() {
     }
   }
 
-  async function handleDeleteUser(u: User) {
+  async function confirmDelete(u: User) {
     if (
       !confirm(
-        `Are you sure you want to delete the user ${u.email}? This action cannot be undone and will permanently erase their data.`
+        `Are you sure you want to permanently delete user ${u.email}? This action cannot be undone and will delete all their associated data.`
       )
     )
       return;
     try {
-      await deleteUser({ userId: u._id });
-      toast('User deleted successfully');
+      await delUser({ userId: u._id });
+      toast('User deleted');
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed', 'error');
+      toast(err instanceof Error ? err.message : 'Delete failed', 'error');
     }
   }
 
@@ -206,8 +206,8 @@ export default function UsersSection() {
                       )}
                     </button>
                     <button
-                      onClick={() => handleDeleteUser(u)}
-                      className="rounded-lg p-2 text-red-500/70 hover:bg-red-50 hover:text-red-600"
+                      onClick={() => confirmDelete(u)}
+                      className="rounded-lg p-2 text-text-secondary hover:bg-red-50 hover:text-red-600"
                       title="Delete user"
                     >
                       <Trash2 className="h-4 w-4" />
