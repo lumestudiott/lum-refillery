@@ -109,13 +109,23 @@ export default function ProductQuickViewModal({ product, onClose }: ProductQuick
                       key={i}
                       type="button"
                       onClick={() => setActiveImage(i)}
-                      className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-[2px] transition-all duration-300 ${
+                      className={`group/thumb relative h-16 w-16 shrink-0 overflow-hidden rounded-[2px] transition-all duration-300 ${
                         activeImage === i
                           ? 'ring-1 ring-lume-house ring-offset-2 ring-offset-[#FAF9F5]'
-                          : 'opacity-40 hover:opacity-80'
+                          : ''
                       }`}
                     >
-                      <Image src={img.url} alt={img.alt ?? `${product.name} ${i + 1}`} fill className="object-cover mix-blend-multiply" sizes="64px" />
+                      {/* Dim via the image's own opacity - opacity on the button
+                          isolates mix-blend-multiply and shows white backgrounds. */}
+                      <Image
+                        src={img.url}
+                        alt={img.alt ?? `${product.name} ${i + 1}`}
+                        fill
+                        className={`object-cover mix-blend-multiply transition-opacity duration-300 ${
+                          activeImage === i ? '' : 'opacity-40 group-hover/thumb:opacity-80'
+                        }`}
+                        sizes="64px"
+                      />
                     </button>
                   ))}
                 </div>
@@ -174,7 +184,9 @@ export default function ProductQuickViewModal({ product, onClose }: ProductQuick
               </span>
             </div>
             <p className="text-[12px] text-text-secondary">
-              {product.purchaseType === 'subscription' ? 'Subscribe to save more.' : 'One-time purchase.'}
+              {(product.purchaseTypes?.includes('subscription') ?? product.purchaseType === 'subscription')
+                ? 'Subscribe to save more.'
+                : 'One-time purchase.'}
             </p>
             {stock.low && (
               <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#D9381E]">
@@ -192,7 +204,7 @@ export default function ProductQuickViewModal({ product, onClose }: ProductQuick
               >
                 Sold Out
               </button>
-            ) : product.purchaseType === 'subscription' ? (
+            ) : (product.purchaseTypes?.includes('subscription') ?? product.purchaseType === 'subscription') ? (
               <QuickViewSubscriptionSelector product={product} />
             ) : (
               <button

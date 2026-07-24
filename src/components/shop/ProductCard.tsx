@@ -10,6 +10,7 @@ import { stockStatus } from '@/lib/stock';
 export interface ShopProduct {
   _id: string;
   sku: string;
+  slug?: string;
   name: string;
   brand?: string;
   description?: string;
@@ -19,8 +20,10 @@ export interface ShopProduct {
   imageUrl?: string;
   images?: Array<{ url: string; alt?: string }>;
   sourcingOrigin?: string;
-  // "one-time" (default) | "subscription"
+  // Legacy single value - superseded by purchaseTypes
   purchaseType?: string;
+  // Multi-select purchase modes, e.g. ["one-time", "subscription"]
+  purchaseTypes?: string[];
   // e.g. ["1mo", "3mo", "6mo"]
   subscriptionIntervals?: string[];
   tags?: string[];
@@ -28,6 +31,19 @@ export interface ShopProduct {
   trackInventory?: boolean;
   stockQuantity?: number;
   lowStockThreshold?: number;
+  casePricing?: {
+    caseSize?: number;
+    itemLabel?: string;
+    enableQuarter?: boolean;
+    quarterQty?: number;
+    quarterPriceCents?: number;
+    enableHalf?: boolean;
+    halfQty?: number;
+    halfPriceCents?: number;
+    enableFull?: boolean;
+    fullQty?: number;
+    fullPriceCents?: number;
+  };
 }
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=85';
@@ -39,6 +55,20 @@ const INTERVAL_LABELS: Record<string, string> = {
   '12mo': '12 Mo',
 };
 
+function getDisplayPrice(product: ShopProduct) {
+  const cp = product.casePricing;
+  if (cp) {
+    const prices = [];
+    if (cp.enableQuarter && cp.quarterPriceCents) prices.push(cp.quarterPriceCents);
+    if (cp.enableHalf && cp.halfPriceCents) prices.push(cp.halfPriceCents);
+    if (cp.enableFull && cp.fullPriceCents) prices.push(cp.fullPriceCents);
+    if (prices.length > 0) {
+      return Math.min(...prices);
+    }
+  }
+  return product.basePriceCents;
+}
+
 export default function ProductCard({ 
   product,
   onQuickView
@@ -48,6 +78,7 @@ export default function ProductCard({
 }) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
+  const productHref = `/shop/${product.slug || product.sku}`;
 
   const handleAdd = () => {
     addItem({
@@ -62,16 +93,21 @@ export default function ProductCard({
     setTimeout(() => setAdded(false), 2000);
   };
 
-  const isSubscription = product.purchaseType === 'subscription';
+  const isSubscription =
+    product.purchaseTypes?.includes('subscription') ??
+    product.purchaseType === 'subscription';
   const stock = stockStatus(product);
 
   const displayName = product.name.replace(/\[/g, '').replace(/\]/g, '');
   const displayUnit = product.unit.toLowerCase().includes('bdl') ? 'Bundle' : product.unit;
 
+  const displayPriceCents = getDisplayPrice(product);
+  const hasOptionsOrCases = (product.casePricing?.enableQuarter || product.casePricing?.enableHalf || product.casePricing?.enableFull) || (product as any).options?.length > 0;
+
   return (
     <article className="group relative flex flex-col bg-transparent">
       {/* Editorial Image Container */}
-      <Link href={`/shop/${product.sku}`} className="relative aspect-square w-full overflow-hidden bg-transparent rounded-[4px] block">
+      <Link href={productHref} className="relative aspect-square w-full overflow-hidden bg-transparent rounded-[4px] block">
 
         {/* Sold-out overlay */}
         {stock.soldOut && (
@@ -102,12 +138,12 @@ export default function ProductCard({
           </span>
           {/* Subtle Price on right */}
           <span className="text-[12px] font-medium tracking-wider text-lume-house">
-            TT${(product.basePriceCents / 100).toFixed(2)}
+            {hasOptionsOrCases ? 'From ' : ''}TT${(displayPriceCents / 100).toFixed(2)}
           </span>
         </div>
         
         {/* Main Title - Serif Editorial */}
-        <Link href={`/shop/${product.sku}`}>
+        <Link href={productHref}>
           <h3 className="font-display text-[22px] leading-snug tracking-tight text-lume-house transition-colors group-hover:text-black hover:underline cursor-pointer">
             {displayName}
           </h3>
@@ -122,7 +158,7 @@ export default function ProductCard({
           </span>
         )}
 
-        {/* Add to Cart / Subscribe */}
+        {/* View Product */}
         {stock.soldOut ? (
           <button
             type="button"
@@ -131,23 +167,14 @@ export default function ProductCard({
           >
             Sold Out
           </button>
-        ) : isSubscription ? (
-          <SubscriptionSelector product={product} />
         ) : (
-          <button
-            type="button"
-            onClick={handleAdd}
-            aria-live="polite"
-            aria-label={added ? `${displayName} added to cart` : `Add ${displayName} to cart`}
-            className={`mt-6 flex h-[42px] items-center justify-center gap-2 border border-lume-house/20 text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-500 ${
-              added
-                ? 'bg-lume-house text-white border-lume-house'
-                : 'bg-transparent text-lume-house hover:bg-lume-house hover:text-white'
-            }`}
+          <Link
+            href={productHref}
+            className="mt-6 flex h-[42px] items-center justify-center gap-2 border border-lume-house/20 bg-transparent text-[11px] font-medium uppercase tracking-[0.15em] text-lume-house transition-all duration-500 hover:bg-lume-house hover:text-white"
           >
-            {added ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-            {added ? 'Added' : 'Add to Cart'}
-          </button>
+            <Eye className="h-3.5 w-3.5" />
+            View Product
+          </Link>
         )}
       </div>
     </article>
