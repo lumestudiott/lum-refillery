@@ -70,9 +70,6 @@ type VariantRowForm = {
   imageUrl: string;
   images: ImageEntry[];
   videoUrl: string;
-  enableSingle: boolean;
-  singleQty: string;
-  singlePrice: string;
   enableQuarter: boolean;
   quarterQty: string;
   quarterPrice: string;
@@ -94,9 +91,6 @@ function emptyVariantRow(): VariantRowForm {
     imageUrl: '',
     images: [],
     videoUrl: '',
-    enableSingle: false,
-    singleQty: '',
-    singlePrice: '',
     enableQuarter: false,
     quarterQty: '',
     quarterPrice: '',
@@ -181,9 +175,6 @@ type FormState = {
   // Case/bulk pricing
   casePricingEnabled: boolean;
   caseItemLabel: string;
-  enableSingleCase: boolean;
-  singleQty: string;
-  singlePrice: string;
   enableQuarterCase: boolean;
   quarterQty: string;
   quarterPrice: string;
@@ -247,9 +238,6 @@ function emptyForm(): FormState {
     // Case/bulk pricing
     casePricingEnabled: false,
     caseItemLabel: 'bottle',
-    enableSingleCase: false,
-    singleQty: '',
-    singlePrice: '',
     enableQuarterCase: false,
     quarterQty: '',
     quarterPrice: '',
@@ -315,11 +303,8 @@ function fromProduct(p: Product): FormState {
     variantRows: [],
     // Case/bulk pricing. Quantities read from the explicit per-fraction field,
     // falling back to the legacy caseSize × fraction for older products.
-    casePricingEnabled: p.casePricing != null,
-    caseItemLabel: p.casePricing?.itemLabel || 'bottle',
-    enableSingleCase: p.casePricing?.enableSingle ?? false,
-    singleQty: caseQtyString(p.casePricing?.singleQty, p.casePricing?.caseSize, 0.1),
-    singlePrice: p.casePricing?.singlePriceCents != null ? (p.casePricing.singlePriceCents / 100).toFixed(2) : '',
+    casePricingEnabled: !!p.casePricing,
+    caseItemLabel: p.casePricing?.itemLabel ?? 'bottle',
     enableQuarterCase: p.casePricing?.enableQuarter ?? false,
     quarterQty: caseQtyString(p.casePricing?.quarterQty, p.casePricing?.caseSize, 0.25),
     quarterPrice: p.casePricing?.quarterPriceCents != null ? (p.casePricing.quarterPriceCents / 100).toFixed(2) : '',
@@ -400,9 +385,6 @@ export default function Products() {
           imageUrl: v.imageUrl ?? '',
           images: v.images ?? [],
           videoUrl: v.videoUrl ?? '',
-          enableSingle: cp?.enableSingle ?? false,
-          singleQty: qty(cp?.singleQty),
-          singlePrice: price(cp?.singlePriceCents),
           enableQuarter: cp?.enableQuarter ?? false,
           quarterQty: qty(cp?.quarterQty),
           quarterPrice: price(cp?.quarterPriceCents),
@@ -778,7 +760,6 @@ export default function Products() {
 
     const parseQty = (v: string) =>
       v.trim() ? Math.max(1, parseInt(v, 10)) : undefined;
-    const singleQty = parseQty(form.singleQty);
     const quarterQty = parseQty(form.quarterQty);
     const halfQty = parseQty(form.halfQty);
     const fullQty = parseQty(form.fullQty);
@@ -788,9 +769,6 @@ export default function Products() {
           // Legacy field kept in sync (largest enabled qty) for any old consumers.
           caseSize: fullQty ?? (halfQty != null ? halfQty * 2 : undefined) ?? (quarterQty != null ? quarterQty * 4 : undefined),
           itemLabel: form.caseItemLabel.trim() || undefined,
-          enableSingle: form.enableSingleCase,
-          singleQty,
-          singlePriceCents: form.singlePrice.trim() ? Math.round(parseFloat(form.singlePrice) * 100) : undefined,
           enableQuarter: form.enableQuarterCase,
           quarterQty,
           quarterPriceCents: form.quarterPrice.trim() ? Math.round(parseFloat(form.quarterPrice) * 100) : undefined,
@@ -803,7 +781,7 @@ export default function Products() {
         }
       : undefined;
 
-    // Variant rows with a label become purchasable sizes; the product的
+    // Variant rows with a label become purchasable sizes; the product's
     // `options` field is derived from them so the PDP knows to render tiles.
     const validVariantRows = form.variantRows.filter((r) => r.label.trim());
     const optionName = form.optionName.trim() || 'Size';
@@ -871,7 +849,6 @@ export default function Products() {
       await saveVariantsMut({
         productId,
         variants: validVariantRows.map((r, i) => {
-          const singlePriceCents = r.enableSingle ? toCents(r.singlePrice) : undefined;
           const quarterPriceCents = r.enableQuarter ? toCents(r.quarterPrice) : undefined;
           const halfPriceCents = r.enableHalf ? toCents(r.halfPrice) : undefined;
           const fullPriceCents = r.enableFull ? toCents(r.fullPrice) : undefined;
@@ -882,7 +859,7 @@ export default function Products() {
             // Headline price for the size: cheapest enabled case option,
             // falling back to the product base price.
             priceCents:
-              singlePriceCents ?? quarterPriceCents ?? halfPriceCents ?? fullPriceCents ?? priceCents,
+              quarterPriceCents ?? halfPriceCents ?? fullPriceCents ?? priceCents,
             imageUrl: r.imageUrl || undefined,
             images: r.images.length > 0 ? r.images : undefined,
             videoUrl: r.videoUrl.trim() || undefined,
@@ -897,9 +874,6 @@ export default function Products() {
                 : undefined,
             casePricing: {
               itemLabel: form.caseItemLabel.trim() || undefined,
-              enableSingle: r.enableSingle,
-              singleQty: parseQty(r.singleQty),
-              singlePriceCents,
               enableQuarter: r.enableQuarter,
               quarterQty: parseQty(r.quarterQty),
               quarterPriceCents,
@@ -1376,149 +1350,7 @@ export default function Products() {
               onChange={(e) => setForm({ ...form, customDiscountPercent: e.target.value })}
               placeholder="e.g. 15"
             />
-            {/* Case pricing (general products) */}
-            <div className="sm:col-span-2 border-t border-black/[0.06] pt-4">
-              <CheckRow
-                label="Enable Case Pricing"
-                checked={form.casePricingEnabled}
-                onChange={(v) => setForm({ ...form, casePricingEnabled: v })}
-              />
-            </div>
-            {form.casePricingEnabled && (
-              <>
-                <TextField
-                  label="Item Label"
-                  value={form.caseItemLabel}
-                  onChange={(e) => setForm({ ...form, caseItemLabel: e.target.value })}
-                  placeholder="e.g. bottle"
-                />
-                <div />
-                <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
-                  <CheckRow
-                    label="Single Price"
-                    checked={form.enableSingleCase}
-                    onChange={(v) => setForm({ ...form, enableSingleCase: v })}
-                  />
-                  {form.enableSingleCase ? (
-                    <>
-                      <TextField
-                        label=""
-                        type="number"
-                        step="1"
-                        min="1"
-                        value={form.singleQty}
-                        onChange={(e) => setForm({ ...form, singleQty: e.target.value })}
-                        placeholder="Qty (optional)"
-                      />
-                      <TextField
-                        label=""
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={form.singlePrice}
-                        onChange={(e) => setForm({ ...form, singlePrice: e.target.value })}
-                        placeholder="Single Price"
-                      />
-                    </>
-                  ) : (
-                    <div className="col-span-2" />
-                  )}
-                </div>
-                <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
-                  <CheckRow
-                    label="¼ Case"
-                    checked={form.enableQuarterCase}
-                    onChange={(v) => setForm({ ...form, enableQuarterCase: v })}
-                  />
-                  {form.enableQuarterCase ? (
-                    <>
-                      <TextField
-                        label=""
-                        type="number"
-                        step="1"
-                        min="1"
-                        value={form.quarterQty}
-                        onChange={(e) => setForm({ ...form, quarterQty: e.target.value })}
-                        placeholder="Qty per ¼ case"
-                      />
-                      <TextField
-                        label=""
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={form.quarterPrice}
-                        onChange={(e) => setForm({ ...form, quarterPrice: e.target.value })}
-                        placeholder="Price for ¼ case"
-                      />
-                    </>
-                  ) : (
-                    <div className="col-span-2" />
-                  )}
-                </div>
-                <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
-                  <CheckRow
-                    label="½ Case"
-                    checked={form.enableHalfCase}
-                    onChange={(v) => setForm({ ...form, enableHalfCase: v })}
-                  />
-                  {form.enableHalfCase ? (
-                    <>
-                      <TextField
-                        label=""
-                        type="number"
-                        step="1"
-                        min="1"
-                        value={form.halfQty}
-                        onChange={(e) => setForm({ ...form, halfQty: e.target.value })}
-                        placeholder="Qty per ½ case"
-                      />
-                      <TextField
-                        label=""
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={form.halfPrice}
-                        onChange={(e) => setForm({ ...form, halfPrice: e.target.value })}
-                        placeholder="Price for ½ case"
-                      />
-                    </>
-                  ) : (
-                    <div className="col-span-2" />
-                  )}
-                </div>
-                <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
-                  <CheckRow
-                    label="Full Case"
-                    checked={form.enableFullCase}
-                    onChange={(v) => setForm({ ...form, enableFullCase: v })}
-                  />
-                  {form.enableFullCase ? (
-                    <>
-                      <TextField
-                        label=""
-                        type="number"
-                        step="1"
-                        min="1"
-                        value={form.fullQty}
-                        onChange={(e) => setForm({ ...form, fullQty: e.target.value })}
-                        placeholder="Qty per full case"
-                      />
-                      <TextField
-                        label=""
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={form.fullPrice}
-                        onChange={(e) => setForm({ ...form, fullPrice: e.target.value })}
-                        placeholder="Price for full case"
-                      />
-                    </>
-                  ) : (
-                    <div className="col-span-2" />
-                  )}
-                </div>
-              </>
-            )}
+            {/* Case pricing now lives per-size on the Variants tab. */}
 
             {/* Purchase types (multi-select) - controls the buttons on the
                 product page: One-time → Add, Subscription → Subscribe. */}
@@ -2251,37 +2083,6 @@ export default function Products() {
                     <span className="text-[12px] font-medium text-text-primary">
                       Case Options, Quantity &amp; Pricing (TTD)
                     </span>
-                    <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
-                      <CheckRow
-                        label="Single Price"
-                        checked={row.enableSingle}
-                        onChange={(v) => patchRow({ enableSingle: v })}
-                      />
-                      {row.enableSingle ? (
-                        <>
-                          <TextField
-                            label=""
-                            type="number"
-                            step="1"
-                            min="1"
-                            value={row.singleQty}
-                            onChange={(e) => patchRow({ singleQty: e.target.value })}
-                            placeholder="Qty (optional)"
-                          />
-                          <TextField
-                            label=""
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={row.singlePrice}
-                            onChange={(e) => patchRow({ singlePrice: e.target.value })}
-                            placeholder="Single Price"
-                          />
-                        </>
-                      ) : (
-                        <div className="col-span-2" />
-                      )}
-                    </div>
                     <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
                       <CheckRow
                         label="¼ Case"

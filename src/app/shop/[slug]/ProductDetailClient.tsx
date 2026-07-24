@@ -137,9 +137,6 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
   type EffectiveCasePricing = {
     caseSize?: number;
     itemLabel?: string;
-    enableSingle?: boolean;
-    singleQty?: number;
-    singlePriceCents?: number;
     enableQuarter?: boolean;
     quarterQty?: number;
     quarterPriceCents?: number;
@@ -159,7 +156,6 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
     if (casePricing.enableFull) return 1;
     if (casePricing.enableHalf) return 0.5;
     if (casePricing.enableQuarter) return 0.25;
-    if (casePricing.enableSingle) return 0.1;
     return 1;
   }, [casePricing]);
 
@@ -172,8 +168,7 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
     const enabled =
       selectedCaseFraction === 1 ? casePricing.enableFull
       : selectedCaseFraction === 0.5 ? casePricing.enableHalf
-      : selectedCaseFraction === 0.25 ? casePricing.enableQuarter
-      : casePricing.enableSingle;
+      : casePricing.enableQuarter;
     if (!enabled) setSelectedCaseFraction(initialCaseFraction);
   }, [casePricing, selectedCaseFraction, initialCaseFraction]);
 
@@ -184,13 +179,9 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
       const explicit =
         fraction === 1 ? casePricing.fullQty
         : fraction === 0.5 ? casePricing.halfQty
-        : fraction === 0.25 ? casePricing.quarterQty
-        : casePricing.singleQty;
+        : casePricing.quarterQty;
       if (explicit != null) return explicit;
-      if (casePricing.caseSize != null) {
-          if (fraction === 0.1) return 1; // Default to 1 for Single if no explicit qty
-          return Math.max(1, Math.floor(casePricing.caseSize * fraction));
-      }
+      if (casePricing.caseSize != null) return Math.max(1, Math.floor(casePricing.caseSize * fraction));
       return 1;
     },
     [casePricing]
@@ -202,7 +193,6 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
     if (selectedCaseFraction === 1 && casePricing.fullPriceCents) return casePricing.fullPriceCents;
     if (selectedCaseFraction === 0.5 && casePricing.halfPriceCents) return casePricing.halfPriceCents;
     if (selectedCaseFraction === 0.25 && casePricing.quarterPriceCents) return casePricing.quarterPriceCents;
-    if (selectedCaseFraction === 0.1 && casePricing.singlePriceCents) return casePricing.singlePriceCents;
     return baseDisplayPrice;
   }, [casePricing, selectedCaseFraction, baseDisplayPrice]);
 
@@ -217,7 +207,7 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
     : undefined;
 
   const caseLabel = casePricing
-    ? `${selectedCaseFraction === 1 ? 'Full' : selectedCaseFraction === 0.5 ? '½' : selectedCaseFraction === 0.25 ? '¼' : 'Single'} Case (${caseQty(selectedCaseFraction)} ${casePricing.itemLabel || 'bottles'})`
+    ? `${selectedCaseFraction === 1 ? 'Full' : selectedCaseFraction === 0.5 ? '½' : '¼'} Case (${caseQty(selectedCaseFraction)} ${casePricing.itemLabel || 'bottles'})`
     : undefined;
   // e.g. "250ml One Way Glass · Full Case (24 bottles)"
   const finalVariantLabel = [variantLabel, caseLabel].filter(Boolean).join(' · ') || undefined;
@@ -462,22 +452,6 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
                     Quantity Options
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {casePricing.enableSingle && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCaseFraction(0.1)}
-                        className={`border px-5 py-3 text-center transition-all ${
-                          selectedCaseFraction === 0.1
-                            ? 'border-lume-house bg-lume-house text-white'
-                            : 'border-lume-house/20 text-lume-house hover:border-lume-house/50'
-                        }`}
-                      >
-                        <span className="block text-[12px] font-medium">Single ({caseQty(0.1)} {casePricing.itemLabel || 'bottles'})</span>
-                        <span className={`block mt-0.5 text-[11px] ${selectedCaseFraction === 0.1 ? 'text-white/70' : 'text-text-secondary'}`}>
-                          TT${((casePricing.singlePriceCents ?? baseDisplayPrice) / 100).toFixed(2)}
-                        </span>
-                      </button>
-                    )}
                     {casePricing.enableQuarter && (
                       <button
                         type="button"

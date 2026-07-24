@@ -277,9 +277,6 @@ const upsertArgs = {
     v.object({
       caseSize: v.optional(v.number()),
       itemLabel: v.optional(v.string()),
-      enableSingle: v.optional(v.boolean()),
-      singleQty: v.optional(v.number()),
-      singlePriceCents: v.optional(v.number()),
       enableQuarter: v.optional(v.boolean()),
       quarterQty: v.optional(v.number()),
       quarterPriceCents: v.optional(v.number()),
@@ -466,9 +463,6 @@ export const getImageUrl = mutation({
 const variantCasePricingValidator = v.optional(
   v.object({
     itemLabel: v.optional(v.string()),
-    enableSingle: v.optional(v.boolean()),
-    singleQty: v.optional(v.number()),
-    singlePriceCents: v.optional(v.number()),
     enableQuarter: v.optional(v.boolean()),
     quarterQty: v.optional(v.number()),
     quarterPriceCents: v.optional(v.number()),

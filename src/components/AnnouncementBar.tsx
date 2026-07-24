@@ -5,7 +5,13 @@ import { motion } from 'framer-motion';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
-const AnnouncementBar = () => {
+/**
+ * Inner component that calls useQuery. If the Convex query throws a server
+ * error, React will propagate it to the nearest error boundary — which we
+ * deliberately keep scoped to *just* this banner so the rest of the app
+ * survives.
+ */
+const AnnouncementBarInner = () => {
   const promos = useQuery(api.promotions.listActive, {});
 
   // Wait for data to load
@@ -44,5 +50,38 @@ const AnnouncementBar = () => {
     </div>
   );
 };
+
+/**
+ * Scoped error boundary: if the promotions query fails, the banner simply
+ * disappears instead of taking down the whole page.
+ */
+class AnnouncementBarBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.warn('[AnnouncementBar] Query failed, hiding banner:', error.message, info);
+  }
+
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
+const AnnouncementBar = () => (
+  <AnnouncementBarBoundary>
+    <AnnouncementBarInner />
+  </AnnouncementBarBoundary>
+);
 
 export default AnnouncementBar;
