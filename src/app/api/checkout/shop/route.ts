@@ -172,12 +172,17 @@ export async function POST(request: NextRequest) {
 
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
         body: params.toString(),
       });
 
       const data = await res.json().catch(() => null);
-      if (!res.ok || !data || !data.url) {
+      const hostedUrl = data?.url || (res.redirected ? res.url : null);
+
+      if (!hostedUrl) {
         console.error('WiPay shop checkout error:', data);
         return NextResponse.json(
           { error: data?.message || 'Failed to generate WiPay payment URL' },
@@ -185,7 +190,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      return NextResponse.json({ url: data.url, transactionId: data.transaction_id, orderId });
+      return NextResponse.json({ url: hostedUrl, transactionId: data?.transaction_id, orderId });
     }
 
     // ── Stripe customer (lazy create + persist) ──

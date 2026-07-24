@@ -74,14 +74,16 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
       },
       body: params.toString(),
     });
 
     const data = await res.json().catch(() => null);
+    const hostedUrl = data?.url || (res.redirected ? res.url : null);
 
-    if (!res.ok || !data || !data.url) {
-      console.error('WiPay API Error:', data);
+    if (!hostedUrl) {
+      console.error('WiPay API Error:', data, 'Response status:', res.status);
       return NextResponse.json(
         {
           error: data?.message || 'Failed to generate WiPay payment URL',
@@ -92,9 +94,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      url: data.url,
-      message: data.message,
-      transactionId: data.transaction_id,
+      url: hostedUrl,
+      message: data?.message || 'OK',
+      transactionId: data?.transaction_id,
       orderId,
     });
   } catch (error) {
