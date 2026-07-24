@@ -6,10 +6,15 @@ import { requireAdmin } from "./lib/auth";
 export const listActive = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
-      .query("promotions")
-      .withIndex("by_active", (q) => q.eq("active", true))
-      .take(20);
+    try {
+      return await ctx.db
+        .query("promotions")
+        .withIndex("by_active", (q) => q.eq("active", true))
+        .take(20);
+    } catch (error) {
+      console.warn("Failed to fetch active promotions. This is likely a schema validation error on a document in the DB, or an out-of-sync deployment. Returning empty list.", error);
+      return [];
+    }
   },
 });
 
