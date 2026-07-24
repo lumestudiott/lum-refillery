@@ -446,12 +446,10 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
               })}
 
               {/* Case Pricing selectors */}
-              {Boolean(
-                casePricing &&
-                  (casePricing.enableQuarter ||
-                    casePricing.enableHalf ||
-                    casePricing.enableFull)
-              ) && (
+              {casePricing &&
+              (casePricing.enableQuarter ||
+                casePricing.enableHalf ||
+                casePricing.enableFull) ? (
                 <div className="mb-5">
                   <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.15em] text-text-secondary">
                     Quantity Options
@@ -510,7 +508,7 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
                     TT${((displayPrice / 100) / caseQty(selectedCaseFraction)).toFixed(2)} per {casePricing.itemLabel || 'bottle'}
                   </p>
                 </div>
-              )}
+              ) : null}
 
               {stock.low && (
                 <p className="mb-5 text-[11px] font-medium uppercase tracking-[0.15em] text-[#B45309]">
