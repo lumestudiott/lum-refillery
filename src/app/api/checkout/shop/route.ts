@@ -125,6 +125,69 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // ── Check Active Payment Gateway (Stripe vs WiPay) ──
+    const activeProvider = await convex.query(api.payments.getActiveProvider);
+
+    if (activeProvider === 'wipay') {
+      const { WIPAY_CONFIG, getWiPayEndpoint } = await import('@/lib/wipay');
+      let totalCents = 0;
+      for (const item of items) {
+        const product = productMap.get(item.sku);
+        if (product) {
+          const unitAmount = item.variantId ? item.priceCents : product.basePriceCents;
+          totalCents += unitAmount * item.quantity;
+        }
+      }
+
+      let appliedPromoCode = '';
+      if (promoCode) {
+        const promo = await convex.query(api.promotions.validatePromoCode, { code: promoCode });
+        if (promo && promo.discountPercent > 0) {
+          totalCents = Math.round(totalCents * (1 - promo.discountPercent / 100));
+          appliedPromoCode = promoCode;
+        }
+      }
+
+      const formattedTotal = (totalCents / 100).toFixed(2);
+      const cleanUserSuffix = userId.replace(/[^a-zA-Z0-9_-]/g, '').slice(-8);
+      const orderId = `shop_${Date.now()}_${cleanUserSuffix}`.slice(0, 48);
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const responseUrl = `${appUrl}/api/wipay/response`;
+      const endpoint = getWiPayEndpoint(WIPAY_CONFIG.countryCode);
+
+      const params = new URLSearchParams();
+      params.append('account_number', WIPAY_CONFIG.accountNumber);
+      params.append('country_code', WIPAY_CONFIG.countryCode);
+      params.append('currency', WIPAY_CONFIG.currency);
+      params.append('environment', WIPAY_CONFIG.environment);
+      params.append('fee_structure', WIPAY_CONFIG.feeStructure);
+      params.append('method', 'credit_card');
+      params.append('order_id', orderId);
+      params.append('origin', 'LumeRefillery');
+      params.append('response_url', responseUrl);
+      params.append('total', formattedTotal);
+      params.append('avs', '0');
+      params.append('data', JSON.stringify({ userId, type: 'shop_order', orderId, promoCode: appliedPromoCode }));
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || !data.url) {
+        console.error('WiPay shop checkout error:', data);
+        return NextResponse.json(
+          { error: data?.message || 'Failed to generate WiPay payment URL' },
+          { status: 502 }
+        );
+      }
+
+      return NextResponse.json({ url: data.url, transactionId: data.transaction_id, orderId });
+    }
+
     // ── Stripe customer (lazy create + persist) ──
     let stripeCustomerId: string | null = null;
     const me = await convex.query(api.users.getUserByClerkId, { clerkId: userId });
