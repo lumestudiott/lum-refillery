@@ -67,6 +67,7 @@ type Product = Doc<'products'>;
 type VariantRowForm = {
   id?: string;
   label: string;
+  price: string;
   imageUrl: string;
   images: ImageEntry[];
   videoUrl: string;
@@ -88,6 +89,7 @@ type VariantRowForm = {
 function emptyVariantRow(): VariantRowForm {
   return {
     label: '',
+    price: '',
     imageUrl: '',
     images: [],
     videoUrl: '',
@@ -382,6 +384,7 @@ export default function Products() {
         return {
           id: v._id,
           label: v.optionValues[optName] ?? Object.values(v.optionValues)[0] ?? '',
+          price: price(v.priceCents),
           imageUrl: v.imageUrl ?? '',
           images: v.images ?? [],
           videoUrl: v.videoUrl ?? '',
@@ -849,6 +852,7 @@ export default function Products() {
       await saveVariantsMut({
         productId,
         variants: validVariantRows.map((r, i) => {
+          const directPriceCents = toCents(r.price);
           const quarterPriceCents = r.enableQuarter ? toCents(r.quarterPrice) : undefined;
           const halfPriceCents = r.enableHalf ? toCents(r.halfPrice) : undefined;
           const fullPriceCents = r.enableFull ? toCents(r.fullPrice) : undefined;
@@ -856,10 +860,10 @@ export default function Products() {
             id: (r.id || undefined) as Id<'productVariants'> | undefined,
             sku: `${baseSku}-${slugify(r.label).toUpperCase() || `V${i + 1}`}`,
             optionValues: { [optionName]: r.label.trim() },
-            // Headline price for the size: cheapest enabled case option,
-            // falling back to the product base price.
+            // Headline price for the size: direct price if set,
+            // else cheapest enabled case option, falling back to base price.
             priceCents:
-              quarterPriceCents ?? halfPriceCents ?? fullPriceCents ?? priceCents,
+              directPriceCents ?? quarterPriceCents ?? halfPriceCents ?? fullPriceCents ?? priceCents,
             imageUrl: r.imageUrl || undefined,
             images: r.images.length > 0 ? r.images : undefined,
             videoUrl: r.videoUrl.trim() || undefined,
@@ -2021,8 +2025,8 @@ export default function Products() {
                   key={row.id ?? `new-${i}`}
                   className="rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 p-4"
                 >
-                  {/* Header: image, label, active, delete */}
-                  <div className="grid grid-cols-[64px_1fr_auto_auto] items-center gap-3">
+                  {/* Header: image, label, direct price, active, delete */}
+                  <div className="grid grid-cols-[64px_1fr_130px_auto_auto] items-center gap-3">
                     <label className="relative flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-black/15 bg-white/60 transition-colors hover:border-lume-accent">
                       {row.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -2048,13 +2052,25 @@ export default function Products() {
                         label=""
                         value={row.label}
                         onChange={(e) => patchRow({ label: e.target.value })}
-                        placeholder="e.g. 250ml One Way Glass"
+                        placeholder="e.g. 6g Tumeric Powder"
                       />
                       {!row.label.trim() && (
                         <p className="mt-1 text-[11px] font-medium text-red-600">
                           Name this size — unnamed sizes are not saved.
                         </p>
                       )}
+                    </div>
+
+                    <div>
+                      <TextField
+                        label=""
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={row.price}
+                        onChange={(e) => patchRow({ price: e.target.value })}
+                        placeholder="Price (TTD)"
+                      />
                     </div>
 
                     <CheckRow

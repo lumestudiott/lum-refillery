@@ -446,7 +446,12 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
               })}
 
               {/* Case Pricing selectors */}
-              {casePricing && (
+              {Boolean(
+                casePricing &&
+                  (casePricing.enableQuarter ||
+                    casePricing.enableHalf ||
+                    casePricing.enableFull)
+              ) && (
                 <div className="mb-5">
                   <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.15em] text-text-secondary">
                     Quantity Options
