@@ -10,8 +10,11 @@ type VerificationState = 'checking' | 'paid' | 'syncing' | 'unpaid' | 'error';
 function SuccessVerifier() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const provider = searchParams.get('provider');
   const [state, setState] = useState<VerificationState>('checking');
-  const [message, setMessage] = useState('Verifying your payment with Stripe…');
+  const [message, setMessage] = useState(
+    provider === 'wipay' ? 'Verifying your payment with WiPay…' : 'Verifying your payment with Stripe…'
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -24,8 +27,9 @@ function SuccessVerifier() {
       }
 
       try {
+        const queryProvider = provider ? `&provider=${encodeURIComponent(provider)}` : '';
         const response = await fetch(
-          `/api/checkout/session?session_id=${encodeURIComponent(sessionId)}`
+          `/api/checkout/session?session_id=${encodeURIComponent(sessionId)}${queryProvider}`
         );
         const data = await response.json();
         if (cancelled) return;

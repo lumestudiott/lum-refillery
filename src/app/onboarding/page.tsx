@@ -402,15 +402,25 @@ function WiPayPanel({ onPaid }: { onPaid: () => void }) {
     setLoading(true);
     setNotice(null);
     try {
-      const res = await fetch('/api/wipay/create-payment', { method: 'POST' });
+      const res = await fetch('/api/wipay/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          total: 60.00,
+          currency: 'TTD',
+          customData: {
+            type: 'subscription_onboarding',
+          },
+        }),
+      });
       const data = await res.json();
       if (res.ok && data.url) {
         window.location.href = data.url;
         return;
       }
-      setNotice(data.error || 'WiPay isn’t available yet.');
+      setNotice(data.error || 'WiPay payment request failed.');
     } catch {
-      setNotice('WiPay isn’t available yet.');
+      setNotice('WiPay isn’t available right now.');
     } finally {
       setLoading(false);
     }
