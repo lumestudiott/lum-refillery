@@ -15,9 +15,9 @@ export const revalidate = 60;
 // Force static paths so we only fetch at runtime when new pages are requested
 export const dynamicParams = true;
 
-async function getProductBySku(sku: string) {
+async function getProductBySku(slug: string) {
   const convex = new ConvexHttpClient(getServerConvexUrl());
-  const product = await convex.query(api.products.getBySku, { sku });
+  const product = await convex.query(api.products.getBySlugOrSku, { slug });
   if (!product) return { product: null, variants: [] };
   const variants = (product.options?.length ?? 0) > 0
     ? await convex.query(api.products.listVariants, { productId: product._id })

@@ -5,8 +5,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { SignInButton, UserButton, useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, LayoutDashboard } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ShoppingBag } from 'lucide-react';
 import AnnouncementBar from './AnnouncementBar';
+import { useCart } from '@/context/CartContext';
 
 const navItems = [
   { label: 'Shop', href: '/shop' },
@@ -20,6 +21,7 @@ const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isSignedIn } = useUser();
+  const { totalItems, openCart } = useCart();
   const pathname = usePathname();
   const isHome = pathname === '/';
 
@@ -71,6 +73,19 @@ const Header: React.FC = () => {
 
         {/* Desktop actions */}
         <div className="hidden items-center gap-4 lg:flex">
+          <button
+            type="button"
+            onClick={openCart}
+            className="relative p-1.5 text-text-secondary transition-colors hover:text-text-primary"
+            aria-label={`Open cart${totalItems > 0 ? `, ${totalItems} items` : ''}`}
+          >
+            <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />
+            {totalItems > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-lume-accent px-1 text-[10px] font-bold leading-none text-white">
+                {totalItems}
+              </span>
+            )}
+          </button>
           {isSignedIn ? (
             <>
               <UserButton afterSignOutUrl="/">
@@ -95,14 +110,29 @@ const Header: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile hamburger */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="cursor-pointer rounded-lg p-2 text-text-primary transition-colors hover:bg-black/5 lg:hidden"
-          aria-label="Toggle mobile navigation"
-        >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {/* Mobile cart + hamburger */}
+        <div className="flex items-center gap-1 lg:hidden">
+          <button
+            type="button"
+            onClick={openCart}
+            className="relative p-2 text-text-primary transition-colors hover:bg-black/5 rounded-lg"
+            aria-label={`Open cart${totalItems > 0 ? `, ${totalItems} items` : ''}`}
+          >
+            <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />
+            {totalItems > 0 && (
+              <span className="absolute right-0.5 top-0.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-lume-accent px-0.5 text-[9px] font-bold leading-none text-white">
+                {totalItems}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="cursor-pointer rounded-lg p-2 text-text-primary transition-colors hover:bg-black/5"
+            aria-label="Toggle mobile navigation"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}

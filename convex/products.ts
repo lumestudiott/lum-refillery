@@ -148,6 +148,25 @@ export const getBySku = query({
       .unique(),
 });
 
+/**
+ * Resolve a product page by its URL segment: try the custom slug first,
+ * then fall back to the SKU (so older SKU-based links keep working).
+ */
+export const getBySlugOrSku = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const bySlug = await ctx.db
+      .query("products")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+    if (bySlug) return bySlug;
+    return await ctx.db
+      .query("products")
+      .withIndex("by_sku", (q) => q.eq("sku", args.slug))
+      .unique();
+  },
+});
+
 export const getManyBySku = query({
   args: { skus: v.array(v.string()) },
   handler: async (ctx, args) => {
@@ -204,6 +223,7 @@ const imagesValidator = v.optional(
 
 const upsertArgs = {
   sku: v.optional(v.string()),
+  slug: v.optional(v.string()),
   name: v.string(),
   brand: v.optional(v.string()),
   description: v.optional(v.string()),
@@ -243,14 +263,34 @@ const upsertArgs = {
     })
   ),
   attributes: attributesValidator,
+  customAttributes: v.optional(v.array(v.string())),
   depositCents: v.optional(v.number()),
   sourcingPartner: v.optional(v.string()),
   sourcingOrigin: v.optional(v.string()),
   tags: v.optional(v.array(v.string())),
   defaultForTiers: v.optional(v.array(v.string())),
   purchaseType: v.optional(v.string()),
+  purchaseTypes: v.optional(v.array(v.string())),
   subscriptionIntervals: v.optional(v.array(v.string())),
   options: optionsValidator,
+  casePricing: v.optional(
+    v.object({
+      caseSize: v.optional(v.number()),
+      itemLabel: v.optional(v.string()),
+      enableSingle: v.optional(v.boolean()),
+      singleQty: v.optional(v.number()),
+      singlePriceCents: v.optional(v.number()),
+      enableQuarter: v.optional(v.boolean()),
+      quarterQty: v.optional(v.number()),
+      quarterPriceCents: v.optional(v.number()),
+      enableHalf: v.optional(v.boolean()),
+      halfQty: v.optional(v.number()),
+      halfPriceCents: v.optional(v.number()),
+      enableFull: v.optional(v.boolean()),
+      fullQty: v.optional(v.number()),
+      fullPriceCents: v.optional(v.number()),
+    })
+  ),
   active: v.boolean(),
 };
 
@@ -274,6 +314,7 @@ async function upsertImpl(
   ctx: MutationCtx,
   args: {
     sku?: string;
+    slug?: string;
     name: string;
     brand?: string;
     description?: string;
@@ -308,18 +349,35 @@ async function upsertImpl(
       foodSafe?: boolean;
       upcycled?: boolean;
     };
+    customAttributes?: string[];
     depositCents?: number;
     sourcingPartner?: string;
     sourcingOrigin?: string;
     tags?: string[];
     defaultForTiers?: string[];
     purchaseType?: string;
+    purchaseTypes?: string[];
     subscriptionIntervals?: string[];
     options?: Array<{ name: string; values: string[] }>;
+    casePricing?: {
+      caseSize?: number;
+      itemLabel?: string;
+      enableQuarter?: boolean;
+      quarterQty?: number;
+      quarterPriceCents?: number;
+      enableHalf?: boolean;
+      halfQty?: number;
+      halfPriceCents?: number;
+      enableFull?: boolean;
+      fullQty?: number;
+      fullPriceCents?: number;
+    };
     active: boolean;
   }
 ) {
   const providedSku = args.sku?.trim();
+  // Normalize the custom slug: trim, lowercase, empty → undefined.
+  const slug = normalizeSlug(args.slug);
 
   if (providedSku) {
     const existing = await ctx.db
@@ -327,12 +385,13 @@ async function upsertImpl(
       .withIndex("by_sku", (q) => q.eq("sku", providedSku))
       .unique();
     if (existing) {
-      await ctx.db.patch(existing._id, { ...args, sku: providedSku });
+      await ctx.db.patch(existing._id, { ...args, sku: providedSku, slug });
       return existing._id;
     }
     return await ctx.db.insert("products", {
       ...args,
       sku: providedSku,
+      slug,
       createdAt: Date.now(),
     });
   }
@@ -342,8 +401,21 @@ async function upsertImpl(
   return await ctx.db.insert("products", {
     ...args,
     sku,
+    slug,
     createdAt: Date.now(),
   });
+}
+
+/** Trim/lowercase a slug and collapse whitespace to hyphens; empty → undefined. */
+function normalizeSlug(raw?: string): string | undefined {
+  const cleaned = raw
+    ?.trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return cleaned ? cleaned : undefined;
 }
 
 /**
@@ -390,6 +462,25 @@ export const getImageUrl = mutation({
 
 // ─── Variant CRUD (Shopify-style options + purchasable combos) ─────
 
+// Per-size case pricing (¼/½/full case, each with quantity + price).
+const variantCasePricingValidator = v.optional(
+  v.object({
+    itemLabel: v.optional(v.string()),
+    enableSingle: v.optional(v.boolean()),
+    singleQty: v.optional(v.number()),
+    singlePriceCents: v.optional(v.number()),
+    enableQuarter: v.optional(v.boolean()),
+    quarterQty: v.optional(v.number()),
+    quarterPriceCents: v.optional(v.number()),
+    enableHalf: v.optional(v.boolean()),
+    halfQty: v.optional(v.number()),
+    halfPriceCents: v.optional(v.number()),
+    enableFull: v.optional(v.boolean()),
+    fullQty: v.optional(v.number()),
+    fullPriceCents: v.optional(v.number()),
+  })
+);
+
 /** Public: fetch all active variants for a product. */
 export const listVariants = query({
   args: { productId: v.id("products") },
@@ -426,6 +517,10 @@ export const upsertVariant = mutation({
     stockQuantity: v.optional(v.number()),
     trackInventory: v.optional(v.boolean()),
     lowStockThreshold: v.optional(v.number()),
+    imageUrl: v.optional(v.string()),
+    images: imagesValidator,
+    videoUrl: v.optional(v.string()),
+    casePricing: variantCasePricingValidator,
     active: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -441,6 +536,10 @@ export const upsertVariant = mutation({
         stockQuantity: args.stockQuantity,
         trackInventory: args.trackInventory,
         lowStockThreshold: args.lowStockThreshold,
+        imageUrl: args.imageUrl,
+        images: args.images,
+        videoUrl: args.videoUrl,
+        casePricing: args.casePricing,
         active: args.active ?? true,
       });
       return args.id;
@@ -454,7 +553,10 @@ export const upsertVariant = mutation({
       stockQuantity: args.stockQuantity,
       trackInventory: args.trackInventory,
       lowStockThreshold: args.lowStockThreshold,
-      imageUrl: undefined,
+      imageUrl: args.imageUrl,
+      images: args.images,
+      videoUrl: args.videoUrl,
+      casePricing: args.casePricing,
       active: args.active ?? true,
       createdAt: Date.now(),
     });
@@ -484,6 +586,10 @@ export const saveVariants = mutation({
         stockQuantity: v.optional(v.number()),
         trackInventory: v.optional(v.boolean()),
         lowStockThreshold: v.optional(v.number()),
+        imageUrl: v.optional(v.string()),
+        images: imagesValidator,
+        videoUrl: v.optional(v.string()),
+        casePricing: variantCasePricingValidator,
         active: v.optional(v.boolean()),
       })
     ),
@@ -519,6 +625,10 @@ export const saveVariants = mutation({
           stockQuantity: variant.stockQuantity,
           trackInventory: variant.trackInventory,
           lowStockThreshold: variant.lowStockThreshold,
+          imageUrl: variant.imageUrl,
+          images: variant.images,
+          videoUrl: variant.videoUrl,
+          casePricing: variant.casePricing,
           active: variant.active ?? true,
         });
       } else {
@@ -530,12 +640,81 @@ export const saveVariants = mutation({
           stockQuantity: variant.stockQuantity,
           trackInventory: variant.trackInventory,
           lowStockThreshold: variant.lowStockThreshold,
-          imageUrl: undefined,
+          imageUrl: variant.imageUrl,
+          images: variant.images,
+          videoUrl: variant.videoUrl,
+          casePricing: variant.casePricing,
           active: variant.active ?? true,
           createdAt: Date.now(),
         });
       }
     }
+  },
+});
+
+// ─── Internal seed helpers (CLI: npx convex run products:…) ────────
+
+/** INTERNAL: upload URL for seeding images from the CLI. */
+export const internalGenerateUploadUrl = internalMutation({
+  args: {},
+  handler: async (ctx) => await ctx.storage.generateUploadUrl(),
+});
+
+/** INTERNAL: resolve a stored file's public URL (seeding). */
+export const internalGetImageUrl = internalMutation({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => await ctx.storage.getUrl(args.storageId),
+});
+
+/** INTERNAL: replace a product's size variants (seeding). */
+export const internalSeedVariants = internalMutation({
+  args: {
+    sku: v.string(),
+    optionName: v.string(),
+    variants: v.array(
+      v.object({
+        label: v.string(),
+        imageUrl: v.optional(v.string()),
+        priceCents: v.number(),
+        casePricing: variantCasePricingValidator,
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const product = await ctx.db
+      .query("products")
+      .withIndex("by_sku", (q) => q.eq("sku", args.sku))
+      .unique();
+    if (!product) throw new Error(`Product not found: ${args.sku}`);
+
+    await ctx.db.patch(product._id, {
+      options: [{ name: args.optionName, values: args.variants.map((x) => x.label) }],
+    });
+
+    const existing = await ctx.db
+      .query("productVariants")
+      .withIndex("by_product", (q) => q.eq("productId", product._id))
+      .take(200);
+    for (const old of existing) await ctx.db.delete(old._id);
+
+    for (const x of args.variants) {
+      const slug = x.label
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^A-Z0-9-]/g, "");
+      await ctx.db.insert("productVariants", {
+        productId: product._id,
+        sku: `${product.sku}-${slug}`,
+        optionValues: { [args.optionName]: x.label },
+        priceCents: x.priceCents,
+        imageUrl: x.imageUrl,
+        casePricing: x.casePricing,
+        active: true,
+        createdAt: Date.now(),
+      });
+    }
+    return args.variants.length;
   },
 });
 

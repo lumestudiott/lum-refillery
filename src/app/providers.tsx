@@ -4,10 +4,13 @@ import { ClerkProvider, useAuth } from '@clerk/nextjs';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { ConvexReactClient } from 'convex/react';
 import { ReactNode, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { CartProvider } from '@/context/CartContext';
 import IdleTimeout from '@/components/IdleTimeout';
 import OnboardingGuard from '@/components/OnboardingGuard';
+
+const CartDrawer = dynamic(() => import('@/components/shop/CartDrawer'), { ssr: false });
 
 function requirePublicEnv(name: string, value: string | undefined): string {
   if (!value) {
@@ -46,6 +49,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <ErrorBoundary>
             <OnboardingGuard>{children}</OnboardingGuard>
           </ErrorBoundary>
+          <CartDrawer />
         </CartProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>

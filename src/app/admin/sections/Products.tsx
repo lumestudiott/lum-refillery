@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import {
   Plus,
-  Minus,
   Pencil,
   Trash2,
   Search,
@@ -55,7 +54,6 @@ import {
   TextArea,
   TextField,
   Th,
-  cents,
   useAction,
   useToast,
 } from '../lib';
@@ -63,29 +61,55 @@ import {
 type Product = Doc<'products'>;
 
 // ── Variant editor types ────────────────────────────────────────
-type OptionDef = { name: string; values: string[] };
-
-type VariantRow = {
+// One row per purchasable size/pack (e.g. "250ml One Way Glass").
+// Sizes don't carry a standalone price — each sells as ¼/½/full case
+// with its own quantity + price per fraction.
+type VariantRowForm = {
   id?: string;
-  sku: string;
-  optionValues: Record<string, string>;
-  priceDollars: string;
-  trackInventory: boolean;
+  label: string;
+  imageUrl: string;
+  images: ImageEntry[];
+  videoUrl: string;
+  enableSingle: boolean;
+  singleQty: string;
+  singlePrice: string;
+  enableQuarter: boolean;
+  quarterQty: string;
+  quarterPrice: string;
+  enableHalf: boolean;
+  halfQty: string;
+  halfPrice: string;
+  enableFull: boolean;
+  fullQty: string;
+  fullPrice: string;
+  // Per-size inventory (used when "track quantity" is on)
   stockQuantity: string;
+  lowStockThreshold: string;
   active: boolean;
 };
 
-function buildVariantMatrix(options: OptionDef[]): Record<string, string>[] {
-  if (options.length === 0) return [];
-  const nonEmpty = options.filter((o) => o.values.length > 0);
-  if (nonEmpty.length === 0) return [];
-  return nonEmpty.reduce<Record<string, string>[]>(
-    (combos, opt) =>
-      combos.flatMap((combo) =>
-        opt.values.map((val) => ({ ...combo, [opt.name]: val }))
-      ),
-    [{}]
-  );
+function emptyVariantRow(): VariantRowForm {
+  return {
+    label: '',
+    imageUrl: '',
+    images: [],
+    videoUrl: '',
+    enableSingle: false,
+    singleQty: '',
+    singlePrice: '',
+    enableQuarter: false,
+    quarterQty: '',
+    quarterPrice: '',
+    enableHalf: true,
+    halfQty: '',
+    halfPrice: '',
+    enableFull: true,
+    fullQty: '',
+    fullPrice: '',
+    stockQuantity: '',
+    lowStockThreshold: '',
+    active: true,
+  };
 }
 
 type ImageEntry = { url: string; alt?: string };
@@ -100,7 +124,7 @@ const TABS: { id: TabId; label: string; hint: string; icon: React.ElementType }[
   {
     id: 'details',
     label: 'Details',
-    hint: 'Producer story, storage tips & ingredients - shown as tabs on the product page.',
+    hint: 'Producer story, ingredients & storage guide - shown as tabs on the product page.',
     icon: BookOpen,
   },
   {
@@ -121,6 +145,7 @@ type FormState = {
   name: string;
   brand: string;
   sku: string;
+  slug: string;
   description: string;
   category: string;
   shopCategorySlug: string;
@@ -146,16 +171,44 @@ type FormState = {
   ingredientsText: string;
   ingredientsImageUrl: string;
   tags: string[];
-  purchaseType: string;
+  purchaseTypes: string[];
   active: boolean;
   attributes: Record<string, boolean>;
+  customAttributes: string[];
+  // Variants (sizes/packs with image & price)
+  optionName: string;
+  variantRows: VariantRowForm[];
+  // Case/bulk pricing
+  casePricingEnabled: boolean;
+  caseItemLabel: string;
+  enableQuarterCase: boolean;
+  quarterQty: string;
+  quarterPrice: string;
+  enableHalfCase: boolean;
+  halfQty: string;
+  halfPrice: string;
+  enableFullCase: boolean;
+  fullQty: string;
+  fullPrice: string;
 };
+
+/** Client-side slug preview; mirrors the backend normalizeSlug. */
+function slugify(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
 function emptyForm(): FormState {
   return {
     name: '',
     brand: '',
     sku: '',
+    slug: '',
     description: '',
     category: '',
     shopCategorySlug: '',
@@ -181,10 +234,37 @@ function emptyForm(): FormState {
     ingredientsText: '',
     ingredientsImageUrl: '',
     tags: [],
-    purchaseType: 'one-time',
+    purchaseTypes: ['one-time'],
     active: true,
     attributes: {},
+    customAttributes: [],
+    // Variants
+    optionName: 'Size',
+    variantRows: [],
+    // Case/bulk pricing
+    casePricingEnabled: false,
+    caseItemLabel: 'bottle',
+    enableQuarterCase: false,
+    quarterQty: '',
+    quarterPrice: '',
+    enableHalfCase: true,
+    halfQty: '',
+    halfPrice: '',
+    enableFullCase: true,
+    fullQty: '',
+    fullPrice: '',
   };
+}
+
+/** Resolve a fraction's item quantity: explicit field, else legacy caseSize × fraction. */
+function caseQtyString(
+  explicitQty: number | undefined,
+  caseSize: number | undefined,
+  fraction: number
+): string {
+  if (explicitQty != null) return String(explicitQty);
+  if (caseSize != null) return String(Math.max(1, Math.floor(caseSize * fraction)));
+  return '';
 }
 
 function fromProduct(p: Product): FormState {
@@ -192,6 +272,7 @@ function fromProduct(p: Product): FormState {
     name: p.name,
     brand: p.brand ?? '',
     sku: p.sku,
+    slug: p.slug ?? '',
     description: p.description ?? '',
     category: p.category,
     shopCategorySlug: p.shopCategorySlug ?? '',
@@ -218,9 +299,27 @@ function fromProduct(p: Product): FormState {
     ingredientsText: p.ingredients?.text ?? '',
     ingredientsImageUrl: p.ingredients?.imageUrl ?? '',
     tags: p.tags ?? [],
-    purchaseType: p.purchaseType ?? 'one-time',
+    purchaseTypes:
+      p.purchaseTypes ?? (p.purchaseType ? [p.purchaseType] : ['one-time']),
     active: p.active,
     attributes: { ...(p.attributes ?? {}) } as Record<string, boolean>,
+    customAttributes: p.customAttributes ?? [],
+    // Variants: rows are hydrated async from listAllVariants (see effect).
+    optionName: p.options?.[0]?.name ?? 'Size',
+    variantRows: [],
+    // Case/bulk pricing. Quantities read from the explicit per-fraction field,
+    // falling back to the legacy caseSize × fraction for older products.
+    casePricingEnabled: !!p.casePricing,
+    caseItemLabel: p.casePricing?.itemLabel ?? 'bottle',
+    enableQuarterCase: p.casePricing?.enableQuarter ?? false,
+    quarterQty: caseQtyString(p.casePricing?.quarterQty, p.casePricing?.caseSize, 0.25),
+    quarterPrice: p.casePricing?.quarterPriceCents != null ? (p.casePricing.quarterPriceCents / 100).toFixed(2) : '',
+    enableHalfCase: p.casePricing?.enableHalf ?? true,
+    halfQty: caseQtyString(p.casePricing?.halfQty, p.casePricing?.caseSize, 0.5),
+    halfPrice: p.casePricing?.halfPriceCents != null ? (p.casePricing.halfPriceCents / 100).toFixed(2) : '',
+    enableFullCase: p.casePricing?.enableFull ?? true,
+    fullQty: caseQtyString(p.casePricing?.fullQty, p.casePricing?.caseSize, 1),
+    fullPrice: p.casePricing?.fullPriceCents != null ? (p.casePricing.fullPriceCents / 100).toFixed(2) : '',
   };
 }
 
@@ -241,10 +340,9 @@ export default function Products() {
   const upsert = useMutation(api.products.upsertProduct);
   const setActive = useMutation(api.admin.setProductActive);
   const del = useMutation(api.admin.deleteProduct);
-  const adjustStock = useMutation(api.products.adjustStock);
-  const setStock = useMutation(api.products.setStock);
   const genUploadUrl = useMutation(api.products.generateUploadUrl);
   const getImageUrl = useMutation(api.products.getImageUrl);
+  const saveVariantsMut = useMutation(api.products.saveVariants);
   const ensureSeeded = useMutation(api.catalog.ensureSeeded);
   const ensureTagsSeeded = useMutation(api.tags.ensureSeeded);
   const createTag = useMutation(api.tags.create);
@@ -257,15 +355,62 @@ export default function Products() {
   const [creating, setCreating] = useState(false);
   const [managingCats, setManagingCats] = useState(false);
   const [tab, setTab] = useState<TabId>('general');
+  const [mediaTab, setMediaTab] = useState<'base' | number>('base');
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [editSession, setEditSession] = useState(0);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [tagSearch, setTagSearch] = useState('');
+  const [customAttrInput, setCustomAttrInput] = useState('');
 
   useEffect(() => {
     ensureSeeded().catch(() => {});
     ensureTagsSeeded().catch(() => {});
   }, [ensureSeeded, ensureTagsSeeded]);
+
+  // Hydrate variant rows for the product being edited (variants live in
+  // their own table, so they arrive async after the modal opens).
+  const editingVariants = useQuery(
+    api.products.listAllVariants,
+    editing ? { productId: editing._id } : 'skip'
+  );
+  useEffect(() => {
+    if (!editing || !editingVariants) return;
+    const optName = editing.options?.[0]?.name ?? 'Size';
+    const price = (cents?: number) => (cents != null ? (cents / 100).toFixed(2) : '');
+    const qty = (n?: number) => (n != null ? String(n) : '');
+    setForm((f) => ({
+      ...f,
+      optionName: optName,
+      variantRows: editingVariants.map((v) => {
+        const cp = v.casePricing;
+        return {
+          id: v._id,
+          label: v.optionValues[optName] ?? Object.values(v.optionValues)[0] ?? '',
+          imageUrl: v.imageUrl ?? '',
+          images: v.images ?? [],
+          videoUrl: v.videoUrl ?? '',
+          enableSingle: cp?.enableSingle ?? false,
+          singleQty: qty(cp?.singleQty),
+          singlePrice: price(cp?.singlePriceCents),
+          enableQuarter: cp?.enableQuarter ?? false,
+          quarterQty: qty(cp?.quarterQty),
+          quarterPrice: price(cp?.quarterPriceCents),
+          enableHalf: cp?.enableHalf ?? true,
+          halfQty: qty(cp?.halfQty),
+          halfPrice: price(cp?.halfPriceCents),
+          enableFull: cp?.enableFull ?? true,
+          fullQty: qty(cp?.fullQty),
+          fullPrice: price(cp?.fullPriceCents),
+          stockQuantity: qty(v.stockQuantity),
+          lowStockThreshold: qty(v.lowStockThreshold),
+          active: v.active,
+        };
+      }),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingVariants, editing?._id, editSession]);
 
   const staticCats: CatOption[] = useMemo(
     () =>
@@ -333,13 +478,18 @@ export default function Products() {
     setForm(emptyForm());
     setEditing(null);
     setTab('general');
+    setMediaTab('base');
     setCreating(true);
   }
   function openEdit(p: Product) {
     setForm(fromProduct(p));
     setEditing(p);
     setTab('general');
+    setMediaTab('base');
     setCreating(true);
+    // Bump the session so variant rows re-hydrate even when the cached
+    // query result hasn't changed (e.g. reopening the same product).
+    setEditSession((s) => s + 1);
   }
   /** Pre-fill the create form from an existing product (multi-flavour workflow).
    *  SKU is cleared so saving creates a new product instead of updating. */
@@ -347,6 +497,7 @@ export default function Products() {
     setForm({ ...fromProduct(p), sku: '', name: `${p.name} (Copy)` });
     setEditing(null);
     setTab('general');
+    setMediaTab('base');
     setCreating(true);
   }
 
@@ -428,7 +579,18 @@ export default function Products() {
     if (!file) return;
     setUploading(true);
     const publicUrl = await uploadImage(file);
-    if (publicUrl) setForm((f) => ({ ...f, imageUrl: publicUrl }));
+    if (publicUrl) {
+      if (mediaTab === 'base') {
+        setForm((f) => ({ ...f, imageUrl: publicUrl }));
+      } else {
+        setForm((f) => ({
+          ...f,
+          variantRows: f.variantRows.map((r, i) =>
+            i === mediaTab ? { ...r, imageUrl: publicUrl } : r
+          ),
+        }));
+      }
+    }
     setUploading(false);
     toast('Image uploaded');
   }
@@ -440,10 +602,19 @@ export default function Products() {
     setUploading(true);
     const publicUrl = await uploadImage(file);
     if (publicUrl) {
-      setForm((f) => ({
-        ...f,
-        images: [...f.images, { url: publicUrl }],
-      }));
+      if (mediaTab === 'base') {
+        setForm((f) => ({
+          ...f,
+          images: [...f.images, { url: publicUrl }],
+        }));
+      } else {
+        setForm((f) => ({
+          ...f,
+          variantRows: f.variantRows.map((r, i) =>
+            i === mediaTab ? { ...r, images: [...r.images, { url: publicUrl }] } : r
+          ),
+        }));
+      }
       toast('Image added');
     }
     setUploading(false);
@@ -456,14 +627,53 @@ export default function Products() {
     setUploading(true);
     const publicUrl = await uploadImage(file);
     if (publicUrl) {
-      setForm((f) => ({ ...f, videoUrl: publicUrl }));
+      if (mediaTab === 'base') {
+        setForm((f) => ({ ...f, videoUrl: publicUrl }));
+      } else {
+        setForm((f) => ({
+          ...f,
+          variantRows: f.variantRows.map((r, i) =>
+            i === mediaTab ? { ...r, videoUrl: publicUrl } : r
+          ),
+        }));
+      }
       toast('Video uploaded');
     }
     setUploading(false);
   }
 
   function removeImage(idx: number) {
-    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
+    if (mediaTab === 'base') {
+      setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
+    } else {
+      setForm((f) => ({
+        ...f,
+        variantRows: f.variantRows.map((r, i) =>
+          i === mediaTab ? { ...r, images: r.images.filter((_, j) => j !== idx) } : r
+        ),
+      }));
+    }
+  }
+
+  /** Drag-to-reorder for the variation grid (routes to base or size). */
+  function moveImage(from: number, to: number) {
+    if (from === to) return;
+    const reorder = (arr: ImageEntry[]) => {
+      const next = [...arr];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    };
+    if (mediaTab === 'base') {
+      setForm((f) => ({ ...f, images: reorder(f.images) }));
+    } else {
+      setForm((f) => ({
+        ...f,
+        variantRows: f.variantRows.map((r, i) =>
+          i === mediaTab ? { ...r, images: reorder(r.images) } : r
+        ),
+      }));
+    }
   }
 
   /** Upload an image for a PDP detail section (producer / storage /
@@ -479,6 +689,28 @@ export default function Products() {
       const publicUrl = await uploadImage(file, false);
       if (publicUrl) {
         setForm((f) => ({ ...f, [field]: publicUrl }));
+        toast('Image uploaded');
+      }
+      setUploading(false);
+    };
+  }
+
+  /** Upload an image for a variant row (size/pack). Backgrounds are
+   *  stripped like the main product shots so tiles look consistent. */
+  function onVariantImage(idx: number) {
+    return async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file) return;
+      setUploading(true);
+      const publicUrl = await uploadImage(file);
+      if (publicUrl) {
+        setForm((f) => ({
+          ...f,
+          variantRows: f.variantRows.map((r, i) =>
+            i === idx ? { ...r, imageUrl: publicUrl } : r
+          ),
+        }));
         toast('Image uploaded');
       }
       setUploading(false);
@@ -518,7 +750,7 @@ export default function Products() {
     for (const k of relevant) if (form.attributes[k]) attributes[k] = true;
 
     const depositCents =
-      form.purchaseType === 'deposit'
+      form.purchaseTypes.includes('deposit')
         ? Math.round(parseFloat(form.depositDollars || '0') * 100)
         : undefined;
 
@@ -535,10 +767,39 @@ export default function Products() {
       ? parseFloat(form.customDiscountPercent)
       : undefined;
 
+    const parseQty = (v: string) =>
+      v.trim() ? Math.max(1, parseInt(v, 10)) : undefined;
+    const quarterQty = parseQty(form.quarterQty);
+    const halfQty = parseQty(form.halfQty);
+    const fullQty = parseQty(form.fullQty);
+
+    const casePricing = form.casePricingEnabled
+      ? {
+          // Legacy field kept in sync (largest enabled qty) for any old consumers.
+          caseSize: fullQty ?? (halfQty != null ? halfQty * 2 : undefined) ?? (quarterQty != null ? quarterQty * 4 : undefined),
+          itemLabel: form.caseItemLabel.trim() || undefined,
+          enableQuarter: form.enableQuarterCase,
+          quarterQty,
+          quarterPriceCents: form.quarterPrice.trim() ? Math.round(parseFloat(form.quarterPrice) * 100) : undefined,
+          enableHalf: form.enableHalfCase,
+          halfQty,
+          halfPriceCents: form.halfPrice.trim() ? Math.round(parseFloat(form.halfPrice) * 100) : undefined,
+          enableFull: form.enableFullCase,
+          fullQty,
+          fullPriceCents: form.fullPrice.trim() ? Math.round(parseFloat(form.fullPrice) * 100) : undefined,
+        }
+      : undefined;
+
+    // Variant rows with a label become purchasable sizes; the product's
+    // `options` field is derived from them so the PDP knows to render tiles.
+    const validVariantRows = form.variantRows.filter((r) => r.label.trim());
+    const optionName = form.optionName.trim() || 'Size';
+
     setSaving(true);
     try {
-      await upsert({
+      const productId = await upsert({
         sku: form.sku.trim() || (editing ? editing.sku : undefined),
+        slug: form.slug.trim() || undefined,
         name: form.name.trim(),
         brand: form.brand.trim() || undefined,
         description: form.description.trim() || undefined,
@@ -574,31 +835,79 @@ export default function Products() {
           imageUrl: form.ingredientsImageUrl || undefined,
         },
         attributes: Object.keys(attributes).length ? attributes : undefined,
+        customAttributes:
+          form.customAttributes.length > 0 ? form.customAttributes : undefined,
         tags: form.tags.length > 0 ? form.tags : undefined,
-        purchaseType: form.purchaseType,
+        // Legacy single value stays synced with the first checked type.
+        purchaseType: form.purchaseTypes[0] ?? 'one-time',
+        purchaseTypes: form.purchaseTypes,
+        casePricing,
+        // Empty array (not undefined) so removing every variant row
+        // actually clears the options on the product.
+        options:
+          validVariantRows.length > 0
+            ? [{ name: optionName, values: validVariantRows.map((r) => r.label.trim()) }]
+            : [],
         active: form.active,
       });
+
+      // Sync the variants table with the rows (replaces the existing set).
+      const baseSku = form.sku.trim() || (editing ? editing.sku : '');
+      const toCents = (val: string) =>
+        val.trim() ? Math.round(parseFloat(val) * 100) : undefined;
+      await saveVariantsMut({
+        productId,
+        variants: validVariantRows.map((r, i) => {
+          const singlePriceCents = r.enableSingle ? toCents(r.singlePrice) : undefined;
+          const quarterPriceCents = r.enableQuarter ? toCents(r.quarterPrice) : undefined;
+          const halfPriceCents = r.enableHalf ? toCents(r.halfPrice) : undefined;
+          const fullPriceCents = r.enableFull ? toCents(r.fullPrice) : undefined;
+          return {
+            id: (r.id || undefined) as Id<'productVariants'> | undefined,
+            sku: `${baseSku}-${slugify(r.label).toUpperCase() || `V${i + 1}`}`,
+            optionValues: { [optionName]: r.label.trim() },
+            // Headline price for the size: cheapest enabled case option,
+            // falling back to the product base price.
+            priceCents:
+              singlePriceCents ?? quarterPriceCents ?? halfPriceCents ?? fullPriceCents ?? priceCents,
+            imageUrl: r.imageUrl || undefined,
+            images: r.images.length > 0 ? r.images : undefined,
+            videoUrl: r.videoUrl.trim() || undefined,
+            // Per-size inventory follows the product's master tracking toggle.
+            trackInventory: trackInventory || undefined,
+            stockQuantity: trackInventory
+              ? Math.max(0, Math.round(parseFloat(r.stockQuantity || '0')))
+              : undefined,
+            lowStockThreshold:
+              trackInventory && r.lowStockThreshold.trim()
+                ? Math.max(0, Math.round(parseFloat(r.lowStockThreshold)))
+                : undefined,
+            casePricing: {
+              itemLabel: form.caseItemLabel.trim() || undefined,
+              enableSingle: r.enableSingle,
+              singleQty: parseQty(r.singleQty),
+              singlePriceCents,
+              enableQuarter: r.enableQuarter,
+              quarterQty: parseQty(r.quarterQty),
+              quarterPriceCents,
+              enableHalf: r.enableHalf,
+              halfQty: parseQty(r.halfQty),
+              halfPriceCents,
+              enableFull: r.enableFull,
+              fullQty: parseQty(r.fullQty),
+              fullPriceCents,
+            },
+            active: r.active,
+          };
+        }),
+      });
+
       toast(editing ? 'Product updated' : 'Product created');
       setCreating(false);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Save failed', 'error');
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function adjust(p: Product, delta: number) {
-    try {
-      await adjustStock({ productId: p._id, delta });
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Could not update stock', 'error');
-    }
-  }
-  async function setQty(p: Product, quantity: number) {
-    try {
-      await setStock({ productId: p._id, stockQuantity: quantity });
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Could not update stock', 'error');
     }
   }
 
@@ -617,7 +926,6 @@ export default function Products() {
   const attrKeys = isHome ? HOME_ATTRIBUTES : FOOD_ATTRIBUTES;
   const units = selectedCategory?.units ?? unitsForCategory(form.category);
   const activeTab = TABS.find((t) => t.id === tab);
-  const selectedPurchaseType = PURCHASE_TYPES.find((pt) => pt.value === form.purchaseType);
   const categoryOptions: CatOption[] = (() => {
     const base =
       form.category && selectedCategory && !selectedCategory.active
@@ -702,7 +1010,6 @@ export default function Products() {
                 <Th>Product</Th>
                 <Th>SKU</Th>
                 <Th>Category</Th>
-                <Th className="text-right">Price</Th>
                 <Th>Stock</Th>
                 <Th>Status</Th>
                 <Th className="text-right">Actions</Th>
@@ -733,13 +1040,8 @@ export default function Products() {
                 </Td>
                 <Td className="font-mono text-[12px] text-text-secondary">{p.sku}</Td>
                 <Td>{catLabel(p.category)}</Td>
-                <Td className="text-right tabular-nums">{cents(p.basePriceCents)}</Td>
                 <Td>
-                  <StockCell
-                    product={p}
-                    onAdjust={(d) => adjust(p, d)}
-                    onSet={(q) => setQty(p, q)}
-                  />
+                  <StockPill product={p} />
                 </Td>
                 <Td>
                   <button onClick={() => toggleActive(p)} title="Toggle active">
@@ -835,6 +1137,21 @@ export default function Products() {
               onChange={(e) => setForm({ ...form, sku: e.target.value })}
               placeholder="e.g. GP-0007"
             />
+            <div className="sm:col-span-2">
+              <TextField
+                label="Page URL (slug)"
+                value={form.slug}
+                onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                placeholder="e.g. coca-cola-original-taste"
+              />
+              <p className="mt-1.5 text-[12px] leading-snug text-text-secondary">
+                Link:&nbsp;
+                <span className="font-medium text-text-primary">
+                  /shop/{slugify(form.slug) || form.sku.trim().toLowerCase() || '…'}
+                </span>
+                &nbsp;— leave blank to use the SKU. Letters, numbers and hyphens only.
+              </p>
+            </div>
             <div>
               <SelectField
                 label="Category *"
@@ -1046,28 +1363,35 @@ export default function Products() {
               onChange={(e) => setForm({ ...form, customDiscountPercent: e.target.value })}
               placeholder="e.g. 15"
             />
+            {/* Case pricing now lives per-size on the Variants tab. */}
 
-            {/* Purchase type */}
+            {/* Purchase types (multi-select) - controls the buttons on the
+                product page: One-time → Add, Subscription → Subscribe. */}
             <div className="sm:col-span-2">
-              <SelectField
-                label="Purchase Type"
-                value={form.purchaseType}
-                onChange={(e) => setForm({ ...form, purchaseType: e.target.value })}
-              >
+              <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-text-secondary">
+                Purchase Types
+              </div>
+              <div className="grid gap-1.5 sm:grid-cols-2">
                 {PURCHASE_TYPES.map((pt) => (
-                  <option key={pt.value} value={pt.value}>
-                    {pt.label}
-                  </option>
+                  <AttributeCheck
+                    key={pt.value}
+                    label={pt.label}
+                    description={pt.description}
+                    checked={form.purchaseTypes.includes(pt.value)}
+                    onChange={(v) =>
+                      setForm({
+                        ...form,
+                        purchaseTypes: v
+                          ? [...form.purchaseTypes, pt.value]
+                          : form.purchaseTypes.filter((t) => t !== pt.value),
+                      })
+                    }
+                  />
                 ))}
-              </SelectField>
-              {selectedPurchaseType && (
-                <p className="mt-1.5 text-[12px] leading-snug text-text-secondary">
-                  {selectedPurchaseType.description}
-                </p>
-              )}
+              </div>
             </div>
 
-            {form.purchaseType === 'deposit' && (
+            {form.purchaseTypes.includes('deposit') && (
               <TextField
                 label="Deposit (TTD, refundable)"
                 type="number"
@@ -1096,7 +1420,75 @@ export default function Products() {
                 fresh items you always keep available.
               </p>
             </div>
-            {form.trackInventory && (
+            {form.trackInventory && form.variantRows.length > 0 ? (
+              /* Per-size stock: one row per size from the Variants tab. */
+              <div className="flex flex-col gap-2.5">
+                <span className="text-[13px] font-medium text-text-primary">
+                  Stock per {form.optionName.trim() || 'Size'}
+                </span>
+                <div className="grid grid-cols-[1fr_8rem_8rem] items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                  <span>{form.optionName.trim() || 'Size'}</span>
+                  <span>On hand</span>
+                  <span>Low-stock at</span>
+                </div>
+                {form.variantRows.map((row, i) => (
+                  <div
+                    key={row.id ?? `inv-${i}`}
+                    className="grid grid-cols-[1fr_8rem_8rem] items-center gap-3 rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {row.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={row.imageUrl}
+                          alt=""
+                          className="h-9 w-9 shrink-0 rounded-md object-contain"
+                        />
+                      )}
+                      <span className="truncate text-[13px] font-medium text-text-primary">
+                        {row.label || `Size ${i + 1}`}
+                      </span>
+                    </div>
+                    <TextField
+                      label=""
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={row.stockQuantity}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          variantRows: form.variantRows.map((r, j) =>
+                            j === i ? { ...r, stockQuantity: e.target.value } : r
+                          ),
+                        })
+                      }
+                      placeholder="0"
+                    />
+                    <TextField
+                      label=""
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={row.lowStockThreshold}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          variantRows: form.variantRows.map((r, j) =>
+                            j === i ? { ...r, lowStockThreshold: e.target.value } : r
+                          ),
+                        })
+                      }
+                      placeholder="5"
+                    />
+                  </div>
+                ))}
+                <p className="text-[12px] leading-snug text-text-secondary">
+                  Sizes come from the Variants tab. The shop stops selling a size
+                  once its own count hits zero.
+                </p>
+              </div>
+            ) : form.trackInventory ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <TextField
                   label="Quantity on hand"
@@ -1119,31 +1511,138 @@ export default function Products() {
                   placeholder="5"
                 />
               </div>
-            )}
+            ) : null}
           </div>
         )}
 
         {/* ── Media ── */}
-        {tab === 'media' && (
-          <div className="grid gap-5">
-            {/* Primary image */}
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
-                Primary Image
-              </label>
-              <div className="flex items-center gap-3">
-                {form.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={form.imageUrl}
-                    alt=""
-                    className="h-20 w-20 rounded-xl border border-black/10 object-cover"
-                  />
-                )}
-                <div className="flex flex-col gap-2">
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-black/[0.12] bg-[#FCF8EF] px-3.5 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:border-lume-accent/40">
-                    <Upload className="h-4 w-4" />
-                    {uploading ? 'Uploading…' : 'Upload primary'}
+        {tab === 'media' && (() => {
+          const currentMedia = mediaTab === 'base' ? {
+            imageUrl: form.imageUrl,
+            images: form.images,
+            videoUrl: form.videoUrl,
+          } : {
+            imageUrl: form.variantRows[mediaTab as number]?.imageUrl || '',
+            images: form.variantRows[mediaTab as number]?.images || [],
+            videoUrl: form.variantRows[mediaTab as number]?.videoUrl || '',
+          };
+
+          const setUrlField = (field: 'imageUrl' | 'videoUrl') => (val: string) => {
+            if (mediaTab === 'base') setForm({ ...form, [field]: val });
+            else
+              setForm({
+                ...form,
+                variantRows: form.variantRows.map((r, i) =>
+                  i === mediaTab ? { ...r, [field]: val } : r
+                ),
+              });
+          };
+
+          const mediaSummary = (m: { imageUrl: string; images: ImageEntry[]; videoUrl: string }) => {
+            const photos = (m.imageUrl ? 1 : 0) + m.images.length;
+            const parts: string[] = [];
+            if (photos > 0) parts.push(`${photos} photo${photos === 1 ? '' : 's'}`);
+            if (m.videoUrl) parts.push('video');
+            return parts.length ? parts.join(' · ') : 'No media';
+          };
+
+          const switcherCard = (
+            key: string,
+            label: string,
+            media: { imageUrl: string; images: ImageEntry[]; videoUrl: string },
+            active: boolean,
+            onClick: () => void
+          ) => {
+            const summary = mediaSummary(media);
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={onClick}
+                className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition-all ${
+                  active
+                    ? 'border-lume-accent/50 bg-lume-accent/[0.06] ring-1 ring-lume-accent/40'
+                    : 'border-black/10 bg-[#FCF8EF] hover:border-lume-accent/30'
+                }`}
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-black/[0.06] bg-white/70">
+                  {media.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={media.imageUrl} alt="" className="h-full w-full object-contain" />
+                  ) : (
+                    <ImageIcon className="h-4 w-4 text-text-secondary/40" />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-semibold text-text-primary">
+                    {label}
+                  </span>
+                  <span
+                    className={`block text-[11px] ${
+                      summary === 'No media' ? 'font-medium text-amber-700' : 'text-text-secondary'
+                    }`}
+                  >
+                    {summary}
+                  </span>
+                </span>
+              </button>
+            );
+          };
+
+          return (
+            <div className="grid gap-6">
+              {/* Whose media am I editing? */}
+              {form.variantRows.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {switcherCard(
+                    'base',
+                    'Base Product',
+                    { imageUrl: form.imageUrl, images: form.images, videoUrl: form.videoUrl },
+                    mediaTab === 'base',
+                    () => setMediaTab('base')
+                  )}
+                  {form.variantRows.map((r, idx) =>
+                    switcherCard(
+                      r.id ?? `size-${idx}`,
+                      r.label || `Size ${idx + 1}`,
+                      { imageUrl: r.imageUrl, images: r.images, videoUrl: r.videoUrl },
+                      mediaTab === idx,
+                      () => setMediaTab(idx)
+                    )
+                  )}
+                </div>
+              )}
+
+              {/* Primary image */}
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                  Primary Image
+                </label>
+                <p className="mb-2.5 text-[12px] text-text-secondary">
+                  The lead shot — shown on {mediaTab === 'base' ? 'the shop grid and product page' : 'this size’s tile and gallery'}.
+                </p>
+                <div className="flex items-start gap-4">
+                  <label className="group/primary relative flex h-32 w-32 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-black/10 bg-white/70 transition-colors hover:border-lume-accent/50">
+                    {currentMedia.imageUrl ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={currentMedia.imageUrl}
+                          alt=""
+                          className="h-full w-full object-contain p-2"
+                        />
+                        <span className="absolute inset-x-0 bottom-0 hidden items-center justify-center gap-1 bg-lume-house/80 py-1.5 text-[11px] font-semibold text-white group-hover/primary:flex">
+                          <Upload className="h-3 w-3" /> Replace
+                        </span>
+                      </>
+                    ) : (
+                      <span className="flex flex-col items-center gap-1.5 text-text-secondary">
+                        <Upload className="h-5 w-5" />
+                        <span className="text-[11px] font-medium">
+                          {uploading ? 'Uploading…' : 'Upload'}
+                        </span>
+                      </span>
+                    )}
                     <input
                       type="file"
                       accept="image/*"
@@ -1152,106 +1651,162 @@ export default function Products() {
                       onChange={onPrimaryImage}
                     />
                   </label>
-                  <TextField
-                    value={form.imageUrl}
-                    onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                    placeholder="Or paste URL"
-                  />
+                  <div className="flex w-full max-w-xs flex-col gap-2">
+                    <TextField
+                      value={currentMedia.imageUrl}
+                      onChange={(e) => setUrlField('imageUrl')(e.target.value)}
+                      placeholder="Or paste an image URL"
+                    />
+                    {currentMedia.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setUrlField('imageUrl')('')}
+                        className="self-start text-[12px] font-medium text-text-secondary hover:text-red-600"
+                      >
+                        Remove image
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Additional image variations */}
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
-                Image Variations
-              </label>
-              <p className="mb-2 text-[12px] text-text-secondary">
-                Add different angles, close-ups, or lifestyle shots. Drag to reorder.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {form.images.map((img, idx) => (
-                  <div key={idx} className="group relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={img.url}
-                      alt={img.alt ?? ''}
-                      className="h-20 w-20 rounded-xl border border-black/10 object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(idx)}
-                      className="absolute -right-1.5 -top-1.5 hidden rounded-full bg-red-500 p-0.5 text-white shadow group-hover:flex"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/[0.15] text-text-secondary transition-colors hover:border-lume-accent/40 hover:text-lume-accent">
-                  <Plus className="h-5 w-5" />
-                  <span className="text-[10px] font-medium">Add</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    disabled={uploading}
-                    onChange={onAdditionalImage}
-                  />
+              {/* Image variations */}
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                  Image Variations
                 </label>
-              </div>
-            </div>
-
-            {/* Video */}
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
-                Video
-              </label>
-              <div className="flex items-center gap-3">
-                {form.videoUrl && (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-black/10 bg-black/5">
-                    <Video className="h-8 w-8 text-text-secondary" />
-                  </div>
-                )}
-                <div className="flex flex-col gap-2">
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-black/[0.12] bg-[#FCF8EF] px-3.5 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:border-lume-accent/40">
-                    <Video className="h-4 w-4" />
-                    {uploading ? 'Uploading…' : 'Upload video'}
+                <p className="mb-2.5 text-[12px] text-text-secondary">
+                  Angles, close-ups or lifestyle shots — drag tiles to reorder the gallery.
+                </p>
+                <div className="flex flex-wrap gap-2.5">
+                  {currentMedia.images.map((img, idx) => (
+                    <div
+                      key={`${img.url}-${idx}`}
+                      draggable
+                      onDragStart={() => setDragIdx(idx)}
+                      onDragEnd={() => setDragIdx(null)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragIdx !== null) moveImage(dragIdx, idx);
+                        setDragIdx(null);
+                      }}
+                      className={`group relative h-24 w-24 cursor-grab overflow-hidden rounded-xl border bg-white/70 transition-all active:cursor-grabbing ${
+                        dragIdx === idx
+                          ? 'border-lume-accent/60 opacity-50'
+                          : 'border-black/10 hover:border-lume-accent/40'
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.url}
+                        alt={img.alt ?? ''}
+                        className="pointer-events-none h-full w-full object-contain p-1.5"
+                      />
+                      <span className="absolute left-1 top-1 rounded-md bg-lume-house/70 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white">
+                        {idx + 2}
+                      </span>
+                      <span className="absolute bottom-1 left-1 hidden text-white drop-shadow group-hover:block">
+                        <GripVertical className="h-3.5 w-3.5" />
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute right-1 top-1 hidden rounded-full bg-red-500 p-1 text-white shadow group-hover:flex"
+                        aria-label="Remove image"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/[0.15] text-text-secondary transition-colors hover:border-lume-accent/40 hover:text-lume-accent">
+                    <Plus className="h-5 w-5" />
+                    <span className="text-[10px] font-medium">{uploading ? 'Uploading…' : 'Add'}</span>
                     <input
                       type="file"
-                      accept="video/*"
+                      accept="image/*"
                       className="hidden"
                       disabled={uploading}
-                      onChange={onVideo}
+                      onChange={onAdditionalImage}
                     />
                   </label>
-                  <TextField
-                    value={form.videoUrl}
-                    onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
-                    placeholder="Or paste video URL"
-                  />
                 </div>
               </div>
-              {form.videoUrl && (
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, videoUrl: '' })}
-                  className="mt-2 text-[12px] text-red-500 hover:underline"
-                >
-                  Remove video
-                </button>
-              )}
+
+              {/* Video */}
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                  Video
+                </label>
+                <p className="mb-2.5 text-[12px] text-text-secondary">
+                  Shown at the end of the gallery with a play button.
+                </p>
+                {currentMedia.videoUrl ? (
+                  <div className="flex items-start gap-4">
+                    <video
+                      key={currentMedia.videoUrl}
+                      src={currentMedia.videoUrl}
+                      controls
+                      muted
+                      playsInline
+                      className="h-32 w-48 shrink-0 rounded-xl border border-black/10 bg-black/5 object-contain"
+                    />
+                    <div className="flex flex-col gap-2">
+                      <label className="inline-flex cursor-pointer items-center gap-1.5 self-start rounded-full border border-black/[0.12] bg-[#FCF8EF] px-3.5 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:border-lume-accent/40">
+                        <Video className="h-4 w-4" />
+                        {uploading ? 'Uploading…' : 'Replace video'}
+                        <input
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          disabled={uploading}
+                          onChange={onVideo}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setUrlField('videoUrl')('')}
+                        className="self-start text-[12px] font-medium text-text-secondary hover:text-red-600"
+                      >
+                        Remove video
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-black/[0.12] bg-[#FCF8EF] px-3.5 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:border-lume-accent/40">
+                      <Video className="h-4 w-4" />
+                      {uploading ? 'Uploading…' : 'Upload video'}
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        disabled={uploading}
+                        onChange={onVideo}
+                      />
+                    </label>
+                    <div className="w-full max-w-xs">
+                      <TextField
+                        value={currentMedia.videoUrl}
+                        onChange={(e) => setUrlField('videoUrl')(e.target.value)}
+                        placeholder="Or paste a video URL"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── Dynamic attributes ── */}
         {tab === 'details' && (
           <div className="grid gap-8">
-            {/* Producer */}
+            {/* Producer / Maker */}
             <div className="rounded-xl border border-black/[0.08] p-5">
-              <h3 className="mb-1 text-[13px] font-semibold text-text-primary">Producer</h3>
+              <h3 className="mb-1 text-[13px] font-semibold text-text-primary">Producer / Maker</h3>
               <p className="mb-4 text-[12px] text-text-secondary">
-                Who makes this product - shown under the &ldquo;Producer&rdquo; tab with an optional photo.
+                Who makes this product - shown under the &ldquo;Producer / Maker&rdquo; tab with an optional photo.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <TextField
@@ -1285,32 +1840,6 @@ export default function Products() {
               </div>
             </div>
 
-            {/* Storage Tips */}
-            <div className="rounded-xl border border-black/[0.08] p-5">
-              <h3 className="mb-1 text-[13px] font-semibold text-text-primary">Storage Tips</h3>
-              <p className="mb-4 text-[12px] text-text-secondary">
-                How to keep it fresh - text, a photo, or both.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <TextArea
-                    label="Storage tips"
-                    value={form.storageText}
-                    onChange={(e) => setForm({ ...form, storageText: e.target.value })}
-                    placeholder="e.g. Store in a cool, dry place. Refrigerate after opening."
-                    rows={3}
-                  />
-                </div>
-                <SectionImagePicker
-                  label="Storage photo"
-                  url={form.storageImageUrl}
-                  uploading={uploading}
-                  onPick={onSectionImage('storageImageUrl')}
-                  onClear={() => setForm({ ...form, storageImageUrl: '' })}
-                />
-              </div>
-            </div>
-
             {/* Ingredients & Nutrition */}
             <div className="rounded-xl border border-black/[0.08] p-5">
               <h3 className="mb-1 text-[13px] font-semibold text-text-primary">
@@ -1335,6 +1864,32 @@ export default function Products() {
                   uploading={uploading}
                   onPick={onSectionImage('ingredientsImageUrl')}
                   onClear={() => setForm({ ...form, ingredientsImageUrl: '' })}
+                />
+              </div>
+            </div>
+
+            {/* Storage Guide */}
+            <div className="rounded-xl border border-black/[0.08] p-5">
+              <h3 className="mb-1 text-[13px] font-semibold text-text-primary">Storage Guide</h3>
+              <p className="mb-4 text-[12px] text-text-secondary">
+                How to keep it fresh - text, a photo, or both.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <TextArea
+                    label="Storage guide"
+                    value={form.storageText}
+                    onChange={(e) => setForm({ ...form, storageText: e.target.value })}
+                    placeholder="e.g. Store in a cool, dry place. Refrigerate after opening."
+                    rows={3}
+                  />
+                </div>
+                <SectionImagePicker
+                  label="Storage photo"
+                  url={form.storageImageUrl}
+                  uploading={uploading}
+                  onPick={onSectionImage('storageImageUrl')}
+                  onClear={() => setForm({ ...form, storageImageUrl: '' })}
                 />
               </div>
             </div>
@@ -1368,6 +1923,320 @@ export default function Products() {
                   }
                 />
               ))}
+            </div>
+
+            {/* Custom attributes: free-form labels shown as chips on the PDP */}
+            <div className="mt-6 border-t border-black/10 pt-5">
+              <div className="mb-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-text-secondary">
+                Custom Attributes
+              </div>
+              <p className="mb-3 text-[12px] text-text-secondary">
+                Add your own labels (e.g. “Fair Trade”, “Small Batch”) — shown with the
+                attributes on the product page.
+              </p>
+              {form.customAttributes.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {form.customAttributes.map((attr) => (
+                    <span
+                      key={attr}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-lume-accent/30 bg-lume-accent/5 px-3 py-1.5 text-[12px] font-medium text-text-primary"
+                    >
+                      {attr}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm({
+                            ...form,
+                            customAttributes: form.customAttributes.filter(
+                              (a) => a !== attr
+                            ),
+                          })
+                        }
+                        className="text-text-secondary hover:text-red-600"
+                        aria-label={`Remove ${attr}`}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <TextField
+                  value={customAttrInput}
+                  onChange={(e) => setCustomAttrInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    const val = customAttrInput.trim();
+                    if (!val || form.customAttributes.includes(val)) return;
+                    setForm({
+                      ...form,
+                      customAttributes: [...form.customAttributes, val],
+                    });
+                    setCustomAttrInput('');
+                  }}
+                  placeholder="Type an attribute and press Enter…"
+                />
+                <Btn
+                  variant="ghost"
+                  onClick={() => {
+                    const val = customAttrInput.trim();
+                    if (!val || form.customAttributes.includes(val)) return;
+                    setForm({
+                      ...form,
+                      customAttributes: [...form.customAttributes, val],
+                    });
+                    setCustomAttrInput('');
+                  }}
+                >
+                  <Plus className="h-4 w-4" /> Add
+                </Btn>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Variants (sizes with per-size case pricing) ── */}
+        {tab === 'variants' && (
+          <div className="grid gap-4">
+            <p className="text-[12px] leading-snug text-text-secondary">
+              Add each purchasable size (e.g. “250ml One Way Glass”, “2L PET”) with a
+              photo, then set its ¼ / ½ / full case quantities and prices. Shoppers pick
+              a size, then a case option — the photo swaps in and the price updates.
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Option Name"
+                value={form.optionName}
+                onChange={(e) => setForm({ ...form, optionName: e.target.value })}
+                placeholder="e.g. Size"
+              />
+              <TextField
+                label="Unit Label"
+                value={form.caseItemLabel}
+                onChange={(e) => setForm({ ...form, caseItemLabel: e.target.value })}
+                placeholder="e.g. bottle"
+              />
+            </div>
+
+            {form.variantRows.map((row, i) => {
+              const patchRow = (patch: Partial<VariantRowForm>) =>
+                setForm({
+                  ...form,
+                  variantRows: form.variantRows.map((r, j) =>
+                    j === i ? { ...r, ...patch } : r
+                  ),
+                });
+              return (
+                <div
+                  key={row.id ?? `new-${i}`}
+                  className="rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 p-4"
+                >
+                  {/* Header: image, label, active, delete */}
+                  <div className="grid grid-cols-[64px_1fr_auto_auto] items-center gap-3">
+                    <label className="relative flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-black/15 bg-white/60 transition-colors hover:border-lume-accent">
+                      {row.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={row.imageUrl}
+                          alt={row.label || 'Variant'}
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <ImageIcon className="h-5 w-5 text-text-secondary/50" />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={onVariantImage(i)}
+                        disabled={uploading}
+                      />
+                    </label>
+
+                    <div>
+                      <TextField
+                        label=""
+                        value={row.label}
+                        onChange={(e) => patchRow({ label: e.target.value })}
+                        placeholder="e.g. 250ml One Way Glass"
+                      />
+                      {!row.label.trim() && (
+                        <p className="mt-1 text-[11px] font-medium text-red-600">
+                          Name this size — unnamed sizes are not saved.
+                        </p>
+                      )}
+                    </div>
+
+                    <CheckRow
+                      label="Active"
+                      checked={row.active}
+                      onChange={(v) => patchRow({ active: v })}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          variantRows: form.variantRows.filter((_, j) => j !== i),
+                        })
+                      }
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-red-50 hover:text-red-600"
+                      aria-label={`Remove ${row.label || 'variant'}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Case options for this size */}
+                  <div className="mt-3 flex flex-col gap-2.5 border-t border-black/10 pt-3">
+                    <span className="text-[12px] font-medium text-text-primary">
+                      Case Options, Quantity &amp; Pricing (TTD)
+                    </span>
+                    <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
+                      <CheckRow
+                        label="Single Price"
+                        checked={row.enableSingle}
+                        onChange={(v) => patchRow({ enableSingle: v })}
+                      />
+                      {row.enableSingle ? (
+                        <>
+                          <TextField
+                            label=""
+                            type="number"
+                            step="1"
+                            min="1"
+                            value={row.singleQty}
+                            onChange={(e) => patchRow({ singleQty: e.target.value })}
+                            placeholder="Qty (optional)"
+                          />
+                          <TextField
+                            label=""
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={row.singlePrice}
+                            onChange={(e) => patchRow({ singlePrice: e.target.value })}
+                            placeholder="Single Price"
+                          />
+                        </>
+                      ) : (
+                        <div className="col-span-2" />
+                      )}
+                    </div>
+                    <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
+                      <CheckRow
+                        label="¼ Case"
+                        checked={row.enableQuarter}
+                        onChange={(v) => patchRow({ enableQuarter: v })}
+                      />
+                      {row.enableQuarter ? (
+                        <>
+                          <TextField
+                            label=""
+                            type="number"
+                            step="1"
+                            min="1"
+                            value={row.quarterQty}
+                            onChange={(e) => patchRow({ quarterQty: e.target.value })}
+                            placeholder="Qty per ¼ case"
+                          />
+                          <TextField
+                            label=""
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={row.quarterPrice}
+                            onChange={(e) => patchRow({ quarterPrice: e.target.value })}
+                            placeholder="Price for ¼ case"
+                          />
+                        </>
+                      ) : (
+                        <div className="col-span-2" />
+                      )}
+                    </div>
+                    <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
+                      <CheckRow
+                        label="½ Case"
+                        checked={row.enableHalf}
+                        onChange={(v) => patchRow({ enableHalf: v })}
+                      />
+                      {row.enableHalf ? (
+                        <>
+                          <TextField
+                            label=""
+                            type="number"
+                            step="1"
+                            min="1"
+                            value={row.halfQty}
+                            onChange={(e) => patchRow({ halfQty: e.target.value })}
+                            placeholder="Qty per ½ case"
+                          />
+                          <TextField
+                            label=""
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={row.halfPrice}
+                            onChange={(e) => patchRow({ halfPrice: e.target.value })}
+                            placeholder="Price for ½ case"
+                          />
+                        </>
+                      ) : (
+                        <div className="col-span-2" />
+                      )}
+                    </div>
+                    <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
+                      <CheckRow
+                        label="Full Case"
+                        checked={row.enableFull}
+                        onChange={(v) => patchRow({ enableFull: v })}
+                      />
+                      {row.enableFull ? (
+                        <>
+                          <TextField
+                            label=""
+                            type="number"
+                            step="1"
+                            min="1"
+                            value={row.fullQty}
+                            onChange={(e) => patchRow({ fullQty: e.target.value })}
+                            placeholder="Qty per full case"
+                          />
+                          <TextField
+                            label=""
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={row.fullPrice}
+                            onChange={(e) => patchRow({ fullPrice: e.target.value })}
+                            placeholder="Price for full case"
+                          />
+                        </>
+                      ) : (
+                        <div className="col-span-2" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div>
+              <Btn
+                variant="ghost"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    variantRows: [...form.variantRows, emptyVariantRow()],
+                  })
+                }
+              >
+                <Plus className="h-4 w-4" /> Add {form.optionName.trim() || 'Size'}
+              </Btn>
             </div>
           </div>
         )}
@@ -1411,78 +2280,27 @@ function AttributeCheck({
 }
 
 /* ────────────────────────────────────────────────
-   Inline stock control for the catalogue table.
+   Stock status pill for the catalogue table (styled
+   like StatusBadge). Quantities are edited in the
+   product modal's Inventory tab.
    ──────────────────────────────────────────────── */
-function StockCell({
-  product,
-  onAdjust,
-  onSet,
-}: {
-  product: Product;
-  onAdjust: (delta: number) => void;
-  onSet: (quantity: number) => void;
-}) {
+function StockPill({ product }: { product: Product }) {
   const st = stockStatus(product);
-  const [val, setVal] = useState(String(product.stockQuantity ?? 0));
 
-  useEffect(() => {
-    setVal(String(product.stockQuantity ?? 0));
-  }, [product.stockQuantity]);
-
-  if (!st.tracked) {
-    return <span className="text-[12px] text-text-secondary">Not tracked</span>;
-  }
-
-  const commit = () => {
-    const n = Math.max(0, Math.round(parseFloat(val || '0')) || 0);
-    if (n !== (product.stockQuantity ?? 0)) onSet(n);
-    setVal(String(n));
-  };
-
-  const badge = st.soldOut
-    ? { label: 'Out', cls: 'bg-red-50 text-red-600 ring-red-600/20' }
-    : st.low
-      ? { label: 'Low', cls: 'bg-amber-50 text-amber-700 ring-amber-600/20' }
-      : { label: 'In stock', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' };
+  const { label, cls } = !st.tracked
+    ? { label: 'Not tracked', cls: 'bg-black/[0.05] text-text-secondary ring-black/10' }
+    : st.soldOut
+      ? { label: 'Out of stock', cls: 'bg-red-50 text-red-600 ring-red-600/20' }
+      : st.low
+        ? { label: `Low · ${st.quantity}`, cls: 'bg-amber-50 text-amber-700 ring-amber-600/20' }
+        : { label: `In stock · ${st.quantity}`, cls: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' };
 
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="inline-flex items-center rounded-lg border border-black/10 bg-[#FCF8EF]">
-        <button
-          type="button"
-          onClick={() => onAdjust(-1)}
-          className="flex h-7 w-7 items-center justify-center rounded-l-lg text-text-secondary hover:bg-black/[0.05] hover:text-text-primary disabled:opacity-30"
-          disabled={(product.stockQuantity ?? 0) <= 0}
-          aria-label="Decrease stock"
-        >
-          <Minus className="h-3.5 w-3.5" />
-        </button>
-        <input
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-          }}
-          inputMode="numeric"
-          className="w-10 border-x border-black/10 bg-transparent py-1 text-center text-[13px] tabular-nums outline-none focus:bg-white"
-          aria-label={`${product.name} stock quantity`}
-        />
-        <button
-          type="button"
-          onClick={() => onAdjust(1)}
-          className="flex h-7 w-7 items-center justify-center rounded-r-lg text-text-secondary hover:bg-black/[0.05] hover:text-text-primary"
-          aria-label="Increase stock"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
-      </div>
-      <span
-        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${badge.cls}`}
-      >
-        {badge.label}
-      </span>
-    </div>
+    <span
+      className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] ring-1 ring-inset ${cls}`}
+    >
+      {label}
+    </span>
   );
 }
 

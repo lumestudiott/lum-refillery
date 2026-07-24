@@ -119,6 +119,9 @@ export default defineSchema({
   // ──────────────────────────────────────────────────────────────
   products: defineTable({
     sku: v.string(),
+    // Custom URL slug for the product page (/shop/<slug>). Optional; when
+    // blank the page falls back to resolving by sku.
+    slug: v.optional(v.string()),
     name: v.string(),
     brand: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -186,6 +189,9 @@ export default defineSchema({
         upcycled: v.optional(v.boolean()),
       })
     ),
+    // Free-form labels the admin defines per product (e.g. "Fair Trade"),
+    // shown as chips alongside the fixed attributes.
+    customAttributes: v.optional(v.array(v.string())),
     // Refundable container deposit (cents) - only for purchaseType "deposit".
     depositCents: v.optional(v.number()),
     sourcingPartner: v.optional(v.string()),
@@ -198,14 +204,39 @@ export default defineSchema({
     tags: v.optional(v.array(v.string())), // e.g. ["Sale", "New", "Best Seller"]
     // which tiers default-include this product (used by box generator).
     defaultForTiers: v.optional(v.array(v.string())),
-    // "one-time" | "subscription" | "refill-swap"
+    // Legacy single value - kept in sync with purchaseTypes[0].
     purchaseType: v.optional(v.string()),
+    // Multi-select: which ways this product can be bought. Controls the
+    // PDP buttons ("one-time" → Add, "subscription" → Subscribe, …).
+    purchaseTypes: v.optional(v.array(v.string())),
     // e.g. ["1mo", "3mo", "6mo"] - only relevant when purchaseType = "subscription"
     subscriptionIntervals: v.optional(v.array(v.string())),
+    // Case/bulk pricing: lets admin define quantity + price per fractional case.
+    casePricing: v.optional(
+      v.object({
+        // Legacy: single "items per full case". Retained so older products
+        // still validate; new products set per-fraction quantities below.
+        caseSize: v.optional(v.number()),
+        itemLabel: v.optional(v.string()),
+        enableSingle: v.optional(v.boolean()),
+        singleQty: v.optional(v.number()),
+        singlePriceCents: v.optional(v.number()),
+        enableQuarter: v.optional(v.boolean()),
+        quarterQty: v.optional(v.number()),
+        quarterPriceCents: v.optional(v.number()),
+        enableHalf: v.optional(v.boolean()),
+        halfQty: v.optional(v.number()),
+        halfPriceCents: v.optional(v.number()),
+        enableFull: v.optional(v.boolean()),
+        fullQty: v.optional(v.number()),
+        fullPriceCents: v.optional(v.number()),
+      })
+    ),
     active: v.boolean(),
     createdAt: v.number(),
   })
     .index("by_sku", ["sku"])
+    .index("by_slug", ["slug"])
     .index("by_category", ["category"])
     .index("by_active", ["active"])
     .index("by_active_and_category", ["active", "category"])
@@ -233,6 +264,32 @@ export default defineSchema({
     trackInventory: v.optional(v.boolean()),
     lowStockThreshold: v.optional(v.number()),
     imageUrl: v.optional(v.string()),
+    images: v.optional(
+      v.array(v.object({
+        url: v.string(),
+        alt: v.optional(v.string()),
+      }))
+    ),
+    videoUrl: v.optional(v.string()),
+    // Per-size case pricing: each size (e.g. 250ml OWG) sells as ¼/½/full
+    // case with its own quantity + price per fraction.
+    casePricing: v.optional(
+      v.object({
+        itemLabel: v.optional(v.string()),
+        enableSingle: v.optional(v.boolean()),
+        singleQty: v.optional(v.number()),
+        singlePriceCents: v.optional(v.number()),
+        enableQuarter: v.optional(v.boolean()),
+        quarterQty: v.optional(v.number()),
+        quarterPriceCents: v.optional(v.number()),
+        enableHalf: v.optional(v.boolean()),
+        halfQty: v.optional(v.number()),
+        halfPriceCents: v.optional(v.number()),
+        enableFull: v.optional(v.boolean()),
+        fullQty: v.optional(v.number()),
+        fullPriceCents: v.optional(v.number()),
+      })
+    ),
     active: v.boolean(),
     createdAt: v.number(),
   })

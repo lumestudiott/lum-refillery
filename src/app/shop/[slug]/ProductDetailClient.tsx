@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from 'convex/react';
-import { Check, Plus, ChevronRight, Leaf, Package, RefreshCw } from 'lucide-react';
+import { Check, Plus, ChevronRight, Leaf, Package, RefreshCw, Play } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
@@ -19,7 +19,7 @@ type ProductDetailClientProps = {
   variants?: Variant[];
 };
 
-type GalleryImage = { url: string; alt?: string };
+type GalleryImage = { url: string; alt?: string; isVideo?: boolean };
 
 const SUBSCRIPTION_SCHEDULES = [
   { days: 7, label: 'Every Saturday' },
@@ -50,43 +50,6 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
   const brand = product.brand;
   const extraImages: GalleryImage[] = product.images ?? [];
 
-  const galleryImages: GalleryImage[] = useMemo(() => {
-    const imgs: GalleryImage[] = [];
-    if (product.imageUrl) {
-      imgs.push({ url: product.imageUrl, alt: product.name });
-    }
-    for (const img of extraImages) {
-      if (img.url && img.url !== product.imageUrl) {
-        imgs.push(img);
-      }
-    }
-    return imgs;
-  }, [product.imageUrl, product.name, extraImages]);
-
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const activeImage = galleryImages[activeImageIndex] ?? null;
-
-  // PDP info tabs (Producer / Storage Tips / Ingredients) - only sections
-  // with admin-entered content appear.
-  const infoSections = useMemo(() => {
-    const sections: { id: string; label: string }[] = [];
-    const prod = product.producer;
-    if (prod && (prod.name || prod.text || prod.imageUrl)) {
-      sections.push({ id: 'producer', label: 'Producer' });
-    }
-    const store = product.storageTips;
-    if (store && (store.text || store.imageUrl)) {
-      sections.push({ id: 'storage', label: 'Storage Tips' });
-    }
-    const ingr = product.ingredients;
-    if (ingr && (ingr.text || ingr.imageUrl)) {
-      sections.push({ id: 'ingredients', label: 'Ingredients & Nutrition' });
-    }
-    return sections;
-  }, [product.producer, product.storageTips, product.ingredients]);
-  const [activeInfoTab, setActiveInfoTab] = useState<string | null>(null);
-  const currentInfoTab = activeInfoTab ?? infoSections[0]?.id ?? null;
-
   const hasVariants = (product.options?.length ?? 0) > 0 && variants.length > 0;
   const options = product.options ?? [];
 
@@ -106,7 +69,143 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
     ) ?? null;
   }, [hasVariants, variants, options, selectedOptions]);
 
-  const displayPrice = selectedVariant?.priceCents ?? product.basePriceCents;
+  const galleryImages: GalleryImage[] = useMemo(() => {
+    const items: GalleryImage[] = [];
+    const seen = new Set<string>();
+    const push = (item: GalleryImage) => {
+      if (!item.url || seen.has(item.url)) return;
+      seen.add(item.url);
+      items.push(item);
+    };
+
+    const variantAlt = selectedVariant
+      ? `${product.name} — ${Object.values(selectedVariant.optionValues).join(' / ')}`
+      : product.name;
+
+    // Selected size's own media leads the gallery.
+    if (selectedVariant?.imageUrl) {
+      push({ url: selectedVariant.imageUrl, alt: variantAlt });
+    }
+    for (const img of selectedVariant?.images ?? []) {
+      push({ url: img.url, alt: img.alt ?? variantAlt });
+    }
+    
+    const variantHasImage = !!selectedVariant?.imageUrl || (selectedVariant?.images?.length ?? 0) > 0;
+    if (product.imageUrl && !variantHasImage) {
+      push({ url: product.imageUrl, alt: product.name });
+    }
+    
+    for (const img of extraImages) push(img);
+
+    // Video (size's own, else the product's) plays as a gallery item.
+    const videoUrl = selectedVariant?.videoUrl ?? product.videoUrl;
+    if (videoUrl) push({ url: videoUrl, alt: variantAlt, isVideo: true });
+
+    return items;
+  }, [product.imageUrl, product.name, product.videoUrl, extraImages, selectedVariant]);
+
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  // Jump back to the lead image whenever the shopper picks a different size.
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [selectedVariant?._id]);
+  const activeImage = galleryImages[activeImageIndex] ?? galleryImages[0] ?? null;
+
+  // PDP info tabs (Producer / Ingredients / Storage Guide) - only sections
+  // with admin-entered content appear.
+  const infoSections = useMemo(() => {
+    const sections: { id: string; label: string }[] = [];
+    const prod = product.producer;
+    if (prod && (prod.name || prod.text || prod.imageUrl)) {
+      sections.push({ id: 'producer', label: 'Producer / Maker' });
+    }
+    const ingr = product.ingredients;
+    if (ingr && (ingr.text || ingr.imageUrl)) {
+      sections.push({ id: 'ingredients', label: 'Ingredients & Nutrition' });
+    }
+    const store = product.storageTips;
+    if (store && (store.text || store.imageUrl)) {
+      sections.push({ id: 'storage', label: 'Storage Guide' });
+    }
+    return sections;
+  }, [product.producer, product.storageTips, product.ingredients]);
+  const [activeInfoTab, setActiveInfoTab] = useState<string | null>(null);
+  const currentInfoTab = activeInfoTab ?? infoSections[0]?.id ?? null;
+
+  // Case pricing options. Each size carries its own ¼/½/full case setup;
+  // products without sizes fall back to the product-level block.
+  type EffectiveCasePricing = {
+    caseSize?: number;
+    itemLabel?: string;
+    enableSingle?: boolean;
+    singleQty?: number;
+    singlePriceCents?: number;
+    enableQuarter?: boolean;
+    quarterQty?: number;
+    quarterPriceCents?: number;
+    enableHalf?: boolean;
+    halfQty?: number;
+    halfPriceCents?: number;
+    enableFull?: boolean;
+    fullQty?: number;
+    fullPriceCents?: number;
+  };
+  const casePricing: EffectiveCasePricing | undefined =
+    selectedVariant?.casePricing ?? product.casePricing;
+
+  // Default to full case if enabled, else half, else quarter.
+  const initialCaseFraction = useMemo(() => {
+    if (!casePricing) return 1;
+    if (casePricing.enableFull) return 1;
+    if (casePricing.enableHalf) return 0.5;
+    if (casePricing.enableQuarter) return 0.25;
+    if (casePricing.enableSingle) return 0.1;
+    return 1;
+  }, [casePricing]);
+
+  const [selectedCaseFraction, setSelectedCaseFraction] = useState<number>(initialCaseFraction);
+
+  // If the chosen fraction isn't offered for the newly selected size,
+  // fall back to that size's default fraction.
+  useEffect(() => {
+    if (!casePricing) return;
+    const enabled =
+      selectedCaseFraction === 1 ? casePricing.enableFull
+      : selectedCaseFraction === 0.5 ? casePricing.enableHalf
+      : selectedCaseFraction === 0.25 ? casePricing.enableQuarter
+      : casePricing.enableSingle;
+    if (!enabled) setSelectedCaseFraction(initialCaseFraction);
+  }, [casePricing, selectedCaseFraction, initialCaseFraction]);
+
+  // Item quantity for a fraction: explicit per-fraction field, else legacy caseSize × fraction.
+  const caseQty = useCallback(
+    (fraction: number) => {
+      if (!casePricing) return 1;
+      const explicit =
+        fraction === 1 ? casePricing.fullQty
+        : fraction === 0.5 ? casePricing.halfQty
+        : fraction === 0.25 ? casePricing.quarterQty
+        : casePricing.singleQty;
+      if (explicit != null) return explicit;
+      if (casePricing.caseSize != null) {
+          if (fraction === 0.1) return 1; // Default to 1 for Single if no explicit qty
+          return Math.max(1, Math.floor(casePricing.caseSize * fraction));
+      }
+      return 1;
+    },
+    [casePricing]
+  );
+
+  const baseDisplayPrice = selectedVariant?.priceCents ?? product.basePriceCents;
+  const displayPrice = useMemo(() => {
+    if (!casePricing) return baseDisplayPrice;
+    if (selectedCaseFraction === 1 && casePricing.fullPriceCents) return casePricing.fullPriceCents;
+    if (selectedCaseFraction === 0.5 && casePricing.halfPriceCents) return casePricing.halfPriceCents;
+    if (selectedCaseFraction === 0.25 && casePricing.quarterPriceCents) return casePricing.quarterPriceCents;
+    if (selectedCaseFraction === 0.1 && casePricing.singlePriceCents) return casePricing.singlePriceCents;
+    return baseDisplayPrice;
+  }, [casePricing, selectedCaseFraction, baseDisplayPrice]);
+
   const stockSource: StockFields = selectedVariant
     ? { trackInventory: selectedVariant.trackInventory, stockQuantity: selectedVariant.stockQuantity, lowStockThreshold: selectedVariant.lowStockThreshold }
     : product;
@@ -117,10 +216,25 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
     ? options.map((o) => selectedOptions[o.name]).join(' / ')
     : undefined;
 
+  const caseLabel = casePricing
+    ? `${selectedCaseFraction === 1 ? 'Full' : selectedCaseFraction === 0.5 ? '½' : selectedCaseFraction === 0.25 ? '¼' : 'Single'} Case (${caseQty(selectedCaseFraction)} ${casePricing.itemLabel || 'bottles'})`
+    : undefined;
+  // e.g. "250ml One Way Glass · Full Case (24 bottles)"
+  const finalVariantLabel = [variantLabel, caseLabel].filter(Boolean).join(' · ') || undefined;
+
+  // Which buy buttons to show, from the admin's Purchase Types checkboxes.
+  // Legacy products carry a single purchaseType string instead.
+  const purchaseTypes =
+    product.purchaseTypes ??
+    (product.purchaseType ? [product.purchaseType] : ['one-time']);
+  const canSubscribe = purchaseTypes.includes('subscription');
+  const canBuyOnce =
+    purchaseTypes.length === 0 || purchaseTypes.some((t) => t !== 'subscription');
+
   const baseItem = () => ({
     productId: product._id,
     variantId: selectedVariant?._id,
-    variantLabel,
+    variantLabel: finalVariantLabel,
     sku: selectedVariant?.sku ?? product.sku,
     name: product.name,
     priceCents: displayPrice,
@@ -185,22 +299,25 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,560px)_1fr] lg:gap-20">
             {/* Image Gallery Column */}
             <div>
-              <div className="group relative aspect-square w-full overflow-hidden rounded-[8px] bg-white/60 cursor-zoom-in">
-                {activeImage ? (
-                  <Image
+              {activeImage?.isVideo ? (
+                <div className="relative aspect-square w-full overflow-hidden rounded-[8px] bg-transparent">
+                  <video
+                    key={activeImage.url}
                     src={activeImage.url}
-                    alt={activeImage.alt ?? product.name}
-                    fill
-                    className="object-contain p-10 mix-blend-multiply transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
-                    sizes="(max-width: 1024px) 100vw, 560px"
-                    priority
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="h-full w-full object-contain p-6"
                   />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-text-secondary">
-                    No image available
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <HoverZoomImage
+                  src={activeImage?.url}
+                  alt={activeImage?.alt ?? product.name}
+                />
+              )}
 
               {galleryImages.length > 1 && (
                 <div className="mt-4 flex gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
@@ -209,19 +326,35 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
                       key={i}
                       type="button"
                       onClick={() => setActiveImageIndex(i)}
-                      className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-white/60 transition-all duration-300 border ${
+                      className={`group/thumb relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-transparent transition-all duration-300 border ${
                         activeImageIndex === i
-                          ? 'opacity-100 border-lume-house/30'
-                          : 'opacity-60 hover:opacity-100 border-transparent'
+                          ? 'border-lume-house/30'
+                          : 'border-transparent'
                       }`}
                     >
-                      <Image
-                        src={img.url}
-                        alt={img.alt ?? `${product.name} ${i + 1}`}
-                        fill
-                        className="object-contain p-1.5 mix-blend-multiply"
-                        sizes="80px"
-                      />
+                      {img.isVideo ? (
+                        <span
+                          className={`flex h-full w-full items-center justify-center bg-lume-house/5 transition-opacity duration-300 ${
+                            activeImageIndex === i ? '' : 'opacity-60 group-hover/thumb:opacity-100'
+                          }`}
+                          aria-label="Play video"
+                        >
+                          <Play className="h-6 w-6 text-lume-house" strokeWidth={1.5} fill="currentColor" />
+                        </span>
+                      ) : (
+                        /* Dim via the image's own opacity: putting opacity on the
+                           button creates a stacking context that isolates
+                           mix-blend-multiply and brings white backgrounds back. */
+                        <Image
+                          src={img.url}
+                          alt={img.alt ?? `${product.name} ${i + 1}`}
+                          fill
+                          className={`object-contain p-1.5 mix-blend-multiply transition-opacity duration-300 scale-[2.5] ${
+                            activeImageIndex === i ? '' : 'opacity-60 group-hover/thumb:opacity-100'
+                          }`}
+                          sizes="80px"
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -243,36 +376,162 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
                 {hasVariants && !selectedVariant ? 'From ' : ''}TT${(displayPrice / 100).toFixed(2)}
               </p>
               <p className="mb-7 text-[12px] font-semibold uppercase tracking-[0.08em] text-lume-house/70">
-                {product.unit}
+                {product.unit?.includes('·') ? product.unit.split('·')[1].trim() : product.unit}
               </p>
 
-              {/* Variant option selectors */}
-              {hasVariants && options.map((opt) => (
-                <div key={opt.name} className="mb-5">
+              {/* Variant option selectors (image tiles when photos exist) */}
+              {hasVariants && options.map((opt) => {
+                // A value's tile shows the photo/price of its matching variant.
+                const variantFor = (val: string) =>
+                  variants.find((v) => v.optionValues[opt.name] === val);
+                const anyImages = opt.values.some((val) => variantFor(val)?.imageUrl);
+                return (
+                  <div key={opt.name} className="mb-5">
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.15em] text-text-secondary">
+                      {opt.name}:{' '}
+                      <span className="normal-case tracking-normal font-semibold text-lume-house">
+                        {selectedOptions[opt.name]}
+                      </span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {opt.values.map((val) => {
+                        const isSelected = selectedOptions[opt.name] === val;
+                        const v = variantFor(val);
+                        if (anyImages) {
+                          return (
+                            <button
+                              key={val}
+                              type="button"
+                              onClick={() => setSelectedOptions((prev) => ({ ...prev, [opt.name]: val }))}
+                              className={`w-[104px] rounded-lg border p-2 text-center transition-all ${
+                                isSelected
+                                  ? 'border-lume-house bg-lume-house/[0.04] ring-1 ring-lume-house'
+                                  : 'border-lume-house/20 hover:border-lume-house/50'
+                              }`}
+                            >
+                              <span className="relative block h-16 w-full">
+                                {v?.imageUrl ? (
+                                  <Image
+                                    src={v.imageUrl}
+                                    alt={val}
+                                    fill
+                                    className="object-contain mix-blend-multiply scale-[2.5]"
+                                    sizes="104px"
+                                  />
+                                ) : (
+                                  <span className="flex h-full items-center justify-center text-[10px] text-text-secondary">
+                                    No photo
+                                  </span>
+                                )}
+                              </span>
+                              <span className="mt-1.5 block text-[11px] font-medium leading-tight text-lume-house">
+                                {val}
+                              </span>
+                              {v && (
+                                <span className="mt-0.5 block text-[11px] text-text-secondary">
+                                  {v.casePricing ? 'From ' : ''}TT${(v.priceCents / 100).toFixed(2)}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        }
+                        return (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setSelectedOptions((prev) => ({ ...prev, [opt.name]: val }))}
+                            className={`border px-4 py-2.5 text-[12px] font-medium transition-all ${
+                              isSelected
+                                ? 'border-lume-house bg-lume-house text-white'
+                                : 'border-lume-house/20 text-lume-house hover:border-lume-house/50'
+                            }`}
+                          >
+                            {val}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Case Pricing selectors */}
+              {casePricing && (
+                <div className="mb-5">
                   <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.15em] text-text-secondary">
-                    {opt.name}
+                    Quantity Options
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {opt.values.map((val) => {
-                      const isSelected = selectedOptions[opt.name] === val;
-                      return (
-                        <button
-                          key={val}
-                          type="button"
-                          onClick={() => setSelectedOptions((prev) => ({ ...prev, [opt.name]: val }))}
-                          className={`border px-4 py-2.5 text-[12px] font-medium transition-all ${
-                            isSelected
-                              ? 'border-lume-house bg-lume-house text-white'
-                              : 'border-lume-house/20 text-lume-house hover:border-lume-house/50'
-                          }`}
-                        >
-                          {val}
-                        </button>
-                      );
-                    })}
+                    {casePricing.enableSingle && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCaseFraction(0.1)}
+                        className={`border px-5 py-3 text-center transition-all ${
+                          selectedCaseFraction === 0.1
+                            ? 'border-lume-house bg-lume-house text-white'
+                            : 'border-lume-house/20 text-lume-house hover:border-lume-house/50'
+                        }`}
+                      >
+                        <span className="block text-[12px] font-medium">Single ({caseQty(0.1)} {casePricing.itemLabel || 'bottles'})</span>
+                        <span className={`block mt-0.5 text-[11px] ${selectedCaseFraction === 0.1 ? 'text-white/70' : 'text-text-secondary'}`}>
+                          TT${((casePricing.singlePriceCents ?? baseDisplayPrice) / 100).toFixed(2)}
+                        </span>
+                      </button>
+                    )}
+                    {casePricing.enableQuarter && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCaseFraction(0.25)}
+                        className={`border px-5 py-3 text-center transition-all ${
+                          selectedCaseFraction === 0.25
+                            ? 'border-lume-house bg-lume-house text-white'
+                            : 'border-lume-house/20 text-lume-house hover:border-lume-house/50'
+                        }`}
+                      >
+                        <span className="block text-[12px] font-medium">¼ Case ({caseQty(0.25)} {casePricing.itemLabel || 'bottles'})</span>
+                        <span className={`block mt-0.5 text-[11px] ${selectedCaseFraction === 0.25 ? 'text-white/70' : 'text-text-secondary'}`}>
+                          TT${((casePricing.quarterPriceCents ?? baseDisplayPrice) / 100).toFixed(2)}
+                        </span>
+                      </button>
+                    )}
+                    {casePricing.enableHalf && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCaseFraction(0.5)}
+                        className={`border px-5 py-3 text-center transition-all ${
+                          selectedCaseFraction === 0.5
+                            ? 'border-lume-house bg-lume-house text-white'
+                            : 'border-lume-house/20 text-lume-house hover:border-lume-house/50'
+                        }`}
+                      >
+                        <span className="block text-[12px] font-medium">½ Case ({caseQty(0.5)} {casePricing.itemLabel || 'bottles'})</span>
+                        <span className={`block mt-0.5 text-[11px] ${selectedCaseFraction === 0.5 ? 'text-white/70' : 'text-text-secondary'}`}>
+                          TT${((casePricing.halfPriceCents ?? baseDisplayPrice) / 100).toFixed(2)}
+                        </span>
+                      </button>
+                    )}
+                    {casePricing.enableFull && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCaseFraction(1)}
+                        className={`border px-5 py-3 text-center transition-all ${
+                          selectedCaseFraction === 1
+                            ? 'border-lume-house bg-lume-house text-white'
+                            : 'border-lume-house/20 text-lume-house hover:border-lume-house/50'
+                        }`}
+                      >
+                        <span className="block text-[12px] font-medium">Full Case ({caseQty(1)} {casePricing.itemLabel || 'bottles'})</span>
+                        <span className={`block mt-0.5 text-[11px] ${selectedCaseFraction === 1 ? 'text-white/70' : 'text-text-secondary'}`}>
+                          TT${((casePricing.fullPriceCents ?? baseDisplayPrice) / 100).toFixed(2)}
+                        </span>
+                      </button>
+                    )}
                   </div>
+                  <p className="mt-2 text-[12px] font-medium text-text-secondary/70">
+                    TT${((displayPrice / 100) / caseQty(selectedCaseFraction)).toFixed(2)} per {casePricing.itemLabel || 'bottle'}
+                  </p>
                 </div>
-              ))}
+              )}
 
               {stock.low && (
                 <p className="mb-5 text-[11px] font-medium uppercase tracking-[0.15em] text-[#B45309]">
@@ -339,29 +598,33 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
                   </div>
                 </div>
               ) : (
-                /* Default: Subscribe + Add pills */
+                /* Buttons follow the admin's Purchase Types checkboxes */
                 <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setSubscribeOpen(true)}
-                    className={`${pillBase} border border-lume-house text-lume-house hover:bg-lume-house/5 ${
-                      subscribed ? 'bg-lume-house text-white' : ''
-                    }`}
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    {subscribed ? 'Subscribed' : 'Subscribe'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAdd}
-                    className={`${pillBase} border border-lume-house bg-lume-house text-white hover:bg-transparent hover:text-lume-house`}
-                  >
-                    {added ? (
-                      <><Check className="h-3.5 w-3.5" /> Added</>
-                    ) : (
-                      <><Plus className="h-3.5 w-3.5" /> Add</>
-                    )}
-                  </button>
+                  {canSubscribe && (
+                    <button
+                      type="button"
+                      onClick={() => setSubscribeOpen(true)}
+                      className={`${pillBase} border border-lume-house text-lume-house hover:bg-lume-house/5 ${
+                        subscribed ? 'bg-lume-house text-white' : ''
+                      }`}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      {subscribed ? 'Subscribed' : 'Subscribe'}
+                    </button>
+                  )}
+                  {canBuyOnce && (
+                    <button
+                      type="button"
+                      onClick={handleAdd}
+                      className={`${pillBase} border border-lume-house bg-lume-house text-white hover:bg-transparent hover:text-lume-house`}
+                    >
+                      {added ? (
+                        <><Check className="h-3.5 w-3.5" /> Added</>
+                      ) : (
+                        <><Plus className="h-3.5 w-3.5" /> Add</>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -369,16 +632,19 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
 
           {/* Description + tags (full width, Farm-to-People style) */}
           <div className="mt-14 max-w-4xl">
-            <p className="text-[15px] font-light leading-relaxed text-text-secondary">
+            <h3 className="mb-4 text-[13px] font-medium uppercase tracking-[0.15em] text-lume-house">
+              Description
+            </h3>
+            <div className="text-[15px] font-light leading-relaxed text-text-secondary whitespace-pre-wrap">
               {product.description || 'A beautiful, sustainably sourced product for your home.'}
-            </p>
+            </div>
 
             {product.tags && product.tags.length > 0 && (
               <div className="mt-6 flex flex-wrap gap-2.5">
                 {product.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full border border-lume-house/20 px-4 py-1.5 text-[12px] font-medium text-lume-house/80"
+                    className="rounded-full bg-lume-house px-4 py-1.5 text-[12px] font-medium text-white"
                   >
                     {tag}
                   </span>
@@ -387,7 +653,64 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
             )}
           </div>
 
-          {/* Info tabs: Producer / Storage Tips / Ingredients & Nutrition */}
+          {/* Accordions */}
+          <div className="mt-12 max-w-4xl flex flex-col border-b border-lume-house/10">
+            <details className="group border-t border-lume-house/10 py-5 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer items-center justify-between text-[13px] font-medium uppercase tracking-[0.15em] text-lume-house outline-none">
+                <div className="flex items-center gap-3">
+                  <Leaf className="h-4 w-4 text-text-secondary" />
+                  Sourcing & Attributes
+                </div>
+                <span className="transition-transform duration-300 group-open:rotate-180">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </span>
+              </summary>
+              <div className="mt-4 text-[14px] font-light leading-relaxed text-text-secondary pb-2">
+                <p className="mb-2"><strong>Origin:</strong> {product.sourcingOrigin || 'Locally sourced'}</p>
+                {product.sourcingPartner && <p className="mb-4"><strong>Partner:</strong> {product.sourcingPartner}</p>}
+
+                {(product.attributes || (product.customAttributes?.length ?? 0) > 0) && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {Object.entries(product.attributes ?? {}).map(([key, value]) => {
+                      if (!value) return null;
+                      const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
+                      return (
+                        <span key={key} className="border border-lume-house/15 px-2 py-1 text-[10px] font-medium uppercase tracking-widest text-lume-house/70">
+                          {formattedKey}
+                        </span>
+                      );
+                    })}
+                    {product.customAttributes?.map((attr) => (
+                      <span key={attr} className="border border-lume-house/15 px-2 py-1 text-[10px] font-medium uppercase tracking-widest text-lume-house/70">
+                        {attr}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </details>
+
+            <details className="group border-t border-lume-house/10 py-5 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer items-center justify-between text-[13px] font-medium uppercase tracking-[0.15em] text-lume-house outline-none">
+                <div className="flex items-center gap-3">
+                  <Package className="h-4 w-4 text-text-secondary" />
+                  Delivery & Packaging
+                </div>
+                <span className="transition-transform duration-300 group-open:rotate-180">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </span>
+              </summary>
+              <div className="mt-4 text-[14px] font-light leading-relaxed text-text-secondary pb-2">
+                Delivered in returnable, reusable glass jars or compostable packaging to minimize waste. Return empty containers with your next delivery.
+              </div>
+            </details>
+          </div>
+
+          {/* Info tabs: Producer / Maker / Ingredients & Nutrition / Storage Guide */}
           {infoSections.length > 0 && (
             <div className="mt-16">
               <div className="flex gap-8 border-b border-lume-house/10">
@@ -410,7 +733,7 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
                 ))}
               </div>
 
-              <div className="mt-8 rounded-2xl border border-lume-house/10 bg-white/50 p-7 md:p-9">
+              <div className="mt-8 rounded-2xl border border-lume-house/10 p-7 md:p-9">
                 {currentInfoTab === 'producer' && product.producer && (
                   <div className="flex flex-col gap-7 md:flex-row">
                     {product.producer.imageUrl && (
@@ -488,62 +811,88 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
               </div>
             </div>
           )}
-
-          {/* Accordions */}
-          <div className="mt-12 max-w-4xl flex flex-col border-b border-lume-house/10">
-            <details className="group border-t border-lume-house/10 py-5 [&_summary::-webkit-details-marker]:hidden">
-              <summary className="flex cursor-pointer items-center justify-between text-[13px] font-medium uppercase tracking-[0.15em] text-lume-house outline-none">
-                <div className="flex items-center gap-3">
-                  <Leaf className="h-4 w-4 text-text-secondary" />
-                  Sourcing & Attributes
-                </div>
-                <span className="transition-transform duration-300 group-open:rotate-180">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </span>
-              </summary>
-              <div className="mt-4 text-[14px] font-light leading-relaxed text-text-secondary pb-2">
-                <p className="mb-2"><strong>Origin:</strong> {product.sourcingOrigin || 'Locally sourced'}</p>
-                {product.sourcingPartner && <p className="mb-4"><strong>Partner:</strong> {product.sourcingPartner}</p>}
-
-                {product.attributes && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {Object.entries(product.attributes).map(([key, value]) => {
-                      if (!value) return null;
-                      const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
-                      return (
-                        <span key={key} className="border border-lume-house/15 px-2 py-1 text-[10px] font-medium uppercase tracking-widest text-lume-house/70">
-                          {formattedKey}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </details>
-
-            <details className="group border-t border-lume-house/10 py-5 [&_summary::-webkit-details-marker]:hidden">
-              <summary className="flex cursor-pointer items-center justify-between text-[13px] font-medium uppercase tracking-[0.15em] text-lume-house outline-none">
-                <div className="flex items-center gap-3">
-                  <Package className="h-4 w-4 text-text-secondary" />
-                  Delivery & Packaging
-                </div>
-                <span className="transition-transform duration-300 group-open:rotate-180">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </span>
-              </summary>
-              <div className="mt-4 text-[14px] font-light leading-relaxed text-text-secondary pb-2">
-                Delivered in returnable, reusable glass jars or compostable packaging to minimize waste. Return empty containers with your next delivery.
-              </div>
-            </details>
-          </div>
         </div>
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+const ZOOM_FACTOR = 4.0;
+const LENS_SIZE = 160;
+
+function HoverZoomImage({ src, alt }: { src?: string; alt: string }) {
+  const [zooming, setZooming] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+
+  const handleMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPos({
+      x: (e.clientX - rect.left) / rect.width,
+      y: (e.clientY - rect.top) / rect.height,
+    });
+  }, []);
+
+  if (!src) {
+    return (
+      <div className="relative aspect-square w-full overflow-hidden rounded-[8px] bg-transparent">
+        <div className="flex h-full w-full items-center justify-center text-text-secondary">
+          No image available
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div
+        className="relative aspect-square w-full overflow-hidden rounded-[8px] bg-transparent cursor-crosshair"
+        onMouseEnter={() => setZooming(true)}
+        onMouseLeave={() => setZooming(false)}
+        onMouseMove={handleMove}
+      >
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          className="object-contain p-2 mix-blend-multiply pointer-events-none select-none scale-[1.6]"
+          sizes="(max-width: 1024px) 100vw, 560px"
+          priority
+        />
+
+        {/* Lens overlay (desktop only) */}
+        {zooming && (
+          <div
+            className="pointer-events-none absolute rounded-full border-2 border-lume-house/20 bg-lume-house/[0.06] hidden lg:block"
+            style={{
+              width: LENS_SIZE,
+              height: LENS_SIZE,
+              left: `calc(${pos.x * 100}% - ${LENS_SIZE / 2}px)`,
+              top: `calc(${pos.y * 100}% - ${LENS_SIZE / 2}px)`,
+            }}
+          />
+        )}
+      </div>
+
+      {/* Zoomed flyout (desktop only) */}
+      {zooming && (
+        <div
+          className="pointer-events-none absolute left-[calc(100%+16px)] top-0 z-50 hidden aspect-square w-[560px] overflow-hidden rounded-[8px] border border-lume-house/10 bg-canvas shadow-xl lg:block"
+        >
+          {/* multiply melts any white background into the canvas, matching
+              how the main gallery image is rendered */}
+          <div
+            className="absolute inset-0 mix-blend-multiply"
+            style={{
+              backgroundImage: `url(${src})`,
+              backgroundSize: `${ZOOM_FACTOR * 100}%`,
+              backgroundPosition: `${pos.x * 100}% ${pos.y * 100}%`,
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

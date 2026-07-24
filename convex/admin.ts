@@ -276,6 +276,77 @@ export const setUserAdmin = mutation({
   },
 });
 
+/**
+ * Permanently delete a user and all their related data.
+ * Cascades to: addresses, subscriptions, boxes, creditTransactions,
+ * shopOrders, shopOrderItems, and referrals.
+ * Admins cannot delete their own account.
+ */
+export const deleteUser = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    // Prevent self-deletion
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) {
+      const callerToken =
+        identity.tokenIdentifier ??
+        `${identity.issuer}|${identity.subject}`;
+      const target = await ctx.db.get(args.userId);
+      if (target?.tokenIdentifier === callerToken) {
+        throw new Error("You cannot delete your own account.");
+      }
+    }
+
+    // Delete addresses
+    const addresses = await ctx.db
+      .query("addresses")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const a of addresses) await ctx.db.delete(a._id);
+
+    // Delete subscriptions
+    const subs = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const s of subs) await ctx.db.delete(s._id);
+
+    // Delete boxes
+    const boxes = await ctx.db
+      .query("boxes")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const b of boxes) await ctx.db.delete(b._id);
+
+    // Delete credit transactions
+    const credits = await ctx.db
+      .query("creditTransactions")
+      .withIndex("by_user_created", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const c of credits) await ctx.db.delete(c._id);
+
+    // Delete shop orders and their items
+    const shopOrders = await ctx.db
+      .query("shopOrders")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const o of shopOrders) {
+      const items = await ctx.db
+        .query("shopOrderItems")
+        .withIndex("by_order", (q) => q.eq("shopOrderId", o._id))
+        .collect();
+      for (const i of items) await ctx.db.delete(i._id);
+      await ctx.db.delete(o._id);
+    }
+
+    // Delete the user document
+    await ctx.db.delete(args.userId);
+    return args.userId;
+  },
+});
+
 // ──────────────────────────────────────────────────────────────
 // Products
 // ──────────────────────────────────────────────────────────────

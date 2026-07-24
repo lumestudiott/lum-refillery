@@ -20,7 +20,6 @@ import {
   normalizeSort,
 } from './shopConfig';
 
-const CartDrawer = dynamic(() => import('@/components/shop/CartDrawer'), { ssr: false });
 const ProductQuickViewModal = dynamic(
   () => import('@/components/shop/ProductQuickViewModal'),
   { ssr: false }
@@ -545,7 +544,6 @@ export default function ShopPageClient({
       )}
 
       <Footer />
-      <CartDrawer />
       {quickViewProduct && (
         <ProductQuickViewModal product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
       )}
