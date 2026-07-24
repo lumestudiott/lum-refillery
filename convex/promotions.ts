@@ -2,17 +2,17 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { requireAdmin } from "./lib/auth";
 
-/** Public: list all active promotions (for the announcement banner). */
 export const listActive = query({
   args: {},
   handler: async (ctx) => {
     try {
-      return await ctx.db
+      const promos = await ctx.db
         .query("promotions")
         .withIndex("by_active", (q) => q.eq("active", true))
         .take(20);
+      return promos ?? [];
     } catch (error) {
-      console.warn("Failed to fetch active promotions. This is likely a schema validation error on a document in the DB, or an out-of-sync deployment. Returning empty list.", error);
+      console.warn("Failed to fetch active promotions:", error);
       return [];
     }
   },

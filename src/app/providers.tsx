@@ -46,9 +46,9 @@ export function Providers({ children }: { children: ReactNode }) {
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <CartProvider>
           <IdleTimeout />
-          <ErrorBoundary>
-            <OnboardingGuard>{children}</OnboardingGuard>
-          </ErrorBoundary>
+          <OnboardingGuard>
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </OnboardingGuard>
           <CartDrawer />
         </CartProvider>
       </ConvexProviderWithClerk>
