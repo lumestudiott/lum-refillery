@@ -2025,31 +2025,66 @@ export default function Products() {
                   key={row.id ?? `new-${i}`}
                   className="rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 p-4"
                 >
-                  {/* Header: image, label, direct price, active, delete */}
-                  <div className="grid grid-cols-[64px_1fr_130px_auto_auto] items-center gap-3">
-                    <label className="relative flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-black/15 bg-white/60 transition-colors hover:border-lume-accent">
-                      {row.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={row.imageUrl}
-                          alt={row.label || 'Variant'}
-                          className="h-full w-full object-contain"
+                  {/* Header: image, active, delete */}
+                  <div className="flex items-center justify-between gap-3 border-b border-black/10 pb-3">
+                    <div className="flex items-center gap-3">
+                      <label className="relative flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-black/15 bg-white/60 transition-colors hover:border-lume-accent">
+                        {row.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={row.imageUrl}
+                            alt={row.label || 'Variant'}
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <ImageIcon className="h-5 w-5 text-text-secondary/50" />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={onVariantImage(i)}
+                          disabled={uploading}
                         />
-                      ) : (
-                        <ImageIcon className="h-5 w-5 text-text-secondary/50" />
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={onVariantImage(i)}
-                        disabled={uploading}
-                      />
-                    </label>
+                      </label>
+                      <div>
+                        <span className="text-[13px] font-semibold text-text-primary">
+                          {row.label.trim() || `Variant #${i + 1}`}
+                        </span>
+                        <p className="text-[11px] text-text-secondary">
+                          Set a direct price or enable case options below.
+                        </p>
+                      </div>
+                    </div>
 
+                    <div className="flex items-center gap-3">
+                      <CheckRow
+                        label="Active"
+                        checked={row.active}
+                        onChange={(v) => patchRow({ active: v })}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm({
+                            ...form,
+                            variantRows: form.variantRows.filter((_, j) => j !== i),
+                          })
+                        }
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-red-50 hover:text-red-600"
+                        aria-label={`Remove ${row.label || 'variant'}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Name and Direct Price Inputs */}
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <div>
                       <TextField
-                        label=""
+                        label="Variant / Size Name"
                         value={row.label}
                         onChange={(e) => patchRow({ label: e.target.value })}
                         placeholder="e.g. 6g Tumeric Powder"
@@ -2063,35 +2098,15 @@ export default function Products() {
 
                     <div>
                       <TextField
-                        label=""
+                        label="Price (TTD)"
                         type="number"
                         step="0.01"
                         min="0"
                         value={row.price}
                         onChange={(e) => patchRow({ price: e.target.value })}
-                        placeholder="Price (TTD)"
+                        placeholder="e.g. 15.00"
                       />
                     </div>
-
-                    <CheckRow
-                      label="Active"
-                      checked={row.active}
-                      onChange={(v) => patchRow({ active: v })}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          variantRows: form.variantRows.filter((_, j) => j !== i),
-                        })
-                      }
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-red-50 hover:text-red-600"
-                      aria-label={`Remove ${row.label || 'variant'}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
                   </div>
 
                   {/* Case options for this size */}
