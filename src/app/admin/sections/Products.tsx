@@ -20,6 +20,7 @@ import {
   Video,
   Copy as CopyIcon,
   BookOpen,
+  AlertTriangle,
 } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
@@ -949,7 +950,7 @@ export default function Products() {
     <div>
       <SectionHeader
         title="Products"
-        subtitle="Your full catalogue - enter a SKU for each product."
+        subtitle="Browse, search and manage every product in your store."
         actions={
           <>
             <Btn onClick={() => setManagingCats(true)}>
@@ -1032,7 +1033,7 @@ export default function Products() {
                 <Td className="font-mono text-[12px] text-text-secondary">{p.sku}</Td>
                 <Td>{catLabel(p.category)}</Td>
                 <Td>
-                  <StockPill product={p} />
+                  <StockPill product={p} variantStock={p.variantStock} />
                 </Td>
                 <Td>
                   <button onClick={() => toggleActive(p)} title="Toggle active">
@@ -1109,105 +1110,133 @@ export default function Products() {
 
         {/* ── General ── */}
         {tab === 'general' && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField
-              label="Product Name *"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="e.g. Organic Brown Rice"
-            />
-            <TextField
-              label="Brand"
-              value={form.brand}
-              onChange={(e) => setForm({ ...form, brand: e.target.value })}
-              placeholder="e.g. Island Harvest, Lumë"
-            />
-            <TextField
-              label="SKU *"
-              value={form.sku}
-              onChange={(e) => setForm({ ...form, sku: e.target.value })}
-              placeholder="e.g. GP-0007"
-            />
-            <div className="sm:col-span-2">
-              <TextField
-                label="Page URL (slug)"
-                value={form.slug}
-                onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                placeholder="e.g. coca-cola-original-taste"
-              />
-              <p className="mt-1.5 text-[12px] leading-snug text-text-secondary">
-                Link:&nbsp;
-                <span className="font-medium text-text-primary">
-                  /shop/{slugify(form.slug) || form.sku.trim().toLowerCase() || '…'}
-                </span>
-                &nbsp;— leave blank to use the SKU. Letters, numbers and hyphens only.
-              </p>
-            </div>
-            <div>
-              <SelectField
-                label="Category *"
-                value={form.category}
-                onChange={(e) => changeCategory(e.target.value)}
-              >
-                <option value="" disabled>
-                  Select a category…
-                </option>
-                {categoryOptions.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label} ({c.code})
-                  </option>
-                ))}
-              </SelectField>
-              {selectedCategory && (
-                <p className="mt-1.5 text-[12px] leading-snug text-text-secondary">
-                  {selectedCategory.description ?? ''}
-                </p>
-              )}
-            </div>
+          <div className="space-y-6">
+            {/* ── Product Info ── */}
+            <fieldset>
+              <legend className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Product Info</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label="Product Name *"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="e.g. Moringa Powder, Coconut Oil"
+                />
+                <TextField
+                  label="Brand (optional)"
+                  value={form.brand}
+                  onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                  placeholder="e.g. Sungrown Harvest, Blue Waters"
+                />
+              </div>
+            </fieldset>
 
-            {/* Master category (shop tabs) */}
-            <SelectField
-              label="Shop Category"
-              value={form.shopCategorySlug}
-              onChange={(e) =>
-                setForm({ ...form, shopCategorySlug: e.target.value, shopSubcategorySlug: '' })
-              }
-            >
-              <option value="">None</option>
-              {shopParents.map((p) => (
-                <option key={p._id} value={p.slug}>
-                  {p.label}
-                </option>
-              ))}
-            </SelectField>
-            <SelectField
-              label="Sub-category"
-              value={form.shopSubcategorySlug}
-              onChange={(e) => setForm({ ...form, shopSubcategorySlug: e.target.value })}
-              disabled={!selectedShopParent}
-            >
-              <option value="">None</option>
-              {selectedShopParent?.subcategories.map((s) => (
-                <option key={s._id} value={s.slug}>
-                  {s.label}
-                </option>
-              ))}
-            </SelectField>
+            <hr className="border-black/[0.06]" />
 
-            <div className="sm:col-span-2">
+            {/* ── Identification ── */}
+            <fieldset>
+              <legend className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Identification</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label="SKU *"
+                  value={form.sku}
+                  onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                  placeholder="e.g. FP-HERB-01, BEV-HYD-01"
+                />
+                <div className="sm:col-span-2">
+                  <TextField
+                    label="Page URL (optional)"
+                    value={form.slug}
+                    onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                    placeholder="e.g. moringa-powder, hot-pepper-flakes"
+                  />
+                  <p className="mt-1.5 text-[12px] leading-snug text-text-secondary">
+                    Link:&nbsp;
+                    <span className="font-medium text-text-primary">
+                      /shop/{slugify(form.slug) || form.sku.trim().toLowerCase() || '…'}
+                    </span>
+                    &nbsp;— leave blank to use the SKU. Letters, numbers and hyphens only.
+                  </p>
+                </div>
+              </div>
+            </fieldset>
+
+            <hr className="border-black/[0.06]" />
+
+            {/* ── Organisation ── */}
+            <fieldset>
+              <legend className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Organisation</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <SelectField
+                    label="Category *"
+                    value={form.category}
+                    onChange={(e) => changeCategory(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Select a category…
+                    </option>
+                    {categoryOptions.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.label} ({c.code})
+                      </option>
+                    ))}
+                  </SelectField>
+                  {selectedCategory && (
+                    <p className="mt-1.5 text-[12px] leading-snug text-text-secondary">
+                      {selectedCategory.description ?? ''}
+                    </p>
+                  )}
+                </div>
+
+                {/* Master category (shop tabs) */}
+                <SelectField
+                  label="Shop Category (optional)"
+                  value={form.shopCategorySlug}
+                  onChange={(e) =>
+                    setForm({ ...form, shopCategorySlug: e.target.value, shopSubcategorySlug: '' })
+                  }
+                >
+                  <option value="">None</option>
+                  {shopParents.map((p) => (
+                    <option key={p._id} value={p.slug}>
+                      {p.label}
+                    </option>
+                  ))}
+                </SelectField>
+                <SelectField
+                  label="Sub-category (optional)"
+                  value={form.shopSubcategorySlug}
+                  onChange={(e) => setForm({ ...form, shopSubcategorySlug: e.target.value })}
+                  disabled={!selectedShopParent}
+                >
+                  <option value="">None</option>
+                  {selectedShopParent?.subcategories.map((s) => (
+                    <option key={s._id} value={s.slug}>
+                      {s.label}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+            </fieldset>
+
+            <hr className="border-black/[0.06]" />
+
+            {/* ── About ── */}
+            <fieldset>
+              <legend className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">About</legend>
               <TextArea
-                label="Description"
+                label="Description (optional)"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Sourcing & flavour notes for food, or material & care for retail."
+                placeholder="e.g. Locally grown and sun-dried. Rich in vitamins A and C."
               />
-            </div>
+            </fieldset>
 
-            {/* Tags CRUD dropdown */}
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
-                Tags
-              </label>
+            <hr className="border-black/[0.06]" />
+
+            {/* ── Tags ── */}
+            <fieldset>
+              <legend className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Tags (optional)</legend>
               {/* Selected tags */}
               {form.tags.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-1.5">
@@ -1278,15 +1307,19 @@ export default function Products() {
                   )}
                 </div>
               )}
-            </div>
+            </fieldset>
 
-            <div className="sm:col-span-2 border-t border-black/[0.06] pt-4">
+            <hr className="border-black/[0.06]" />
+
+            {/* ── Visibility ── */}
+            <fieldset>
+              <legend className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Visibility</legend>
               <CheckRow
                 label="Active (visible in shop)"
                 checked={form.active}
                 onChange={(v) => setForm({ ...form, active: v })}
               />
-            </div>
+            </fieldset>
           </div>
         )}
 
@@ -2271,21 +2304,46 @@ function AttributeCheck({
    like StatusBadge). Quantities are edited in the
    product modal's Inventory tab.
    ──────────────────────────────────────────────── */
-function StockPill({ product }: { product: Product }) {
+function StockPill({
+  product,
+  variantStock,
+}: {
+  product: Product;
+  variantStock?: { hasVariants: boolean; anyOutOfStock: boolean; anyLow: boolean };
+}) {
   const st = stockStatus(product);
 
-  const { label, cls } = !st.tracked
-    ? { label: 'Not tracked', cls: 'bg-black/[0.05] text-text-secondary ring-black/10' }
-    : st.soldOut
-      ? { label: 'Out of stock', cls: 'bg-red-50 text-red-600 ring-red-600/20' }
-      : st.low
-        ? { label: `Low · ${st.quantity}`, cls: 'bg-amber-50 text-amber-700 ring-amber-600/20' }
-        : { label: `In stock · ${st.quantity}`, cls: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' };
+  // Determine the worst-case status across the product + its variants.
+  // If any variant is out of stock → show "warning" level on the pill.
+  const hasVariantIssue = variantStock?.anyOutOfStock || variantStock?.anyLow;
+  const variantOutOfStock = variantStock?.anyOutOfStock ?? false;
+  const variantLow = variantStock?.anyLow ?? false;
+
+  let label: string;
+  let cls: string;
+  let icon: React.ReactNode = null;
+
+  if (!st.tracked && !variantStock?.hasVariants) {
+    label = 'Not tracked';
+    cls = 'bg-black/[0.05] text-text-secondary ring-black/10';
+  } else if (st.soldOut || variantOutOfStock) {
+    label = 'Out of stock';
+    cls = 'bg-red-50 text-red-600 ring-red-600/20';
+    icon = <AlertTriangle className="h-3 w-3" />;
+  } else if (st.low || variantLow) {
+    label = 'Low stock';
+    cls = 'bg-amber-50 text-amber-700 ring-amber-600/20';
+    icon = <AlertTriangle className="h-3 w-3" />;
+  } else {
+    label = 'In stock';
+    cls = 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
+  }
 
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] ring-1 ring-inset ${cls}`}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] ring-1 ring-inset ${cls}`}
     >
+      {icon}
       {label}
     </span>
   );

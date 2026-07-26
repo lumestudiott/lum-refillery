@@ -9,7 +9,7 @@
     "lint": "tsc --noEmit --pretty false",
     "deploy": "npx vercel --prod",
     "deploy:test": "npx vercel",
-    "deploy:staging": "url=$(npx vercel --yes) && npx vercel alias set \"$url\" staging.lumerefillery.com"
+    "deploy:staging": "url=$(npx vercel --yes 2>&1 | grep -oE 'https://[^ ]+\\.vercel\\.app' | tail -1) && npx vercel alias set \"$url\" staging.lumerefillery.com"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",

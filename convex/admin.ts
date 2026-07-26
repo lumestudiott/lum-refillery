@@ -355,13 +355,37 @@ export const listProducts = query({
   args: { category: v.optional(v.string()) },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    if (args.category) {
-      return await ctx.db
-        .query("products")
-        .withIndex("by_category", (q) => q.eq("category", args.category!))
-        .take(LIST_LIMIT);
-    }
-    return await ctx.db.query("products").order("desc").take(LIST_LIMIT);
+    const products = args.category
+      ? await ctx.db
+          .query("products")
+          .withIndex("by_category", (q) => q.eq("category", args.category!))
+          .take(LIST_LIMIT)
+      : await ctx.db.query("products").order("desc").take(LIST_LIMIT);
+
+    // Enrich each product with a variant stock summary so the overview page
+    // can show warning icons without N+1 client-side queries.
+    const enriched = await Promise.all(
+      products.map(async (p) => {
+        const variants = await ctx.db
+          .query("productVariants")
+          .withIndex("by_product", (q) => q.eq("productId", p._id))
+          .take(200);
+        const activeVariants = variants.filter((v) => v.active);
+        const hasVariants = activeVariants.length > 0;
+        let anyOutOfStock = false;
+        let anyLow = false;
+        for (const v of activeVariants) {
+          if (v.trackInventory) {
+            const qty = v.stockQuantity ?? 0;
+            const threshold = v.lowStockThreshold ?? 5;
+            if (qty <= 0) anyOutOfStock = true;
+            else if (qty <= threshold) anyLow = true;
+          }
+        }
+        return { ...p, variantStock: { hasVariants, anyOutOfStock, anyLow } };
+      })
+    );
+    return enriched;
   },
 });
 
