@@ -120,7 +120,7 @@ type TabId = 'general' | 'pricing' | 'inventory' | 'media' | 'details' | 'attrib
 
 const TABS: { id: TabId; label: string; hint: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'General', hint: 'Basic product details and store placement.', icon: Info },
-  { id: 'pricing', label: 'Pricing & Variants', hint: 'Prices, discounts, purchase types & size/variant options.', icon: Tag },
+  { id: 'pricing', label: 'Pricing', hint: 'Prices, discounts, purchase types & size/variant options.', icon: Tag },
   { id: 'inventory', label: 'Inventory', hint: 'Track stock and low-stock alerts.', icon: Boxes },
   { id: 'media', label: 'Media', hint: 'Images, image variations & video.', icon: ImageIcon },
   {
@@ -1332,7 +1332,7 @@ export default function Products() {
               />
               <div>
                 <TextField
-                  label="Page URL"
+                  label="Page URL *"
                   value={form.slug}
                   onChange={(e) => setForm({ ...form, slug: e.target.value })}
                   placeholder="e.g. eco-laundry-liquid"
@@ -1369,7 +1369,7 @@ export default function Products() {
               </div>
 
               <SelectField
-                label="Shop Category"
+                label="Shop Category *"
                 value={form.shopCategorySlug}
                 onChange={(e) =>
                   setForm({ ...form, shopCategorySlug: e.target.value, shopSubcategorySlug: '' })
