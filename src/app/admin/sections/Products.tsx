@@ -1146,7 +1146,7 @@ export default function Products() {
               />
               <div>
                 <TextField
-                  label="Page URL (optional)"
+                  label="Page URL"
                   value={form.slug}
                   onChange={(e) => setForm({ ...form, slug: e.target.value })}
                   placeholder="e.g. eco-laundry-liquid"
@@ -1183,7 +1183,7 @@ export default function Products() {
               </div>
 
               <SelectField
-                label="Shop Category (optional)"
+                label="Shop Category"
                 value={form.shopCategorySlug}
                 onChange={(e) =>
                   setForm({ ...form, shopCategorySlug: e.target.value, shopSubcategorySlug: '' })
