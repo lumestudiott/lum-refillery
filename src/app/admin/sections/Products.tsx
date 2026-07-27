@@ -1144,7 +1144,7 @@ export default function Products() {
                 onChange={(e) => setForm({ ...form, sku: e.target.value })}
                 placeholder="e.g. SK-1001"
               />
-              <div className="sm:col-span-2">
+              <div>
                 <TextField
                   label="Page URL (optional)"
                   value={form.slug}
