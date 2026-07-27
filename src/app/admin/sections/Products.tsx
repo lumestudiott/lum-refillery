@@ -1159,9 +1159,6 @@ export default function Products() {
                     </span>
                   </p>
                 )}
-                <p className="mt-1 text-[12px] leading-snug text-text-secondary">
-                  A short, readable link for this product. Letters, numbers and hyphens only.
-                </p>
               </div>
             </div>
 
@@ -1183,11 +1180,6 @@ export default function Products() {
                     </option>
                   ))}
                 </SelectField>
-                {selectedCategory && (
-                  <p className="mt-1.5 text-[12px] leading-snug text-text-secondary">
-                    {selectedCategory.description ?? ''}
-                  </p>
-                )}
               </div>
 
               <SelectField
