@@ -21,6 +21,8 @@ import {
   Copy as CopyIcon,
   BookOpen,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
@@ -946,6 +948,21 @@ export default function Products() {
   const unitTypeGroup = UNIT_TYPES.find((ut) => ut.value === form.unitType);
   const filteredUnits = unitTypeGroup ? unitTypeGroup.units : units;
 
+  const ITEMS_PER_PAGE_OPTIONS = [10, 20, 50];
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, category, pageSize]);
+
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
   return (
     <div>
       <SectionHeader
@@ -1008,7 +1025,7 @@ export default function Products() {
               </>
             }
           >
-            {filtered.map((p) => (
+            {paginatedProducts.map((p) => (
               <tr key={p._id} className="hover:bg-black/[0.015]">
                 <Td>
                   <div className="flex items-center gap-3">
@@ -1070,6 +1087,64 @@ export default function Products() {
           </Table>
         )}
       </Card>
+
+      {/* Pagination Controls */}
+      {filtered.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1">
+          <div className="flex items-center gap-2 text-[13px] text-text-secondary">
+            <span>Per page:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="rounded-lg border border-black/10 bg-[#FCF8EF] px-2 py-1 text-[13px] outline-none focus:border-lume-accent cursor-pointer"
+            >
+              {ITEMS_PER_PAGE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+            <span className="ml-2">
+              Showing {Math.min((currentPage - 1) * pageSize + 1, filtered.length)}–
+              {Math.min(currentPage * pageSize, filtered.length)} of {filtered.length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="inline-flex items-center justify-center rounded-lg border border-black/10 bg-[#FCF8EF] p-1.5 text-text-primary transition-colors hover:bg-black/[0.04] disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
+              <button
+                key={pg}
+                onClick={() => setCurrentPage(pg)}
+                className={`h-8 min-w-[32px] rounded-lg px-2.5 text-[13px] font-semibold transition-colors ${
+                  currentPage === pg
+                    ? 'bg-lume-accent text-white shadow-sm'
+                    : 'border border-black/10 bg-[#FCF8EF] text-text-primary hover:bg-black/[0.04]'
+                }`}
+              >
+                {pg}
+              </button>
+            ))}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="inline-flex items-center justify-center rounded-lg border border-black/10 bg-[#FCF8EF] p-1.5 text-text-primary transition-colors hover:bg-black/[0.04] disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <Modal
         open={creating}
