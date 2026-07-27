@@ -638,3 +638,51 @@ export const setGiftStatus = mutation({
     return args.id;
   },
 });
+
+// ──────────────────────────────────────────────────────────────
+// System Settings (Purchase Types & Store Feature Toggles)
+// ──────────────────────────────────────────────────────────────
+
+const DISABLED_PURCHASE_TYPES_KEY = "disabledPurchaseTypes";
+
+export const getDisabledPurchaseTypes = query({
+  args: {},
+  handler: async (ctx): Promise<string[]> => {
+    const row = await ctx.db
+      .query("appSettings")
+      .withIndex("by_key", (q) => q.eq("key", DISABLED_PURCHASE_TYPES_KEY))
+      .unique();
+    if (!row || !row.value) return [];
+    try {
+      return JSON.parse(row.value);
+    } catch {
+      return [];
+    }
+  },
+});
+
+export const setDisabledPurchaseTypes = mutation({
+  args: { disabled: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const existing = await ctx.db
+      .query("appSettings")
+      .withIndex("by_key", (q) => q.eq("key", DISABLED_PURCHASE_TYPES_KEY))
+      .unique();
+    const valStr = JSON.stringify(args.disabled);
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        value: valStr,
+        updatedAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("appSettings", {
+        key: DISABLED_PURCHASE_TYPES_KEY,
+        value: valStr,
+        updatedAt: Date.now(),
+      });
+    }
+    return args.disabled;
+  },
+});
+

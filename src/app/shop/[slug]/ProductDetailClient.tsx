@@ -218,19 +218,32 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
     product.purchaseTypes ??
     (product.purchaseType ? [product.purchaseType] : ['one-time']);
   const canSubscribe = purchaseTypes.includes('subscription');
+  const canRefillSwap = purchaseTypes.includes('refill-swap');
+  const hasDeposit = purchaseTypes.includes('deposit') && (product.depositCents ?? 0) > 0;
+  const depositCents = hasDeposit ? (product.depositCents ?? 0) : 0;
+  
   const canBuyOnce =
     purchaseTypes.length === 0 || purchaseTypes.some((t) => t !== 'subscription');
 
-  const baseItem = () => ({
-    productId: product._id,
-    variantId: selectedVariant?._id,
-    variantLabel: finalVariantLabel,
-    sku: selectedVariant?.sku ?? product.sku,
-    name: product.name,
-    priceCents: displayPrice,
-    imageUrl: product.imageUrl,
-    unit: product.unit,
-  });
+  const [selectedPurchaseType, setSelectedPurchaseType] = useState<'standard' | 'refill-swap'>('standard');
+
+  const baseItem = () => {
+    const isRefill = canRefillSwap && selectedPurchaseType === 'refill-swap';
+    const labelParts = [finalVariantLabel];
+    if (isRefill) labelParts.push('Refill Swap (Return container)');
+    if (hasDeposit) labelParts.push(`+$${(depositCents / 100).toFixed(2)} Container Deposit`);
+
+    return {
+      productId: product._id,
+      variantId: selectedVariant?._id,
+      variantLabel: labelParts.filter(Boolean).join(' · ') || undefined,
+      sku: selectedVariant?.sku ?? product.sku,
+      name: product.name,
+      priceCents: displayPrice + depositCents,
+      imageUrl: product.imageUrl,
+      unit: product.unit,
+    };
+  };
 
   const handleAdd = () => {
     addItem({ ...baseItem(), purchaseMode: 'one-time' as const });
@@ -362,12 +375,54 @@ export default function ProductDetailClient({ product, variants = [] }: ProductD
                 </p>
               )}
 
-              <p className="mb-1 text-[22px] font-semibold text-lume-house">
-                {hasVariants && !selectedVariant ? 'From ' : ''}TT${(displayPrice / 100).toFixed(2)}
-              </p>
-              <p className="mb-7 text-[12px] font-semibold uppercase tracking-[0.08em] text-lume-house/70">
+              <div className="mb-1 flex items-baseline gap-2">
+                <p className="text-[22px] font-semibold text-lume-house">
+                  {hasVariants && !selectedVariant ? 'From ' : ''}TT${((displayPrice + depositCents) / 100).toFixed(2)}
+                </p>
+                {hasDeposit && (
+                  <span className="text-[12px] text-text-secondary">
+                    (includes TT${(depositCents / 100).toFixed(2)} refundable container deposit)
+                  </span>
+                )}
+              </div>
+              <p className="mb-5 text-[12px] font-semibold uppercase tracking-[0.08em] text-lume-house/70">
                 {product.unit?.includes('·') ? product.unit.split('·')[1].trim() : product.unit}
               </p>
+
+              {canRefillSwap && (
+                <div className="mb-6 rounded-xl border border-lume-house/15 bg-lume-house/[0.02] p-3.5">
+                  <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-lume-house">
+                    Option / Container Return
+                  </span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPurchaseType('standard')}
+                      className={`flex flex-col text-left rounded-lg border p-2.5 transition-all ${
+                        selectedPurchaseType === 'standard'
+                          ? 'border-lume-house bg-lume-house/5 ring-1 ring-lume-house'
+                          : 'border-lume-house/20 hover:border-lume-house/40'
+                      }`}
+                    >
+                      <span className="text-[12px] font-semibold text-lume-house">Standard Purchase</span>
+                      <span className="text-[11px] text-text-secondary">First-time purchase with bottle/jar included.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPurchaseType('refill-swap')}
+                      className={`flex flex-col text-left rounded-lg border p-2.5 transition-all ${
+                        selectedPurchaseType === 'refill-swap'
+                          ? 'border-lume-house bg-lume-house/5 ring-1 ring-lume-house'
+                          : 'border-lume-house/20 hover:border-lume-house/40'
+                      }`}
+                    >
+                      <span className="text-[12px] font-semibold text-lume-house">Refill Swap</span>
+                      <span className="text-[11px] text-text-secondary">Bring empty container on delivery for exchange.</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Variant option selectors (image tiles when photos exist) */}
               {hasVariants && options.map((opt) => {

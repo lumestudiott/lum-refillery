@@ -333,6 +333,11 @@ export default function Products() {
   const dbCategories = useQuery(api.catalog.listCategories, {});
   const dbTags = useQuery(api.tags.list, {});
   const shopCats = useQuery(api.shopCategories.listAll, {});
+  const disabledPurchaseTypes = useQuery(api.admin.getDisabledPurchaseTypes, {}) ?? [];
+  const activePurchaseTypes = useMemo(
+    () => PURCHASE_TYPES.filter((pt) => !disabledPurchaseTypes.includes(pt.value)),
+    [disabledPurchaseTypes]
+  );
   const upsert = useMutation(api.products.upsertProduct);
   const setActive = useMutation(api.admin.setProductActive);
   const del = useMutation(api.admin.deleteProduct);
@@ -1565,37 +1570,40 @@ export default function Products() {
                   </SelectField>
 
                   {addingMeasurement && (
-                    <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl border border-[#E6DBC4] bg-white p-3 shadow-lg">
-                      <label className="mb-1 block text-[11px] font-medium text-text-secondary">New measurement type name</label>
-                      <input
-                        autoFocus
-                        type="text"
-                        className="w-full rounded-lg border border-[#E6DBC4] bg-[#FDFAF3] px-3 py-2 text-[13px] text-text-primary outline-none focus:border-lume-accent"
-                        placeholder="e.g. Temperature"
-                        value={newMeasurementLabel}
-                        onChange={(e) => setNewMeasurementLabel(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && newMeasurementLabel.trim()) {
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => { setAddingMeasurement(false); setNewMeasurementLabel(''); }} />
+                      <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl border border-[#E6DBC4] bg-[#FCF8EF] p-3 shadow-xl">
+                        <label className="mb-1 block text-[11px] font-medium text-text-secondary">New measurement type name</label>
+                        <input
+                          autoFocus
+                          type="text"
+                          className="w-full rounded-lg border border-[#E6DBC4] bg-[#FDFAF3] px-3 py-2 text-[13px] text-text-primary outline-none focus:border-lume-accent"
+                          placeholder="e.g. Temperature"
+                          value={newMeasurementLabel}
+                          onChange={(e) => setNewMeasurementLabel(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newMeasurementLabel.trim()) {
+                              const val = newMeasurementLabel.trim().toLowerCase().replace(/\s+/g, '-');
+                              setCustomUnitTypes(prev => [...prev, { value: val, label: newMeasurementLabel.trim(), units: [] }]);
+                              setForm(f => ({ ...f, unitType: val }));
+                              setNewMeasurementLabel('');
+                              setAddingMeasurement(false);
+                            }
+                            if (e.key === 'Escape') { setAddingMeasurement(false); setNewMeasurementLabel(''); }
+                          }}
+                        />
+                        <div className="mt-2 flex justify-end gap-2">
+                          <button type="button" onClick={() => { setAddingMeasurement(false); setNewMeasurementLabel(''); }} className="rounded-lg px-3 py-1.5 text-[12px] text-text-secondary hover:bg-black/5">Cancel</button>
+                          <button type="button" disabled={!newMeasurementLabel.trim()} onClick={() => {
                             const val = newMeasurementLabel.trim().toLowerCase().replace(/\s+/g, '-');
                             setCustomUnitTypes(prev => [...prev, { value: val, label: newMeasurementLabel.trim(), units: [] }]);
                             setForm(f => ({ ...f, unitType: val }));
                             setNewMeasurementLabel('');
                             setAddingMeasurement(false);
-                          }
-                          if (e.key === 'Escape') { setAddingMeasurement(false); setNewMeasurementLabel(''); }
-                        }}
-                      />
-                      <div className="mt-2 flex justify-end gap-2">
-                        <button type="button" onClick={() => { setAddingMeasurement(false); setNewMeasurementLabel(''); }} className="rounded-lg px-3 py-1.5 text-[12px] text-text-secondary hover:bg-black/5">Cancel</button>
-                        <button type="button" disabled={!newMeasurementLabel.trim()} onClick={() => {
-                          const val = newMeasurementLabel.trim().toLowerCase().replace(/\s+/g, '-');
-                          setCustomUnitTypes(prev => [...prev, { value: val, label: newMeasurementLabel.trim(), units: [] }]);
-                          setForm(f => ({ ...f, unitType: val }));
-                          setNewMeasurementLabel('');
-                          setAddingMeasurement(false);
-                        }} className="rounded-lg bg-lume-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-lume-accent/90 disabled:opacity-40">Add</button>
+                          }} className="rounded-lg bg-lume-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-lume-accent/90 disabled:opacity-40">Add</button>
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
 
@@ -1624,53 +1632,40 @@ export default function Products() {
                   </SelectField>
 
                   {addingUnit && (
-                    <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl border border-[#E6DBC4] bg-white p-3 shadow-lg">
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <div>
-                          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Code</label>
-                          <input
-                            autoFocus
-                            type="text"
-                            className="w-full rounded-lg border border-[#E6DBC4] bg-[#FDFAF3] px-3 py-2 text-[13px] text-text-primary outline-none focus:border-lume-accent"
-                            placeholder="e.g. oz"
-                            value={newUnitCode}
-                            onChange={(e) => setNewUnitCode(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Label</label>
-                          <input
-                            type="text"
-                            className="w-full rounded-lg border border-[#E6DBC4] bg-[#FDFAF3] px-3 py-2 text-[13px] text-text-primary outline-none focus:border-lume-accent"
-                            placeholder="e.g. Ounce"
-                            value={newUnitLabel}
-                            onChange={(e) => setNewUnitLabel(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && newUnitCode.trim()) {
-                                const code = newUnitCode.trim();
-                                setCustomUnits(prev => [...prev, code]);
-                                UNIT_LABELS[code] = newUnitLabel.trim() || '';
-                                setForm(f => ({ ...f, unit: code }));
-                                setNewUnitCode(''); setNewUnitLabel('');
-                                setAddingUnit(false);
-                              }
-                              if (e.key === 'Escape') { setAddingUnit(false); setNewUnitCode(''); setNewUnitLabel(''); }
-                            }}
-                          />
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => { setAddingUnit(false); setNewUnitCode(''); }} />
+                      <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl border border-[#E6DBC4] bg-[#FCF8EF] p-3 shadow-xl">
+                        <label className="mb-1 block text-[11px] font-medium text-text-secondary">New unit name / code</label>
+                        <input
+                          autoFocus
+                          type="text"
+                          className="w-full rounded-lg border border-[#E6DBC4] bg-[#FDFAF3] px-3 py-2 text-[13px] text-text-primary outline-none focus:border-lume-accent"
+                          placeholder="e.g. oz or Ounce"
+                          value={newUnitCode}
+                          onChange={(e) => setNewUnitCode(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newUnitCode.trim()) {
+                              const code = newUnitCode.trim();
+                              setCustomUnits(prev => [...prev, code]);
+                              setForm(f => ({ ...f, unit: code }));
+                              setNewUnitCode('');
+                              setAddingUnit(false);
+                            }
+                            if (e.key === 'Escape') { setAddingUnit(false); setNewUnitCode(''); }
+                          }}
+                        />
+                        <div className="mt-2 flex justify-end gap-2">
+                          <button type="button" onClick={() => { setAddingUnit(false); setNewUnitCode(''); }} className="rounded-lg px-3 py-1.5 text-[12px] text-text-secondary hover:bg-black/5">Cancel</button>
+                          <button type="button" disabled={!newUnitCode.trim()} onClick={() => {
+                            const code = newUnitCode.trim();
+                            setCustomUnits(prev => [...prev, code]);
+                            setForm(f => ({ ...f, unit: code }));
+                            setNewUnitCode('');
+                            setAddingUnit(false);
+                          }} className="rounded-lg bg-lume-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-lume-accent/90 disabled:opacity-40">Add</button>
                         </div>
                       </div>
-                      <div className="mt-2 flex justify-end gap-2">
-                        <button type="button" onClick={() => { setAddingUnit(false); setNewUnitCode(''); setNewUnitLabel(''); }} className="rounded-lg px-3 py-1.5 text-[12px] text-text-secondary hover:bg-black/5">Cancel</button>
-                        <button type="button" disabled={!newUnitCode.trim()} onClick={() => {
-                          const code = newUnitCode.trim();
-                          setCustomUnits(prev => [...prev, code]);
-                          UNIT_LABELS[code] = newUnitLabel.trim() || '';
-                          setForm(f => ({ ...f, unit: code }));
-                          setNewUnitCode(''); setNewUnitLabel('');
-                          setAddingUnit(false);
-                        }} className="rounded-lg bg-lume-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-lume-accent/90 disabled:opacity-40">Add</button>
-                      </div>
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -1684,7 +1679,7 @@ export default function Products() {
                 Purchase Types
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
-                {PURCHASE_TYPES.map((pt) => (
+                {activePurchaseTypes.map((pt) => (
                   <label
                     key={pt.value}
                     className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 px-4 py-3 transition-all hover:bg-[#FCF8EF]"
