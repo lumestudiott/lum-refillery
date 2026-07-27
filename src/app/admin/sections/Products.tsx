@@ -116,11 +116,11 @@ function emptyVariantRow(): VariantRowForm {
 
 type ImageEntry = { url: string; alt?: string };
 
-type TabId = 'general' | 'pricing' | 'inventory' | 'media' | 'details' | 'attributes' | 'variants';
+type TabId = 'general' | 'pricing' | 'inventory' | 'media' | 'details' | 'attributes';
 
 const TABS: { id: TabId; label: string; hint: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'General', hint: 'Basic product details and store placement.', icon: Info },
-  { id: 'pricing', label: 'Pricing', hint: 'Price in TTD, discounts, units & purchase type.', icon: Tag },
+  { id: 'pricing', label: 'Pricing & Variants', hint: 'Prices, discounts, purchase types & size/variant options.', icon: Tag },
   { id: 'inventory', label: 'Inventory', hint: 'Track stock and low-stock alerts.', icon: Boxes },
   { id: 'media', label: 'Media', hint: 'Images, image variations & video.', icon: ImageIcon },
   {
@@ -134,12 +134,6 @@ const TABS: { id: TabId; label: string; hint: string; icon: React.ElementType }[
     label: 'Attributes',
     hint: 'Diet or eco labels for filters.',
     icon: SlidersHorizontal,
-  },
-  {
-    id: 'variants',
-    label: 'Variants',
-    hint: 'Options like Size, Flavour - each combo gets its own price & stock.',
-    icon: Layers,
   },
 ];
 
@@ -1489,109 +1483,353 @@ export default function Products() {
           </div>
         )}
 
-        {/* ── Pricing & fulfillment ── */}
+        {/* ── Pricing & Variants ── */}
         {tab === 'pricing' && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField
-              label="Base Retail Price (TTD)"
-              type="number"
-              step="0.01"
-              min="0"
-              value={form.priceDollars}
-              onChange={(e) => setForm({ ...form, priceDollars: e.target.value })}
-              placeholder="0.00"
-            />
-
-            {/* Unit type selector */}
-            <SelectField
-              label="Measurement Type"
-              value={form.unitType}
-              onChange={(e) => changeUnitType(e.target.value)}
-            >
-              <option value="">Select type…</option>
-              {UNIT_TYPES.map((ut) => (
-                <option key={ut.value} value={ut.value}>
-                  {ut.label}
-                </option>
-              ))}
-            </SelectField>
-
-            <SelectField
-              label={form.unitType ? `Unit (${UNIT_TYPES.find((ut) => ut.value === form.unitType)?.label ?? ''})` : 'Unit'}
-              value={form.unit}
-              onChange={(e) => setForm({ ...form, unit: e.target.value })}
-            >
-              {filteredUnits.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                  {UNIT_LABELS[u] ? ` - ${UNIT_LABELS[u]}` : ''}
-                </option>
-              ))}
-            </SelectField>
-
-            {/* Discount tier */}
-            <SelectField
-              label="Discount Tier Level"
-              value={form.discountTier}
-              onChange={(e) => setForm({ ...form, discountTier: e.target.value })}
-            >
-              {DISCOUNT_TIERS.map((tier) => (
-                <option key={tier.value} value={tier.value}>
-                  {tier.label}
-                </option>
-              ))}
-            </SelectField>
-
-            {/* Custom discount */}
-            <TextField
-              label="Custom Discount (%)"
-              type="number"
-              step="0.5"
-              min="0"
-              max="100"
-              value={form.customDiscountPercent}
-              onChange={(e) => setForm({ ...form, customDiscountPercent: e.target.value })}
-              placeholder="e.g. 15"
-            />
-            {/* Case pricing now lives per-size on the Variants tab. */}
-
-            {/* Purchase types (multi-select) - controls the buttons on the
-                product page: One-time → Add, Subscription → Subscribe. */}
-            <div className="sm:col-span-2">
-              <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-text-secondary">
-                Purchase Types
-              </div>
-              <div className="grid gap-1.5 sm:grid-cols-2">
-                {PURCHASE_TYPES.map((pt) => (
-                  <AttributeCheck
-                    key={pt.value}
-                    label={pt.label}
-                    description={pt.description}
-                    checked={form.purchaseTypes.includes(pt.value)}
-                    onChange={(v) =>
-                      setForm({
-                        ...form,
-                        purchaseTypes: v
-                          ? [...form.purchaseTypes, pt.value]
-                          : form.purchaseTypes.filter((t) => t !== pt.value),
-                      })
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-
-            {form.purchaseTypes.includes('deposit') && (
+          <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
               <TextField
-                label="Deposit (TTD, refundable)"
+                label="Base Retail Price (TTD)"
                 type="number"
                 step="0.01"
                 min="0"
-                value={form.depositDollars}
-                onChange={(e) => setForm({ ...form, depositDollars: e.target.value })}
+                value={form.priceDollars}
+                onChange={(e) => setForm({ ...form, priceDollars: e.target.value })}
                 placeholder="0.00"
               />
-            )}
+
+              {/* Unit type selector */}
+              <SelectField
+                label="Measurement Type"
+                value={form.unitType}
+                onChange={(e) => changeUnitType(e.target.value)}
+              >
+                <option value="">Select type…</option>
+                {UNIT_TYPES.map((ut) => (
+                  <option key={ut.value} value={ut.value}>
+                    {ut.label}
+                  </option>
+                ))}
+              </SelectField>
+
+              <SelectField
+                label={form.unitType ? `Unit (${UNIT_TYPES.find((ut) => ut.value === form.unitType)?.label ?? ''})` : 'Unit'}
+                value={form.unit}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+              >
+                {filteredUnits.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                    {UNIT_LABELS[u] ? ` - ${UNIT_LABELS[u]}` : ''}
+                  </option>
+                ))}
+              </SelectField>
+
+              {/* Discount tier */}
+              <SelectField
+                label="Discount Tier Level"
+                value={form.discountTier}
+                onChange={(e) => setForm({ ...form, discountTier: e.target.value })}
+              >
+                {DISCOUNT_TIERS.map((tier) => (
+                  <option key={tier.value} value={tier.value}>
+                    {tier.label}
+                  </option>
+                ))}
+              </SelectField>
+
+              {/* Custom discount */}
+              <TextField
+                label="Custom Discount (%)"
+                type="number"
+                step="0.5"
+                min="0"
+                max="100"
+                value={form.customDiscountPercent}
+                onChange={(e) => setForm({ ...form, customDiscountPercent: e.target.value })}
+                placeholder="e.g. 15"
+              />
+
+              {/* Purchase types (multi-select) - controls the buttons on the
+                  product page: One-time → Add, Subscription → Subscribe. */}
+              <div className="sm:col-span-2">
+                <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-text-secondary">
+                  Purchase Types
+                </div>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  {PURCHASE_TYPES.map((pt) => (
+                    <AttributeCheck
+                      key={pt.value}
+                      label={pt.label}
+                      description={pt.description}
+                      checked={form.purchaseTypes.includes(pt.value)}
+                      onChange={(v) =>
+                        setForm({
+                          ...form,
+                          purchaseTypes: v
+                            ? [...form.purchaseTypes, pt.value]
+                            : form.purchaseTypes.filter((t) => t !== pt.value),
+                        })
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {form.purchaseTypes.includes('deposit') && (
+                <TextField
+                  label="Deposit (TTD, refundable)"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.depositDollars}
+                  onChange={(e) => setForm({ ...form, depositDollars: e.target.value })}
+                  placeholder="0.00"
+                />
+              )}
+            </div>
+
+            <hr className="border-black/[0.08]" />
+
+            {/* ── Variants (sizes with per-size case pricing) ── */}
+            <div className="grid gap-4">
+              <div>
+                <h3 className="text-[14px] font-semibold text-text-primary">Variants &amp; Sizes</h3>
+                <p className="mt-0.5 text-[12px] leading-snug text-text-secondary">
+                  Add each purchasable size (e.g. “250ml One Way Glass”, “2L PET”) with a
+                  photo, then set its ¼ / ½ / full case quantities and prices. Shoppers pick
+                  a size, then a case option — the photo swaps in and the price updates.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label="Option Name"
+                  value={form.optionName}
+                  onChange={(e) => setForm({ ...form, optionName: e.target.value })}
+                  placeholder="e.g. Size"
+                />
+                <TextField
+                  label="Unit Label"
+                  value={form.caseItemLabel}
+                  onChange={(e) => setForm({ ...form, caseItemLabel: e.target.value })}
+                  placeholder="e.g. bottle"
+                />
+              </div>
+
+              {form.variantRows.map((row, i) => {
+                const patchRow = (patch: Partial<VariantRowForm>) =>
+                  setForm({
+                    ...form,
+                    variantRows: form.variantRows.map((r, j) =>
+                      j === i ? { ...r, ...patch } : r
+                    ),
+                  });
+                return (
+                  <div
+                    key={row.id ?? `new-${i}`}
+                    className="rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 p-4"
+                  >
+                    {/* Header: image, active, delete */}
+                    <div className="flex items-center justify-between gap-3 border-b border-black/10 pb-3">
+                      <div className="flex items-center gap-3">
+                        <label className="relative flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-black/15 bg-white/60 transition-colors hover:border-lume-accent">
+                          {row.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={row.imageUrl}
+                              alt={row.label || 'Variant'}
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            <ImageIcon className="h-5 w-5 text-text-secondary/50" />
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={onVariantImage(i)}
+                            disabled={uploading}
+                          />
+                        </label>
+                        <div>
+                          <span className="text-[13px] font-semibold text-text-primary">
+                            {row.label.trim() || `Variant #${i + 1}`}
+                          </span>
+                          <p className="text-[11px] text-text-secondary">
+                            Set a direct price or enable case options below.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <CheckRow
+                          label="Active"
+                          checked={row.active}
+                          onChange={(v) => patchRow({ active: v })}
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm({
+                              ...form,
+                              variantRows: form.variantRows.filter((_, j) => j !== i),
+                            })
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-red-50 hover:text-red-600"
+                          aria-label={`Remove ${row.label || 'variant'}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Name and Direct Price Inputs */}
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <TextField
+                          label="Variant / Size Name"
+                          value={row.label}
+                          onChange={(e) => patchRow({ label: e.target.value })}
+                          placeholder="e.g. 6g Tumeric Powder"
+                        />
+                        {!row.label.trim() && (
+                          <p className="mt-1 text-[11px] font-medium text-red-600">
+                            Name this size — unnamed sizes are not saved.
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <TextField
+                          label="Price (TTD)"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={row.price}
+                          onChange={(e) => patchRow({ price: e.target.value })}
+                          placeholder="e.g. 15.00"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Case options for this size */}
+                    <div className="mt-3 flex flex-col gap-2.5 border-t border-black/10 pt-3">
+                      <span className="text-[12px] font-medium text-text-primary">
+                        Case Options, Quantity &amp; Pricing (TTD)
+                      </span>
+                      <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
+                        <CheckRow
+                          label="¼ Case"
+                          checked={row.enableQuarter}
+                          onChange={(v) => patchRow({ enableQuarter: v })}
+                        />
+                        {row.enableQuarter ? (
+                          <>
+                            <TextField
+                              label=""
+                              type="number"
+                              step="1"
+                              min="1"
+                              value={row.quarterQty}
+                              onChange={(e) => patchRow({ quarterQty: e.target.value })}
+                              placeholder="Qty per ¼ case"
+                            />
+                            <TextField
+                              label=""
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={row.quarterPrice}
+                              onChange={(e) => patchRow({ quarterPrice: e.target.value })}
+                              placeholder="Price for ¼ case"
+                            />
+                          </>
+                        ) : (
+                          <div className="col-span-2" />
+                        )}
+                      </div>
+                      <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
+                        <CheckRow
+                          label="½ Case"
+                          checked={row.enableHalf}
+                          onChange={(v) => patchRow({ enableHalf: v })}
+                        />
+                        {row.enableHalf ? (
+                          <>
+                            <TextField
+                              label=""
+                              type="number"
+                              step="1"
+                              min="1"
+                              value={row.halfQty}
+                              onChange={(e) => patchRow({ halfQty: e.target.value })}
+                              placeholder="Qty per ½ case"
+                            />
+                            <TextField
+                              label=""
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={row.halfPrice}
+                              onChange={(e) => patchRow({ halfPrice: e.target.value })}
+                              placeholder="Price for ½ case"
+                            />
+                          </>
+                        ) : (
+                          <div className="col-span-2" />
+                        )}
+                      </div>
+                      <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
+                        <CheckRow
+                          label="Full Case"
+                          checked={row.enableFull}
+                          onChange={(v) => patchRow({ enableFull: v })}
+                        />
+                        {row.enableFull ? (
+                          <>
+                            <TextField
+                              label=""
+                              type="number"
+                              step="1"
+                              min="1"
+                              value={row.fullQty}
+                              onChange={(e) => patchRow({ fullQty: e.target.value })}
+                              placeholder="Qty per full case"
+                            />
+                            <TextField
+                              label=""
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={row.fullPrice}
+                              onChange={(e) => patchRow({ fullPrice: e.target.value })}
+                              placeholder="Price for full case"
+                            />
+                          </>
+                        ) : (
+                          <div className="col-span-2" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div>
+                <Btn
+                  variant="ghost"
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      variantRows: [...form.variantRows, emptyVariantRow()],
+                    })
+                  }
+                >
+                  <Plus className="h-4 w-4" /> Add {form.optionName.trim() || 'Size'}
+                </Btn>
+              </div>
+            </div>
           </div>
         )}
 
@@ -2187,245 +2425,6 @@ export default function Products() {
           </div>
         )}
 
-        {/* ── Variants (sizes with per-size case pricing) ── */}
-        {tab === 'variants' && (
-          <div className="grid gap-4">
-            <p className="text-[12px] leading-snug text-text-secondary">
-              Add each purchasable size (e.g. “250ml One Way Glass”, “2L PET”) with a
-              photo, then set its ¼ / ½ / full case quantities and prices. Shoppers pick
-              a size, then a case option — the photo swaps in and the price updates.
-            </p>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                label="Option Name"
-                value={form.optionName}
-                onChange={(e) => setForm({ ...form, optionName: e.target.value })}
-                placeholder="e.g. Size"
-              />
-              <TextField
-                label="Unit Label"
-                value={form.caseItemLabel}
-                onChange={(e) => setForm({ ...form, caseItemLabel: e.target.value })}
-                placeholder="e.g. bottle"
-              />
-            </div>
-
-            {form.variantRows.map((row, i) => {
-              const patchRow = (patch: Partial<VariantRowForm>) =>
-                setForm({
-                  ...form,
-                  variantRows: form.variantRows.map((r, j) =>
-                    j === i ? { ...r, ...patch } : r
-                  ),
-                });
-              return (
-                <div
-                  key={row.id ?? `new-${i}`}
-                  className="rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 p-4"
-                >
-                  {/* Header: image, active, delete */}
-                  <div className="flex items-center justify-between gap-3 border-b border-black/10 pb-3">
-                    <div className="flex items-center gap-3">
-                      <label className="relative flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-black/15 bg-white/60 transition-colors hover:border-lume-accent">
-                        {row.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={row.imageUrl}
-                            alt={row.label || 'Variant'}
-                            className="h-full w-full object-contain"
-                          />
-                        ) : (
-                          <ImageIcon className="h-5 w-5 text-text-secondary/50" />
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={onVariantImage(i)}
-                          disabled={uploading}
-                        />
-                      </label>
-                      <div>
-                        <span className="text-[13px] font-semibold text-text-primary">
-                          {row.label.trim() || `Variant #${i + 1}`}
-                        </span>
-                        <p className="text-[11px] text-text-secondary">
-                          Set a direct price or enable case options below.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <CheckRow
-                        label="Active"
-                        checked={row.active}
-                        onChange={(v) => patchRow({ active: v })}
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setForm({
-                            ...form,
-                            variantRows: form.variantRows.filter((_, j) => j !== i),
-                          })
-                        }
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-red-50 hover:text-red-600"
-                        aria-label={`Remove ${row.label || 'variant'}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Name and Direct Price Inputs */}
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <TextField
-                        label="Variant / Size Name"
-                        value={row.label}
-                        onChange={(e) => patchRow({ label: e.target.value })}
-                        placeholder="e.g. 6g Tumeric Powder"
-                      />
-                      {!row.label.trim() && (
-                        <p className="mt-1 text-[11px] font-medium text-red-600">
-                          Name this size — unnamed sizes are not saved.
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <TextField
-                        label="Price (TTD)"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={row.price}
-                        onChange={(e) => patchRow({ price: e.target.value })}
-                        placeholder="e.g. 15.00"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Case options for this size */}
-                  <div className="mt-3 flex flex-col gap-2.5 border-t border-black/10 pt-3">
-                    <span className="text-[12px] font-medium text-text-primary">
-                      Case Options, Quantity &amp; Pricing (TTD)
-                    </span>
-                    <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
-                      <CheckRow
-                        label="¼ Case"
-                        checked={row.enableQuarter}
-                        onChange={(v) => patchRow({ enableQuarter: v })}
-                      />
-                      {row.enableQuarter ? (
-                        <>
-                          <TextField
-                            label=""
-                            type="number"
-                            step="1"
-                            min="1"
-                            value={row.quarterQty}
-                            onChange={(e) => patchRow({ quarterQty: e.target.value })}
-                            placeholder="Qty per ¼ case"
-                          />
-                          <TextField
-                            label=""
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={row.quarterPrice}
-                            onChange={(e) => patchRow({ quarterPrice: e.target.value })}
-                            placeholder="Price for ¼ case"
-                          />
-                        </>
-                      ) : (
-                        <div className="col-span-2" />
-                      )}
-                    </div>
-                    <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
-                      <CheckRow
-                        label="½ Case"
-                        checked={row.enableHalf}
-                        onChange={(v) => patchRow({ enableHalf: v })}
-                      />
-                      {row.enableHalf ? (
-                        <>
-                          <TextField
-                            label=""
-                            type="number"
-                            step="1"
-                            min="1"
-                            value={row.halfQty}
-                            onChange={(e) => patchRow({ halfQty: e.target.value })}
-                            placeholder="Qty per ½ case"
-                          />
-                          <TextField
-                            label=""
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={row.halfPrice}
-                            onChange={(e) => patchRow({ halfPrice: e.target.value })}
-                            placeholder="Price for ½ case"
-                          />
-                        </>
-                      ) : (
-                        <div className="col-span-2" />
-                      )}
-                    </div>
-                    <div className="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-3">
-                      <CheckRow
-                        label="Full Case"
-                        checked={row.enableFull}
-                        onChange={(v) => patchRow({ enableFull: v })}
-                      />
-                      {row.enableFull ? (
-                        <>
-                          <TextField
-                            label=""
-                            type="number"
-                            step="1"
-                            min="1"
-                            value={row.fullQty}
-                            onChange={(e) => patchRow({ fullQty: e.target.value })}
-                            placeholder="Qty per full case"
-                          />
-                          <TextField
-                            label=""
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={row.fullPrice}
-                            onChange={(e) => patchRow({ fullPrice: e.target.value })}
-                            placeholder="Price for full case"
-                          />
-                        </>
-                      ) : (
-                        <div className="col-span-2" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            <div>
-              <Btn
-                variant="ghost"
-                onClick={() =>
-                  setForm({
-                    ...form,
-                    variantRows: [...form.variantRows, emptyVariantRow()],
-                  })
-                }
-              >
-                <Plus className="h-4 w-4" /> Add {form.optionName.trim() || 'Size'}
-              </Btn>
-            </div>
-          </div>
-        )}
       </Modal>
 
       <CategoryManager open={managingCats} onClose={() => setManagingCats(false)} />
