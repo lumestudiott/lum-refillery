@@ -114,7 +114,7 @@ type ImageEntry = { url: string; alt?: string };
 type TabId = 'general' | 'pricing' | 'inventory' | 'media' | 'details' | 'attributes' | 'variants';
 
 const TABS: { id: TabId; label: string; hint: string; icon: React.ElementType }[] = [
-  { id: 'general', label: 'General', hint: 'The basics — what this product is and where it appears in the shop.', icon: Info },
+  { id: 'general', label: 'General', hint: 'Basic product details and store placement.', icon: Info },
   { id: 'pricing', label: 'Pricing', hint: 'Price in TTD, discounts, units & purchase type.', icon: Tag },
   { id: 'inventory', label: 'Inventory', hint: 'Track stock and low-stock alerts.', icon: Boxes },
   { id: 'media', label: 'Media', hint: 'Images, image variations & video.', icon: ImageIcon },
@@ -1125,13 +1125,13 @@ export default function Products() {
                 label="Product Name *"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Moringa Powder, Coconut Oil"
+                placeholder="e.g. Eco Laundry Liquid"
               />
               <TextField
                 label="Brand (optional)"
                 value={form.brand}
                 onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                placeholder="e.g. Sungrown Harvest, Blue Waters"
+                placeholder="e.g. Acme Organics"
               />
             </div>
 
@@ -1142,14 +1142,14 @@ export default function Products() {
                 label="SKU *"
                 value={form.sku}
                 onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                placeholder="e.g. FP-HERB-01, BEV-HYD-01"
+                placeholder="e.g. SK-1001"
               />
               <div className="sm:col-span-2">
                 <TextField
                   label="Page URL (optional)"
                   value={form.slug}
                   onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                  placeholder="e.g. moringa-powder, hot-pepper-flakes"
+                  placeholder="e.g. eco-laundry-liquid"
                 />
                 {form.slug.trim() && (
                   <p className="mt-1.5 text-[12px] leading-snug text-text-secondary">
@@ -1225,7 +1225,7 @@ export default function Products() {
               label="Description (optional)"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="e.g. Locally grown and sun-dried. Rich in vitamins A and C."
+              placeholder="e.g. Enter product details, usage instructions, or highlights."
             />
 
             <hr className="border-black/[0.06]" />
