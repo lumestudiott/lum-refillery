@@ -1679,39 +1679,47 @@ export default function Products() {
                 Purchase Types
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
-                {activePurchaseTypes.map((pt) => (
-                  <label
-                    key={pt.value}
-                    className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 px-4 py-3 transition-all hover:bg-[#FCF8EF]"
-                  >
-                    <div className="flex flex-col">
-                      <span className="text-[13px] font-medium text-text-primary">{pt.label}</span>
-                      <span className="text-[11px] leading-snug text-text-secondary">{pt.description}</span>
-                    </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={form.purchaseTypes.includes(pt.value)}
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          purchaseTypes: form.purchaseTypes.includes(pt.value)
-                            ? form.purchaseTypes.filter((t) => t !== pt.value)
-                            : [...form.purchaseTypes, pt.value],
-                        })
-                      }
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        form.purchaseTypes.includes(pt.value) ? 'bg-lume-accent' : 'bg-black/20'
-                      }`}
+                {activePurchaseTypes.map((pt) => {
+                  const isChecked = form.purchaseTypes.includes(pt.value);
+                  const togglePT = () => {
+                    setForm({
+                      ...form,
+                      purchaseTypes: isChecked
+                        ? form.purchaseTypes.filter((t) => t !== pt.value)
+                        : [...form.purchaseTypes, pt.value],
+                    });
+                  };
+                  return (
+                    <div
+                      key={pt.value}
+                      onClick={togglePT}
+                      className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 px-4 py-3 transition-all hover:bg-[#FCF8EF]"
                     >
-                      <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          form.purchaseTypes.includes(pt.value) ? 'translate-x-4' : 'translate-x-0'
+                      <div className="flex flex-col">
+                        <span className="text-[13px] font-medium text-text-primary">{pt.label}</span>
+                        <span className="text-[11px] leading-snug text-text-secondary">{pt.description}</span>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={isChecked}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePT();
+                        }}
+                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          isChecked ? 'bg-lume-accent' : 'bg-black/20'
                         }`}
-                      />
-                    </button>
-                  </label>
-                ))}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            isChecked ? 'translate-x-4' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
