@@ -120,7 +120,7 @@ type TabId = 'general' | 'pricing' | 'inventory' | 'media' | 'details' | 'attrib
 
 const TABS: { id: TabId; label: string; hint: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'General', hint: 'Basic product details and store placement.', icon: Info },
-  { id: 'pricing', label: 'Pricing', hint: 'Prices, discounts, purchase types & size/variant options.', icon: Tag },
+  { id: 'pricing', label: 'Pricing', hint: 'Set prices, discounts and sizes.', icon: Tag },
   { id: 'inventory', label: 'Inventory', hint: 'Track stock and low-stock alerts.', icon: Boxes },
   { id: 'media', label: 'Media', hint: 'Images, image variations & video.', icon: ImageIcon },
   {
@@ -359,6 +359,15 @@ export default function Products() {
   const [uploading, setUploading] = useState(false);
   const [tagSearch, setTagSearch] = useState('');
   const [customAttrInput, setCustomAttrInput] = useState('');
+
+  // Custom unit / measurement type state
+  const [customUnits, setCustomUnits] = useState<string[]>([]);
+  const [customUnitTypes, setCustomUnitTypes] = useState<{ value: string; label: string; units: string[] }[]>([]);
+  const [addingUnit, setAddingUnit] = useState(false);
+  const [addingMeasurement, setAddingMeasurement] = useState(false);
+  const [newUnitCode, setNewUnitCode] = useState('');
+  const [newUnitLabel, setNewUnitLabel] = useState('');
+  const [newMeasurementLabel, setNewMeasurementLabel] = useState('');
 
   useEffect(() => {
     ensureSeeded().catch(() => {});
@@ -765,13 +774,12 @@ export default function Products() {
     };
   }
 
-  // ── Unit type helper ──
   function changeUnitType(type: string) {
-    const group = UNIT_TYPES.find((ut) => ut.value === type);
+    const group = [...UNIT_TYPES, ...customUnitTypes].find((ut) => ut.value === type);
     setForm((f) => ({
       ...f,
       unitType: type,
-      unit: group ? group.units[0] : f.unit,
+      unit: group ? group.units[0] || f.unit : f.unit,
     }));
   }
 
@@ -995,9 +1003,11 @@ export default function Products() {
   const shopParents = useMemo(() => shopCats ?? [], [shopCats]);
   const selectedShopParent = shopParents.find((p) => p.slug === form.shopCategorySlug);
 
-  // Unit type filtered units
-  const unitTypeGroup = UNIT_TYPES.find((ut) => ut.value === form.unitType);
-  const filteredUnits = unitTypeGroup ? unitTypeGroup.units : units;
+  // Unit type filtered units (includes custom units)
+  const allUnitTypes = [...UNIT_TYPES, ...customUnitTypes];
+  const unitTypeGroup = allUnitTypes.find((ut) => ut.value === form.unitType);
+  const allUnits = [...new Set([...units, ...customUnits])];
+  const filteredUnits = unitTypeGroup ? [...new Set([...unitTypeGroup.units, ...customUnits.filter(u => unitTypeGroup.units.includes(u))])] : allUnits;
 
   const ITEMS_PER_PAGE_OPTIONS = [10, 20, 50];
   const [pageSize, setPageSize] = useState(10);
@@ -1486,9 +1496,10 @@ export default function Products() {
         {/* ── Pricing & Variants ── */}
         {tab === 'pricing' && (
           <div className="space-y-6">
+            {/* ── Price & Discount ── */}
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField
-                label="Base Retail Price (TTD)"
+                label="Base Retail Price *"
                 type="number"
                 step="0.01"
                 min="0"
@@ -1497,49 +1508,8 @@ export default function Products() {
                 placeholder="0.00"
               />
 
-              {/* Unit type selector */}
-              <SelectField
-                label="Measurement Type"
-                value={form.unitType}
-                onChange={(e) => changeUnitType(e.target.value)}
-              >
-                <option value="">Select type…</option>
-                {UNIT_TYPES.map((ut) => (
-                  <option key={ut.value} value={ut.value}>
-                    {ut.label}
-                  </option>
-                ))}
-              </SelectField>
-
-              <SelectField
-                label={form.unitType ? `Unit (${UNIT_TYPES.find((ut) => ut.value === form.unitType)?.label ?? ''})` : 'Unit'}
-                value={form.unit}
-                onChange={(e) => setForm({ ...form, unit: e.target.value })}
-              >
-                {filteredUnits.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                    {UNIT_LABELS[u] ? ` - ${UNIT_LABELS[u]}` : ''}
-                  </option>
-                ))}
-              </SelectField>
-
-              {/* Discount tier */}
-              <SelectField
-                label="Discount Tier Level"
-                value={form.discountTier}
-                onChange={(e) => setForm({ ...form, discountTier: e.target.value })}
-              >
-                {DISCOUNT_TIERS.map((tier) => (
-                  <option key={tier.value} value={tier.value}>
-                    {tier.label}
-                  </option>
-                ))}
-              </SelectField>
-
-              {/* Custom discount */}
               <TextField
-                label="Custom Discount (%)"
+                label="Discount (%)"
                 type="number"
                 step="0.5"
                 min="0"
@@ -1549,35 +1519,9 @@ export default function Products() {
                 placeholder="e.g. 15"
               />
 
-              {/* Purchase types (multi-select) - controls the buttons on the
-                  product page: One-time → Add, Subscription → Subscribe. */}
-              <div className="sm:col-span-2">
-                <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-text-secondary">
-                  Purchase Types
-                </div>
-                <div className="grid gap-1.5 sm:grid-cols-2">
-                  {PURCHASE_TYPES.map((pt) => (
-                    <AttributeCheck
-                      key={pt.value}
-                      label={pt.label}
-                      description={pt.description}
-                      checked={form.purchaseTypes.includes(pt.value)}
-                      onChange={(v) =>
-                        setForm({
-                          ...form,
-                          purchaseTypes: v
-                            ? [...form.purchaseTypes, pt.value]
-                            : form.purchaseTypes.filter((t) => t !== pt.value),
-                        })
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-
               {form.purchaseTypes.includes('deposit') && (
                 <TextField
-                  label="Deposit (TTD, refundable)"
+                  label="Deposit (refundable)"
                   type="number"
                   step="0.01"
                   min="0"
@@ -1586,6 +1530,194 @@ export default function Products() {
                   placeholder="0.00"
                 />
               )}
+            </div>
+
+            <hr className="border-black/[0.06]" />
+
+            {/* ── Unit & Measurement ── */}
+            <div>
+              <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.05em] text-text-secondary">
+                Unit & Measurement
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Measurement Type with inline add */}
+                <div className="relative">
+                  <SelectField
+                    label="Measurement Type"
+                    value={form.unitType}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new__') {
+                        setAddingMeasurement(true);
+                        e.target.value = form.unitType; // revert
+                        return;
+                      }
+                      changeUnitType(e.target.value);
+                    }}
+                  >
+                    <option value="">Select type…</option>
+                    {allUnitTypes.map((ut) => (
+                      <option key={ut.value} value={ut.value}>
+                        {ut.label}
+                      </option>
+                    ))}
+                    <option disabled>──────────</option>
+                    <option value="__add_new__">+ Add new type…</option>
+                  </SelectField>
+
+                  {addingMeasurement && (
+                    <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl border border-[#E6DBC4] bg-white p-3 shadow-lg">
+                      <label className="mb-1 block text-[11px] font-medium text-text-secondary">New measurement type name</label>
+                      <input
+                        autoFocus
+                        type="text"
+                        className="w-full rounded-lg border border-[#E6DBC4] bg-[#FDFAF3] px-3 py-2 text-[13px] text-text-primary outline-none focus:border-lume-accent"
+                        placeholder="e.g. Temperature"
+                        value={newMeasurementLabel}
+                        onChange={(e) => setNewMeasurementLabel(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newMeasurementLabel.trim()) {
+                            const val = newMeasurementLabel.trim().toLowerCase().replace(/\s+/g, '-');
+                            setCustomUnitTypes(prev => [...prev, { value: val, label: newMeasurementLabel.trim(), units: [] }]);
+                            setForm(f => ({ ...f, unitType: val }));
+                            setNewMeasurementLabel('');
+                            setAddingMeasurement(false);
+                          }
+                          if (e.key === 'Escape') { setAddingMeasurement(false); setNewMeasurementLabel(''); }
+                        }}
+                      />
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button type="button" onClick={() => { setAddingMeasurement(false); setNewMeasurementLabel(''); }} className="rounded-lg px-3 py-1.5 text-[12px] text-text-secondary hover:bg-black/5">Cancel</button>
+                        <button type="button" disabled={!newMeasurementLabel.trim()} onClick={() => {
+                          const val = newMeasurementLabel.trim().toLowerCase().replace(/\s+/g, '-');
+                          setCustomUnitTypes(prev => [...prev, { value: val, label: newMeasurementLabel.trim(), units: [] }]);
+                          setForm(f => ({ ...f, unitType: val }));
+                          setNewMeasurementLabel('');
+                          setAddingMeasurement(false);
+                        }} className="rounded-lg bg-lume-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-lume-accent/90 disabled:opacity-40">Add</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Unit with inline add */}
+                <div className="relative">
+                  <SelectField
+                    label={form.unitType ? `Unit (${allUnitTypes.find((ut) => ut.value === form.unitType)?.label ?? ''})` : 'Unit'}
+                    value={form.unit}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new__') {
+                        setAddingUnit(true);
+                        e.target.value = form.unit; // revert
+                        return;
+                      }
+                      setForm({ ...form, unit: e.target.value });
+                    }}
+                  >
+                    {filteredUnits.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                        {UNIT_LABELS[u] ? ` - ${UNIT_LABELS[u]}` : ''}
+                      </option>
+                    ))}
+                    <option disabled>──────────</option>
+                    <option value="__add_new__">+ Add new unit…</option>
+                  </SelectField>
+
+                  {addingUnit && (
+                    <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl border border-[#E6DBC4] bg-white p-3 shadow-lg">
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Code</label>
+                          <input
+                            autoFocus
+                            type="text"
+                            className="w-full rounded-lg border border-[#E6DBC4] bg-[#FDFAF3] px-3 py-2 text-[13px] text-text-primary outline-none focus:border-lume-accent"
+                            placeholder="e.g. oz"
+                            value={newUnitCode}
+                            onChange={(e) => setNewUnitCode(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Label</label>
+                          <input
+                            type="text"
+                            className="w-full rounded-lg border border-[#E6DBC4] bg-[#FDFAF3] px-3 py-2 text-[13px] text-text-primary outline-none focus:border-lume-accent"
+                            placeholder="e.g. Ounce"
+                            value={newUnitLabel}
+                            onChange={(e) => setNewUnitLabel(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && newUnitCode.trim()) {
+                                const code = newUnitCode.trim();
+                                setCustomUnits(prev => [...prev, code]);
+                                UNIT_LABELS[code] = newUnitLabel.trim() || '';
+                                setForm(f => ({ ...f, unit: code }));
+                                setNewUnitCode(''); setNewUnitLabel('');
+                                setAddingUnit(false);
+                              }
+                              if (e.key === 'Escape') { setAddingUnit(false); setNewUnitCode(''); setNewUnitLabel(''); }
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button type="button" onClick={() => { setAddingUnit(false); setNewUnitCode(''); setNewUnitLabel(''); }} className="rounded-lg px-3 py-1.5 text-[12px] text-text-secondary hover:bg-black/5">Cancel</button>
+                        <button type="button" disabled={!newUnitCode.trim()} onClick={() => {
+                          const code = newUnitCode.trim();
+                          setCustomUnits(prev => [...prev, code]);
+                          UNIT_LABELS[code] = newUnitLabel.trim() || '';
+                          setForm(f => ({ ...f, unit: code }));
+                          setNewUnitCode(''); setNewUnitLabel('');
+                          setAddingUnit(false);
+                        }} className="rounded-lg bg-lume-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-lume-accent/90 disabled:opacity-40">Add</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <hr className="border-black/[0.06]" />
+
+            {/* ── Purchase Types (toggle switches) ── */}
+            <div>
+              <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.05em] text-text-secondary">
+                Purchase Types
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {PURCHASE_TYPES.map((pt) => (
+                  <label
+                    key={pt.value}
+                    className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 px-4 py-3 transition-all hover:bg-[#FCF8EF]"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-[13px] font-medium text-text-primary">{pt.label}</span>
+                      <span className="text-[11px] leading-snug text-text-secondary">{pt.description}</span>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={form.purchaseTypes.includes(pt.value)}
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          purchaseTypes: form.purchaseTypes.includes(pt.value)
+                            ? form.purchaseTypes.filter((t) => t !== pt.value)
+                            : [...form.purchaseTypes, pt.value],
+                        })
+                      }
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        form.purchaseTypes.includes(pt.value) ? 'bg-lume-accent' : 'bg-black/20'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          form.purchaseTypes.includes(pt.value) ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </label>
+                ))}
+              </div>
             </div>
 
             <hr className="border-black/[0.08]" />
