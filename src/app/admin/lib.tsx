@@ -224,6 +224,14 @@ const fieldBase =
   'w-full rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/85 px-3.5 py-2.5 text-[14px] text-text-primary outline-none transition-all focus:border-lume-accent focus:ring-4 focus:ring-lume-accent/10';
 
 export function Label({ children }: { children: React.ReactNode }) {
+  if (typeof children === 'string' && children.endsWith('*')) {
+    const mainText = children.slice(0, -1).trim();
+    return (
+      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+        {mainText} <span className="text-red-500 font-bold text-[13px] inline-block leading-none ml-0.5">*</span>
+      </label>
+    );
+  }
   return (
     <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
       {children}
