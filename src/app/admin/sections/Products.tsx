@@ -1235,29 +1235,24 @@ export default function Products() {
               <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
                 Tags (optional)
               </label>
-              {/* Selected tags */}
-              {form.tags.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                  {form.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="inline-flex items-center gap-1 rounded-full border border-lume-accent bg-lume-accent/10 px-3 py-1 text-[12px] font-medium text-lume-accent"
+              {/* Single container with tags inline before the text field */}
+              <div className="relative flex flex-wrap items-center gap-1.5 rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/85 p-2 transition-all focus-within:border-lume-accent focus-within:ring-4 focus-within:ring-lume-accent/10">
+                <Search className="pointer-events-none h-4 w-4 shrink-0 text-text-secondary ml-1" />
+                {form.tags.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1 rounded-lg border border-lume-accent/30 bg-lume-accent/10 px-2.5 py-1 text-[12px] font-medium text-lume-accent"
+                  >
+                    {t}
+                    <button
+                      type="button"
+                      onClick={() => removeFormTag(t)}
+                      className="ml-0.5 rounded-full p-0.5 hover:bg-lume-accent/20"
                     >
-                      {t}
-                      <button
-                        type="button"
-                        onClick={() => removeFormTag(t)}
-                        className="ml-0.5 rounded-full p-0.5 hover:bg-lume-accent/20"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              {/* Search + add */}
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
                 <input
                   value={tagSearch}
                   onChange={(e) => setTagSearch(e.target.value)}
@@ -1268,10 +1263,11 @@ export default function Products() {
                       setTagSearch('');
                     }
                   }}
-                  placeholder="Search or add tags…"
-                  className="w-full rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/85 py-2 pl-9 pr-3 text-[13px] outline-none focus:border-lume-accent"
+                  placeholder={form.tags.length === 0 ? "Search or add tags…" : "Add tag…"}
+                  className="min-w-[120px] flex-1 bg-transparent px-1 py-1 text-[13px] text-text-primary outline-none"
                 />
               </div>
+
               {/* Dropdown */}
               {tagSearch.trim() && (
                 <div className="mt-1 max-h-40 overflow-y-auto rounded-xl border border-[#E6DBC4] bg-canvas shadow-lg">

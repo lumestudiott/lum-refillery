@@ -284,14 +284,23 @@ export function CheckRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-[13px] capitalize text-text-primary">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 accent-lume-accent"
-      />
-      {label}
+    <label className="inline-flex cursor-pointer items-center gap-3 rounded-xl border border-[#E6DBC4] bg-[#FCF8EF]/60 px-4 py-3 transition-all hover:bg-[#FCF8EF]">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+          checked ? 'bg-lume-accent' : 'bg-black/20'
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+            checked ? 'translate-x-4' : 'translate-x-0'
+          }`}
+        />
+      </button>
+      <span className="text-[13.5px] font-medium text-text-primary">{label}</span>
     </label>
   );
 }
