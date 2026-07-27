@@ -23,6 +23,9 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
@@ -456,8 +459,24 @@ export default function Products() {
     return [...set].sort();
   }, [products]);
 
+  type SortField = 'name' | 'sku' | 'category' | 'stock' | 'status';
+  type SortOrder = 'asc' | 'desc';
+
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  function handleSort(field: SortField) {
+    if (sortField === field) {
+      if (sortOrder === 'asc') setSortOrder('desc');
+      else setSortField(null); // toggle off on 3rd click
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  }
+
   const filtered = useMemo(() => {
-    return (products ?? []).filter((p) => {
+    let list = (products ?? []).filter((p) => {
       if (category && p.category !== category) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -469,7 +488,45 @@ export default function Products() {
       }
       return true;
     });
-  }, [products, search, category]);
+
+    if (sortField) {
+      list = [...list].sort((a, b) => {
+        let valA: string | number = '';
+        let valB: string | number = '';
+
+        if (sortField === 'name') {
+          valA = a.name.toLowerCase();
+          valB = b.name.toLowerCase();
+        } else if (sortField === 'sku') {
+          valA = a.sku.toLowerCase();
+          valB = b.sku.toLowerCase();
+        } else if (sortField === 'category') {
+          valA = catLabel(a.category).toLowerCase();
+          valB = catLabel(b.category).toLowerCase();
+        } else if (sortField === 'status') {
+          valA = a.active ? 1 : 0;
+          valB = b.active ? 1 : 0;
+        } else if (sortField === 'stock') {
+          const getStockRank = (p: typeof a) => {
+            const st = stockStatus(p);
+            const vs = p.variantStock;
+            if (st.soldOut || vs?.anyOutOfStock) return 0; // out of stock first
+            if (st.low || vs?.anyLow) return 1;            // low stock next
+            if (!st.tracked && !vs?.hasVariants) return 3; // not tracked last
+            return 2;                                      // in stock
+          };
+          valA = getStockRank(a);
+          valB = getStockRank(b);
+        }
+
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return list;
+  }, [products, search, category, sortField, sortOrder, catByCode]);
 
   function openCreate() {
     setForm(emptyForm());
@@ -1016,11 +1073,71 @@ export default function Products() {
           <Table
             head={
               <>
-                <Th>Product</Th>
-                <Th>SKU</Th>
-                <Th>Category</Th>
-                <Th>Stock</Th>
-                <Th>Status</Th>
+                <Th>
+                  <button
+                    onClick={() => handleSort('name')}
+                    className="inline-flex items-center gap-1 font-semibold hover:text-text-primary transition-colors"
+                  >
+                    Product
+                    {sortField === 'name' ? (
+                      sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 opacity-40" />
+                    )}
+                  </button>
+                </Th>
+                <Th>
+                  <button
+                    onClick={() => handleSort('sku')}
+                    className="inline-flex items-center gap-1 font-semibold hover:text-text-primary transition-colors"
+                  >
+                    SKU
+                    {sortField === 'sku' ? (
+                      sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 opacity-40" />
+                    )}
+                  </button>
+                </Th>
+                <Th>
+                  <button
+                    onClick={() => handleSort('category')}
+                    className="inline-flex items-center gap-1 font-semibold hover:text-text-primary transition-colors"
+                  >
+                    Category
+                    {sortField === 'category' ? (
+                      sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 opacity-40" />
+                    )}
+                  </button>
+                </Th>
+                <Th>
+                  <button
+                    onClick={() => handleSort('stock')}
+                    className="inline-flex items-center gap-1 font-semibold hover:text-text-primary transition-colors"
+                  >
+                    Stock
+                    {sortField === 'stock' ? (
+                      sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 opacity-40" />
+                    )}
+                  </button>
+                </Th>
+                <Th>
+                  <button
+                    onClick={() => handleSort('status')}
+                    className="inline-flex items-center gap-1 font-semibold hover:text-text-primary transition-colors"
+                  >
+                    Status
+                    {sortField === 'status' ? (
+                      sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 opacity-40" />
+                    )}
+                  </button>
+                </Th>
                 <Th className="text-right">Actions</Th>
               </>
             }
